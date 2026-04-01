@@ -349,7 +349,7 @@ class ManagerController extends Controller
             ], 404);
         }
 
-        $query = Employee::query()->with(['division']);
+        $query = Employee::query()->with(['division', 'department', 'position', 'managerFunctional', 'managerOperational']);
         if ($manager) {
             $query->where(function ($q) use ($manager) {
                 $q->where('manager_functional_id', $manager->id)
@@ -390,10 +390,22 @@ class ManagerController extends Controller
                 'id' => $employee->id,
                 'employee_number' => $employee->employee_number,
                 'name' => $employee->name,
+                'date_joined' => $employee->date_joined?->format('Y-m-d'),
+                'induction_date' => $employee->induction_date?->format('Y-m-d'),
                 'email' => $employee->email,
+                'whatsapp' => $employee->whatsapp,
+                'vnb_period_start' => $employee->vnb_period_start?->format('Y-m-d'),
+                'vnb_period_end' => $employee->vnb_period_end?->format('Y-m-d'),
                 'company' => $employee->company,
                 'division' => $employee->division?->name,
+                'department' => $employee->department?->name,
+                'position' => $employee->position?->name,
+                'placement' => $employee->placement,
+                'level' => $employee->level,
+                'employee_status' => $employee->employee_status,
                 'career_stage' => $employee->level,
+                'manager_functional' => $employee->managerFunctional?->name,
+                'manager_operational' => $employee->managerOperational?->name,
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $latestPlanMap->get($employee->id)),
                 'progress' => round((float) $progress, 1),
                 'employment_state' => $employee->employment_state ?? 'active',
@@ -866,17 +878,35 @@ class ManagerController extends Controller
                 ->first();
 
             if ($emailMatchedUser) {
+                // Reject if email is linked to a new hire
                 if ($emailMatchedUser->employee_id || $emailMatchedUser->hasRole('new_hire')) {
                     throw ValidationException::withMessages([
                         'email' => ['Email manager sudah dipakai akun New Hire. Gunakan email manager yang berbeda.'],
                     ]);
                 }
 
-                $hasLinkedManager = Manager::query()->where('user_id', $emailMatchedUser->id)->exists();
-                if (!$emailMatchedUser->hasRole('manager') && !$hasLinkedManager) {
+                // Check if the email-matched user has a different manager linked
+                $differentManagerLinked = Manager::query()
+                    ->where('user_id', $emailMatchedUser->id)
+                    ->where('id', '!=', $manager->id)
+                    ->exists();
+                if ($differentManagerLinked) {
                     throw ValidationException::withMessages([
-                        'email' => ['Email manager sudah dipakai akun non-manager. Gunakan email manager yang berbeda.'],
+                        'email' => ['Email sudah dipakai akun manager lain. Gunakan email manager yang berbeda.'],
                     ]);
+                }
+
+                // Only reuse the user if they are manager role and either:
+                // 1. They have no manager linked yet, OR
+                // 2. They are already linked to this manager
+                $hasLinkedManager = Manager::query()->where('user_id', $emailMatchedUser->id)->exists();
+                if (!$emailMatchedUser->hasRole('manager')) {
+                    // If not manager role, only accept if no manager is linked
+                    if ($hasLinkedManager) {
+                        throw ValidationException::withMessages([
+                            'email' => ['Email sudah dipakai. Gunakan email manager yang berbeda.'],
+                        ]);
+                    }
                 }
 
                 $user = $emailMatchedUser;

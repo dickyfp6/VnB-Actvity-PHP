@@ -11,7 +11,7 @@
   </div>
 
   <div class="bg-white rounded-xl shadow-sm p-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm" id="profile-box">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" id="profile-box">
       <div class="text-gray-500">Memuat profil...</div>
     </div>
   </div>
@@ -73,16 +73,18 @@
       <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm" style="min-width: 900px; table-layout: fixed;">
+      <table class="min-w-full divide-y divide-gray-200 text-sm" style="min-width: 1000px; table-layout: fixed;">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 25%;">Behaviour</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 37.5%;">Integrasi</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 37.5%;">Rencana Aktivitas</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Behaviour</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 6%;">Fase</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Integrasi Pengukuran</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Rencana Aktivitas</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Aksi</th>
           </tr>
         </thead>
         <tbody id="planning-body" class="divide-y divide-gray-200 text-gray-700">
-          <tr><td colspan="3" class="text-center py-8 text-gray-400">Memuat planning...</td></tr>
+          <tr><td colspan="5" class="text-center py-8 text-gray-400">Memuat planning...</td></tr>
         </tbody>
       </table>
     </div>
@@ -204,15 +206,17 @@ function renderPhaseOverview(detail) {
   tabIds.forEach(id => {
     const tab = document.getElementById(id);
     if (!tab) return;
-    tab.classList.remove('border-green-700', 'bg-green-50', 'text-green-800');
-    tab.classList.add('border-gray-200', 'bg-white', 'text-gray-700');
+    tab.classList.remove('border-green-800', 'text-white');
+    tab.style.backgroundColor = '';
+    tab.classList.add('border-gray-200', 'text-gray-700');
   });
 
   const activeKey = selectedTab || currentStage;
   const activeTab = document.getElementById(`tab-${activeKey.replace('_', '-')}`);
   if (activeTab) {
-    activeTab.classList.remove('border-gray-200', 'bg-white', 'text-gray-700');
-    activeTab.classList.add('border-green-700', 'bg-green-50', 'text-green-800');
+    activeTab.classList.remove('border-gray-200', 'text-gray-700');
+    activeTab.classList.add('border-green-800', 'text-white');
+    activeTab.style.backgroundColor = '#144600';
   }
 
   const statusList = document.getElementById('phase-status-list');
@@ -374,17 +378,78 @@ function renderDetail() {
 function renderPlanningTable(items) {
   const tbody = document.getElementById('planning-body');
   if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400">Belum ada data planning</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Belum ada data planning</td></tr>';
     return;
   }
 
-  tbody.innerHTML = items.map(item => `
+  // Convert month range to phase number
+  function convertMonthRangeToPhase(monthRange) {
+    // e.g., "1-3" -> 1, "4-6" -> 2, "7-12" -> 3
+    if (monthRange.includes('1-3')) return '1';
+    if (monthRange.includes('4-6')) return '2';
+    if (monthRange.includes('7-12')) return '3';
+    return monthRange || '-';
+  }
+
+  // Group items by behavior and create rows for each integration
+  const groupedByBehavior = {};
+  
+  items.forEach(item => {
+    // Extract behavior name from activity_title (e.g., "Empathy - Phase 1-3" -> "Empathy")
+    const behaviorMatch = (item.activity_title || '').match(/^([^-]+)/);
+    const behavior = behaviorMatch ? behaviorMatch[1].trim() : (item.activity_title || '-');
+    
+    // Extract phase from activity_title (e.g., "Phase 1-3" -> convert to 1)
+    const phaseMatch = (item.activity_title || '').match(/phase\s+([\d\-]+)/i);
+    const phaseRaw = phaseMatch ? phaseMatch[1] : '-';
+    const phase = convertMonthRangeToPhase(phaseRaw);
+    
+    // Split integrations by pipe | delimiter
+    const integrations = (item.description || '-').split('|').map(s => s.trim()).filter(s => s);
+    if (integrations.length === 0) {
+      integrations.push('-');
+    }
+    
+    if (!groupedByBehavior[behavior]) {
+      groupedByBehavior[behavior] = [];
+    }
+    
+    // Create a row for each integration
+    integrations.forEach(integration => {
+      groupedByBehavior[behavior].push({
+        ...item,
+        extracted_phase: phase,
+        integration_text: integration
+      });
+    });
+  });
+
+  let html = '';
+  
+  Object.entries(groupedByBehavior).forEach(([behavior, itemsInGroup]) => {
+    let lastPhase = null;
+    
+    itemsInGroup.forEach((item, idx) => {
+      const showBehavior = idx === 0;  // Only show behavior name on first row
+      const showPhase = lastPhase !== item.extracted_phase;  // Only show fase if different from previous
+      lastPhase = item.extracted_phase;
+      
+      html += `
     <tr>
-      <td class="px-4 py-3">${item.activity_title || '-'}</td>
-      <td class="px-4 py-3">${item.description || '-'}</td>
-      <td class="px-4 py-3">${item.deliverables || '-'}</td>
+      ${showBehavior ? `<td class="px-4 py-3 align-top font-medium" style="vertical-align: top;">${behavior}</td>` : '<td class="px-4 py-3"></td>'}
+      ${showPhase ? `<td class="px-4 py-3 align-top text-center" style="vertical-align: top;">${item.extracted_phase}</td>` : '<td class="px-4 py-3"></td>'}
+      <td class="px-4 py-3 align-top"><span class="text-xs text-gray-700">${item.integration_text}</span></td>
+      <td class="px-4 py-3 align-top">${item.deliverables || '-'}</td>
+      <td class="px-4 py-3 align-top text-center">
+        <button onclick="approvePlanningRow(${item.id})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-600 text-white hover:bg-green-700 transition mr-2" title="Approve" style="font-size: 14px; font-weight: bold;">✓</button>
+        <button onclick="revisePlanningRow(${item.id})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-600 text-white hover:bg-red-700 transition" title="Revise" style="font-size: 14px; font-weight: bold;">✕</button>
+      </td>
     </tr>
-  `).join('');
+      `;
+    });
+  });
+
+  tbody.innerHTML = html;
 }
 
 async function approvePlanning() {
@@ -415,6 +480,16 @@ async function revisePlanning() {
   } else {
     showAlert(res?.message || res?.error || 'Gagal kirim revisi planning', 'error');
   }
+}
+
+function approvePlanningRow(itemId) {
+  showAlert('Fitur approval per-row akan segera diaktifkan', 'info');
+  // TODO: Implement row-level approval
+}
+
+function revisePlanningRow(itemId) {
+  showAlert('Fitur revise per-row akan segera diaktifkan', 'info');
+  // TODO: Implement row-level revision
 }
 
 async function approveActivity(planItemId) {

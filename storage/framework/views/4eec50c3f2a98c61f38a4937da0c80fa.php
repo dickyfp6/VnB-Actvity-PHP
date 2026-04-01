@@ -35,17 +35,29 @@
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">No</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">NIP</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Nama New Hire</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal Masuk</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal Induction</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Email</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Perusahaan</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Divisi</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Whatsapp</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Periode Awal</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Periode Akhir</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Career Stage</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Fase</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Progress</th>
-            <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Manager Fungsional</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Manager Operasional</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Perusahaan</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Divisi</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Departemen</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Jabatan</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Penempatan</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Golongan</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status Pegawai</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status Lifecycle</th>
           </tr>
         </thead>
         <tbody id="rows-body" class="divide-y divide-gray-200 text-gray-700">
-          <tr><td colspan="10" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+          <tr><td colspan="22" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -80,14 +92,14 @@ function setLifecycleTab(lifecycle) {
 
 async function loadRows() {
   const tbody = document.getElementById('rows-body');
-  tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
   const search = encodeURIComponent(document.getElementById('f-search').value || '');
   const url = `/api/manager/new-hires?lifecycle=${encodeURIComponent(currentLifecycle)}&search=${search}`;
   const res = await apiGet(url);
 
   if (!(res && res.success === true)) {
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-500">Gagal memuat data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-red-500">Gagal memuat data</td></tr>';
     return;
   }
 
@@ -114,7 +126,7 @@ function applyFilters() {
 function renderRows() {
   const tbody = document.getElementById('rows-body');
   if (!filteredRows.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-gray-400">Tidak ada data New Hire</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Tidak ada data New Hire</td></tr>';
     return;
   }
 
@@ -122,17 +134,41 @@ function renderRows() {
     <tr class="hover:bg-gray-50">
       <td class="px-4 py-3">${idx + 1}</td>
       <td class="px-4 py-3">${row.employee_number || '-'}</td>
-      <td class="px-4 py-3 font-medium">${row.name || '-'}</td>
+      <td class="px-4 py-3 font-medium">
+        <div class="flex items-center gap-2">
+          <span>${row.name || '-'}</span>
+          <a href="/manager/new-hires/${row.id}" class="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat Detail">
+            <i class="fas fa-external-link-alt text-xs"></i>
+          </a>
+        </div>
+      </td>
+      <td class="px-4 py-3">${row.date_joined || '-'}</td>
+      <td class="px-4 py-3">${row.induction_date || '-'}</td>
       <td class="px-4 py-3">${row.email || '-'}</td>
-      <td class="px-4 py-3">${row.company || '-'}</td>
-      <td class="px-4 py-3">${row.division || '-'}</td>
+      <td class="px-4 py-3">${row.whatsapp || '-'}</td>
+      <td class="px-4 py-3">${row.vnb_period_start || '-'}</td>
+      <td class="px-4 py-3">${row.vnb_period_end || '-'}</td>
       <td class="px-4 py-3">${row.career_stage || '-'}</td>
       <td class="px-4 py-3">${row.phase || '-'}</td>
       <td class="px-4 py-3 font-semibold">${row.progress || 0}%</td>
-      <td class="px-4 py-3 text-right">
-        <a href="/manager/new-hires/${row.id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
-          <i class="fas fa-eye"></i> Detail
-        </a>
+      <td class="px-4 py-3">${row.manager_functional || '-'}</td>
+      <td class="px-4 py-3">${row.manager_operational || '-'}</td>
+      <td class="px-4 py-3">${row.company || '-'}</td>
+      <td class="px-4 py-3">${row.division || '-'}</td>
+      <td class="px-4 py-3">${row.department || '-'}</td>
+      <td class="px-4 py-3">${row.position || '-'}</td>
+      <td class="px-4 py-3">${row.placement || '-'}</td>
+      <td class="px-4 py-3">${row.level || '-'}</td>
+      <td class="px-4 py-3">${row.employee_status || '-'}</td>
+      <td class="px-4 py-3">
+        <span class="inline-block px-2 py-1 rounded text-xs font-medium ${
+          row.employment_state === 'active' ? 'bg-green-100 text-green-700' :
+          row.employment_state === 'resigned' ? 'bg-gray-100 text-gray-700' :
+          row.employment_state === 'terminated' ? 'bg-red-100 text-red-700' :
+          'bg-blue-100 text-blue-700'
+        }">
+          ${row.employment_state || '-'}
+        </span>
       </td>
     </tr>
   `).join('');

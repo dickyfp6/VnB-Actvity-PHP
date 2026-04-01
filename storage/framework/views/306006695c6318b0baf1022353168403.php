@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','Aktivitas VnB')
-@section('content')
+
+<?php $__env->startSection('title','Aktivitas VnB'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4">
   <h1 class="text-2xl font-bold text-gray-800 mb-4">Aktivitas VnB</h1>
 
@@ -26,7 +26,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let activities = [];
 
@@ -191,5 +191,7 @@ async function submitActivity(id) {
 
 loadActivities();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-activity/index.blade.php ENDPATH**/ ?>
