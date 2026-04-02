@@ -7,6 +7,11 @@ class PageController extends Controller
     public function dashboard() { return view('dashboard'); }
     public function employees() { return view('employees.index'); }
     public function vnbPlans() { return view('vnb-plans.index'); }
+    public function vnbPlansPendingRevisions()
+    {
+        abort_unless(auth()->check(), 403, 'Anda harus login');
+        return view('vnb-plans.pending-revisions');
+    }
     public function evidence() { return view('evidence.index'); }
     public function intercomm() 
     { 
@@ -41,6 +46,11 @@ class PageController extends Controller
     {
         abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Approval Request Manager');
         return view('manager-approval.index');
+    }
+    public function managerApprovalDetail(int $planId)
+    {
+        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Approval Request Manager');
+        return view('manager-approval.detail', compact('planId'));
     }
     public function profile()
     {

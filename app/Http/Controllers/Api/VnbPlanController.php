@@ -7,6 +7,7 @@ use App\Models\VnbPlanItem;
 use App\Models\VnbPeriod;
 use App\Models\VnbFrameworkItem;
 use App\Models\VnbPlanRevision;
+use App\Models\VnbPlanRevisionDetail;
 use App\Models\Manager;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -502,5 +503,96 @@ class VnbPlanController extends Controller
             'submitted_at' => now(),
             'snapshot' => $snapshot,
         ]);
+    }
+
+    /**
+     * New Hire: Submit revision changes dari manager revision
+     * POST /api/new-hire/plans/{planId}/submit-revision/{revisionId}
+     */
+    public function submitRevisionChanges(Request $request, int $planId, int $revisionId): JsonResponse
+    {
+        $user = auth()->user();
+        abort_unless($user !== null, 401);
+
+        $plan = VnbPlan::findOrFail($planId);
+        
+        // Check ownership - user harus employee dari plan ini
+        $employee = $user->employee;
+        abort_unless($employee && $employee->id === $plan->employee_id, 403, 'Anda bukan pemilik plan ini');
+
+        $request->validate([
+            'changes' => 'required|array',
+            'changes.*.item_id' => 'required|integer',
+            'changes.*.old_values' => 'required|array',
+            'changes.*.new_values' => 'required|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $revision = VnbPlanRevision::where('id', $revisionId)
+                ->where('vnb_plan_id', $planId)
+                ->firstOrFail();
+
+            $changes = $request->input('changes', []);
+
+            foreach ($changes as $change) {
+                $itemId = $change['item_id'];
+                $oldValues = $change['old_values'];
+                $newValues = $change['new_values'];
+
+                // Update plan item
+                $item = VnbPlanItem::findOrFail($itemId);
+                $item->update($newValues);
+
+                // Create revision detail record (version control)
+                $revision->revisionDetails()->create([
+                    'vnb_plan_item_id' => $itemId,
+                    'old_values' => $oldValues,
+                    'new_values' => $newValues,
+                    'changed_by' => $employee->id,
+                ]);
+            }
+
+            // Update revision status
+            $revision->update([
+                'status' => 'submitted',
+                'submitted_at' => now(),
+            ]);
+
+            // Update plan status back to waiting manager approval
+            $plan->update([
+                'status' => 'revision_draft',  // New Hire sedang dalam draft revisi
+            ]);
+
+            // Log activity (optional - requires spatie/laravel-activitylog)
+            if (function_exists('activity')) {
+                activity('revision_submitted')
+                    ->performedOn($plan)
+                    ->causedBy($user)
+                    ->withProperties([
+                        'revision_number' => $revision->revision_number,
+                        'changes_count' => count($changes),
+                    ])
+                    ->log('New hire submitted revision changes');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Perubahan revisi berhasil disimpan. Menunggu approval manager.',
+                'data' => [
+                    'revision_id' => $revision->id,
+                    'status' => 'submitted',
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan perubahan revisi: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

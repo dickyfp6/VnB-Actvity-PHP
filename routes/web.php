@@ -15,6 +15,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
+    Route::get('/vnb-plans/pending-revisions', [PageController::class, 'vnbPlansPendingRevisions'])->name('vnb-plans.pending-revisions');
     Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
 
     // UC001 - Manage Intercomm
@@ -37,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/manager/new-hires/{employeeId}', [PageController::class, 'managerNewHireDetail'])->name('manager.new-hire.detail');
     Route::get('/manager/new-hires/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.new-hire.planning-history');
     Route::get('/manager/approval-requests', [PageController::class, 'managerApprovalRequests'])->name('manager.approval-requests');
+    Route::get('/manager/approval/{planId}', [PageController::class, 'managerApprovalDetail'])->name('manager.approval.detail');
 
     // UC009 - Master Database
     Route::get('/master-data', [PageController::class, 'masterData'])->name('master-data');

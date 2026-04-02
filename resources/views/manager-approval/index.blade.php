@@ -91,8 +91,8 @@ function renderRows() {
       <td class="px-4 py-3">${row.phase || '-'}</td>
       <td class="px-4 py-3">${row.submitted_at || '-'}</td>
       <td class="px-4 py-3 text-right">
-        <a href="/manager/new-hires/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
-          <i class="fas fa-arrow-right"></i> Buka Detail
+        <a href="/manager/approval/${row.reference_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
+          <i class="fas fa-arrow-right"></i> Lihat Detail
         </a>
       </td>
     </tr>

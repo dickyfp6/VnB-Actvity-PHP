@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{plan}/submit-approval', [VnbPlanController::class, 'submitForApproval']);
         Route::post('{plan}/manager-review', [VnbPlanController::class, 'managerApproveReject']);
         Route::post('{plan}/mark-in-progress', [VnbPlanController::class, 'markInProgress']);
+        Route::post('{plan}/submit-revision/{revision}', [VnbPlanController::class, 'submitRevisionChanges']);
     });
 
     // UC006 - VnB Activity
@@ -108,4 +109,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/manager/new-hires/{employeeId}/planning-history', [ManagerController::class, 'myNewHirePlanningHistory']);
     Route::get('/manager/approval-requests', [ManagerController::class, 'myApprovalRequests']);
     Route::get('/manager/approval-summary', [ManagerController::class, 'myApprovalSummary']);
+
+    // Manager Approval Flow - Revisions
+    Route::post('/manager/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);
+    Route::post('/manager/plans/{planId}/approve', [ManagerController::class, 'approvePlan']);
+    Route::get('/manager/plans/{planId}/revisions/history', [ManagerController::class, 'getRevisionHistory']);
+    Route::get('/manager/my-new-hire-revisions', [ManagerController::class, 'myNewHireRevisions']);
+    
+    // New Hire Pending Revisions
+    Route::get('/new-hire/pending-revisions', [ManagerController::class, 'getNewHirePendingRevisions']);
 });

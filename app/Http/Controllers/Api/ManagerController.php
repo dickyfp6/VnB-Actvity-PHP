@@ -7,6 +7,8 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\VnbPlanItem;
 use App\Models\VnbPlan;
+use App\Models\VnbPlanRevision;
+use App\Models\VnbPlanRevisionDetail;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
@@ -990,5 +992,297 @@ class ManagerController extends Controller
             403,
             'Anda tidak memiliki akses ke portal manager'
         );
+    }
+
+    /**
+     * Manager: Request revision untuk planning dengan catatan
+     * POST /api/manager/plans/{planId}/request-revision
+     */
+    public function requestRevision(Request $request, int $planId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $request->validate([
+            'revision_notes' => 'required|string|min:3',
+        ]);
+
+        $plan = VnbPlan::with('employee', 'items')->findOrFail($planId);
+
+        // Check authorization - user is manager of this new hire
+        $manager = $this->resolveCurrentManager();
+        $isAuthorized = $manager && (
+            $plan->employee->manager_functional_id == $manager->id ||
+            $plan->employee->manager_operational_id == $manager->id
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+
+        try {
+            DB::beginTransaction();
+
+            // Get oder create new revision
+            $latestRevision = $plan->revisions()
+                ->orderByDesc('revision_number')
+                ->first();
+
+            $newRevisionNumber = ($latestRevision?->revision_number ?? 0) + 1;
+
+            // Create revision record
+            $revision = VnbPlanRevision::create([
+                'vnb_plan_id' => $plan->id,
+                'revision_number' => $newRevisionNumber,
+                'requested_by' => $manager->id,
+                'revision_notes' => $request->revision_notes,
+                'status' => 'pending',
+                'requested_at' => now(),
+            ]);
+
+            // Update plan status
+            $plan->update([
+                'status' => 'revision_requested',
+                'revision_notes' => $request->revision_notes,
+                'revision_count' => $plan->revision_count + 1,
+            ]);
+
+            // Log activity (optional - requires spatie/laravel-activitylog)
+            if (function_exists('activity')) {
+                activity('revision_requested')
+                    ->performedOn($plan)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'revision_number' => $newRevisionNumber,
+                        'notes' => $request->revision_notes,
+                    ])
+                    ->log('Manager requested revision for planning');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan revisi berhasil dikirim ke new hire',
+                'data' => [
+                    'revision_id' => $revision->id,
+                    'revision_number' => $revision->revision_number,
+                    'status' => 'pending',
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim permintaan revisi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Manager: Approve planning request
+     * POST /api/manager/plans/{planId}/approve
+     */
+    public function approvePlan(Request $request, int $planId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $plan = VnbPlan::with('employee')->findOrFail($planId);
+
+        // Check authorization
+        $manager = $this->resolveCurrentManager();
+        $isAuthorized = $manager && (
+            $plan->employee->manager_functional_id == $manager->id ||
+            $plan->employee->manager_operational_id == $manager->id
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+        abort_unless(
+            in_array($plan->status, ['waiting_manager_approval', 'revision_requested']),
+            422,
+            'Status planning tidak valid untuk approval'
+        );
+
+        try {
+            DB::beginTransaction();
+
+            $plan->update([
+                'status' => 'approved',
+                'approved_by' => $manager->id,
+                'approved_at' => now(),
+            ]);
+
+            // Jika ada pending revision, tandai sebagai not applicable
+            $plan->revisions()
+                ->where('status', 'pending')
+                ->update(['status' => 'applied']);
+
+            // Log activity (optional - requires spatie/laravel-activitylog)
+            if (function_exists('activity')) {
+                activity('plan_approved')
+                    ->performedOn($plan)
+                    ->causedBy(auth()->user())
+                    ->log('Manager approved planning');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Planning berhasil diapprove',
+                'data' => [
+                    'plan_id' => $plan->id,
+                    'status' => 'approved',
+                    'approved_at' => $plan->approved_at,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal approve planning: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get revision history & version control details
+     * GET /api/manager/plans/{planId}/revisions/history
+     */
+    public function getRevisionHistory(int $planId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $plan = VnbPlan::with('employee')->findOrFail($planId);
+
+        // Check authorization
+        $manager = $this->resolveCurrentManager();
+        $isAuthorized = $manager && (
+            $plan->employee->manager_functional_id == $manager->id ||
+            $plan->employee->manager_operational_id == $manager->id
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda tidak memiliki akses');
+
+        $revisions = $plan->revisions()
+            ->with(['requestedBy', 'revisionDetails.planItem', 'revisionDetails.changedBy'])
+            ->orderByDesc('revision_number')
+            ->get()
+            ->map(function (VnbPlanRevision $revision) {
+                return [
+                    'id' => $revision->id,
+                    'revision_number' => $revision->revision_number,
+                    'status' => $revision->status,
+                    'status_label' => $revision->getStatusLabel(),
+                    'revision_notes' => $revision->revision_notes,
+                    'requested_by' => $revision->requestedBy?->name,
+                    'requested_at' => $revision->requested_at?->format('Y-m-d H:i:s'),
+                    'submitted_at' => $revision->submitted_at?->format('Y-m-d H:i:s'),
+                    'applied_at' => $revision->applied_at?->format('Y-m-d H:i:s'),
+                    'activities_changed' => $revision->revisionDetails->count(),
+                    'details' => $revision->revisionDetails->map(function ($detail) {
+                        $changes = $detail->getChangedFields();
+                        return [
+                            'activity_id' => $detail->vnb_plan_item_id,
+                            'activity_title' => $detail->planItem?->activity_title,
+                            'changed_fields' => $changes,
+                            'changed_by' => $detail->changedBy?->name,
+                            'changed_at' => $detail->created_at?->format('Y-m-d H:i:s'),
+                        ];
+                    })->all(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'plan_id' => $plan->id,
+                'plan_title' => $plan->title,
+                'total_revisions' => $revisions->count(),
+                'revisions' => $revisions,
+            ]
+        ]);
+    }
+
+    /**
+     * Get pending revisions untuk new hire (from manager)
+     * GET /api/manager/my-new-hire-revisions
+     */
+    public function myNewHireRevisions(): JsonResponse
+    {
+        $user = auth()->user();
+        abort_unless($user !== null, 401);
+
+        // Get employee ID for current user
+        $employee = Employee::where('user_id', $user->id)->first();
+        abort_unless($employee !== null, 404, 'Data employee tidak ditemukan');
+
+        $revisions = VnbPlanRevision::whereHas('plan', function ($q) use ($employee) {
+            $q->where('employee_id', $employee->id);
+        })
+        ->where('status', 'pending')
+        ->with(['plan', 'requestedBy'])
+        ->orderByDesc('requested_at')
+        ->get()
+        ->map(function (VnbPlanRevision $revision) {
+            return [
+                'id' => $revision->id,
+                'plan_id' => $revision->vnb_plan_id,
+                'revision_number' => $revision->revision_number,
+                'revision_notes' => $revision->revision_notes,
+                'requested_by' => $revision->requestedBy?->name,
+                'requested_at' => $revision->requested_at?->format('Y-m-d H:i:s'),
+                'plan_title' => $revision->plan?->title,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $revisions,
+        ]);
+    }
+
+    /**
+     * New Hire: Get all pending revisions (view untuk new hire)
+     * GET /api/new-hire/pending-revisions
+     */
+    public function getNewHirePendingRevisions(): JsonResponse
+    {
+        $user = auth()->user();
+        abort_unless($user !== null, 401);
+
+        $employee = Employee::where('user_id', $user->id)->first();
+        abort_unless($employee !== null, 404, 'Data employee tidak ditemukan');
+
+        $revisions = VnbPlanRevision::whereHas('plan', function ($q) use ($employee) {
+            $q->where('employee_id', $employee->id);
+        })
+        ->whereIn('status', ['pending', 'in_progress'])
+        ->with(['plan', 'requestedBy', 'revisionDetails'])
+        ->orderByDesc('requested_at')
+        ->get()
+        ->map(function (VnbPlanRevision $revision) {
+            return [
+                'id' => $revision->id,
+                'plan_id' => $revision->vnb_plan_id,
+                'plan_title' => $revision->plan?->title,
+                'plan_phase' => $revision->plan?->phase_number,
+                'revision_number' => $revision->revision_number,
+                'status' => $revision->status,
+                'status_label' => $revision->getStatusLabel(),
+                'revision_notes' => $revision->revision_notes,
+                'requested_by' => $revision->requestedBy?->name,
+                'requested_at' => $revision->requested_at?->format('Y-m-d H:i:s'),
+                'items_to_revise' => $revision->revisionDetails->count(),
+                'details' => $revision->revisionDetails->map(function ($detail) {
+                    return [
+                        'activity_id' => $detail->vnb_plan_item_id,
+                        'activity_title' => $detail->planItem?->activity_title,
+                    ];
+                })->all(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $revisions,
+        ]);
     }
 }
