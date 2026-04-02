@@ -44,13 +44,14 @@
                 <table class="w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/5">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
                         </tr>
                     </thead>
                     <tbody id="phase-1-body" class="divide-y divide-gray-200 text-gray-700">
-                        <tr><td colspan="3" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
+                        <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -66,13 +67,14 @@
                 <table class="w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/5">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
                         </tr>
                     </thead>
                     <tbody id="phase-2-body" class="divide-y divide-gray-200 text-gray-700">
-                        <tr><td colspan="3" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
+                        <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -88,13 +90,14 @@
                 <table class="w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/5">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-2/5">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
+                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
                         </tr>
                     </thead>
                     <tbody id="phase-3-body" class="divide-y divide-gray-200 text-gray-700">
-                        <tr><td colspan="3" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
+                        <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -180,8 +183,29 @@ async function loadNewHirePlan() {
                 day: 'numeric' 
             });
             
-            const safeDaysRemaining = Math.max(daysRemaining, 0);
-            const countdownText = safeDaysRemaining === 0 ? 'Hari ini' : `${safeDaysRemaining} hari lagi`;
+            // Determine countdown text and color based on days remaining
+            let countdownText = '';
+            let badgeBgColor = '#FEF3C7';
+            let badgeTextColor = '#D97706';
+            let badgeIcon = 'fa-exclamation-triangle';
+            
+            if (daysRemaining < 0) {
+                // Overdue
+                countdownText = 'Lewat Batas Waktu Pengumpulan';
+                badgeBgColor = '#FEE2E2';
+                badgeTextColor = '#DC2626';
+                badgeIcon = 'fa-times-circle';
+            } else if (daysRemaining === 0) {
+                countdownText = 'Hari ini';
+                badgeBgColor = '#FEF3C7';
+                badgeTextColor = '#D97706';
+                badgeIcon = 'fa-exclamation-triangle';
+            } else {
+                countdownText = `${daysRemaining} hari lagi`;
+                badgeBgColor = '#FEF3C7';
+                badgeTextColor = '#D97706';
+                badgeIcon = 'fa-exclamation-triangle';
+            }
 
             const countdownHTML = `
                 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -190,8 +214,8 @@ async function loadNewHirePlan() {
                         <span>Deadline:</span>
                         <span style="font-weight: 700; color: #1F2937;">${formattedDate}</span>
                     </div>
-                    <div style="display: inline-flex; align-items: center; gap: 8px; width: fit-content; background-color: #FEF3C7; color: #D97706; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 13px;"></i>
+                    <div style="display: inline-flex; align-items: center; gap: 8px; width: fit-content; background-color: ${badgeBgColor}; color: ${badgeTextColor}; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600;">
+                        <i class="fas ${badgeIcon}" style="font-size: 13px;"></i>
                         <span>${countdownText}</span>
                     </div>
                 </div>
@@ -209,7 +233,7 @@ async function loadNewHirePlan() {
 function renderItemsByPhase() {
     if (!currentPlan?.items) {
         Object.values(phases).forEach(bodyId => {
-            document.getElementById(bodyId).innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400">Belum ada item.</td></tr>';
+            document.getElementById(bodyId).innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">Belum ada item.</td></tr>';
         });
         return;
     }
@@ -234,11 +258,86 @@ function renderItemsByPhase() {
     });
 }
 
+function getItemStatusConfig(item, planStatus, integrationRencana) {
+    // Determine status for a specific integration based on its rencana content and plan status
+    // integrationRencana: the specific rencana content for this integration
+    
+    // Check if THIS specific integration's rencana has content
+    const hasThisRencana = integrationRencana && integrationRencana.trim().length > 0 && integrationRencana.trim() !== '-';
+    
+    if (!hasThisRencana) {
+        // This integration has no rencana yet
+        return {
+            badge: '⚪',
+            text: 'Belum ada Rencana VnB',
+            bgColor: '#F3F4F6',
+            textColor: '#6B7280',
+            borderColor: '#D1D5DB',
+            hasNotes: false,
+            notes: ''
+        };
+    }
+    
+    // Has rencana, now check plan status
+    if (planStatus === 'draft' || !currentPlan?.submitted_at) {
+        return {
+            badge: '📝',
+            text: 'Belum diajukan',
+            bgColor: '#FFFBEB',  
+            textColor: '#B45309',
+            borderColor: '#F59E0B',
+            hasNotes: false,
+            notes: ''
+        };
+    } else if (planStatus === 'waiting_manager_approval' || planStatus === 'submitted') {
+        return {
+            badge: '⏳',
+            text: 'Menunggu approval',
+            bgColor: '#EFF6FF',
+            textColor: '#1E40AF',
+            borderColor: '#3B82F6',
+            hasNotes: false,
+            notes: ''
+        };
+    } else if (planStatus === 'approved') {
+        return {
+            badge: '✅',
+            text: 'Disetujui',
+            bgColor: '#ECFDF5',
+            textColor: '#065F46',
+            borderColor: '#10B981',
+            hasNotes: false,
+            notes: ''
+        };
+    } else if (planStatus === 'revision_requested') {
+        return {
+            badge: '🔴',
+            text: 'Revisi diminta',
+            bgColor: '#FEE2E2',
+            textColor: '#991B1B',
+            borderColor: '#EF4444',
+            hasNotes: true,
+            notes: item.revision_notes || 'Tidak ada catatan'
+        };
+    }
+    
+    // Default
+    return {
+        badge: '⚪',
+        text: 'Belum ada Rencana VnB',
+        bgColor: '#F3F4F6',
+        textColor: '#6B7280',
+        borderColor: '#D1D5DB',
+        hasNotes: false,
+        notes: ''
+    };
+}
+
 function renderPhaseTable(bodyId, items) {
     const tbody = document.getElementById(bodyId);
     
     if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-gray-400">Belum ada item untuk fase ini.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-gray-400">Belum ada item untuk fase ini.</td></tr>';
         return;
     }
 
@@ -248,6 +347,7 @@ function renderPhaseTable(bodyId, items) {
         const behaviour = extractBehaviour(item.activity_title);
         const integrations = parseIntegrations(item.description);
         const integrationList = integrations === '-' ? ['-'] : integrations.split('\n').filter(s => s);
+        const statusConfig = getItemStatusConfig(item, currentPlan?.status);
         
         // Debug: Log integration parsing
         if (item.id === 1) {
@@ -271,7 +371,27 @@ function renderPhaseTable(bodyId, items) {
             const integration = integrationList[integIdx];
             if (item.id === 1) console.log(`  Integration ${integIdx}: "${integration.substring(0, 50)}..."`);
             
+            // Determine the specific rencana for this integration
+            let thisIntegrationRencana = '';
+            if (integIdx === 0) {
+                const firstRencana = deliverables.split('\n---\n')[0] || '';
+                thisIntegrationRencana = firstRencana;
+            } else {
+                const rencanaLines = isSaved ? item.deliverables.split('\n---\n') : [];
+                thisIntegrationRencana = rencanaLines[integIdx] ? rencanaLines[integIdx].trim() : '';
+            }
+            
+            // Get status for THIS specific integration based on its rencana
+            const statusConfig = getItemStatusConfig(item, currentPlan?.status, thisIntegrationRencana);
+            
             const textareaId = `act_${item.id}`;
+            const statusCell = `<td class="px-4 py-3 w-1/6 align-top">
+                <div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusConfig.bgColor}; color: ${statusConfig.textColor}; border-left: 3px solid ${statusConfig.borderColor};">
+                    <span>${statusConfig.badge}</span>
+                    <span>${statusConfig.text}</span>
+                </div>
+                ${statusConfig.hasNotes ? `<div class="mt-2 text-xs italic text-red-700 bg-red-50 p-2 rounded border-l-2 border-red-300">"${escapeHtml(statusConfig.notes)}"</div>` : ''}
+            </td>`;
             
             if (integIdx === 0) {
                 // First row: include behaviour and deliverables section
@@ -286,45 +406,48 @@ function renderPhaseTable(bodyId, items) {
                     // EDIT MODE: Integration display-only, rencana is editable textarea
                     html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/5 align-top">${escapeHtml(behaviour)}</td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <div class="flex gap-2 items-start">
                         <textarea id="${textareaId}" rows="3" class="flex-1 border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;">${escapeHtml(firstRencana === '-' ? '' : firstRencana)}</textarea>
                         <button onclick="cancelEditIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap self-start hover:bg-red-200">✕</button>
                     </div>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 } else if (isThisIntegrationSaved) {
                     // SAVED MODE: Both display-only with Edit button for THIS integration only
                     html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/5 align-top">${escapeHtml(behaviour)}</td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <div class="flex justify-between gap-3 items-start">
                         <div class="flex-1 text-sm text-gray-800 bg-gray-50 rounded px-3 py-2">${escapeHtml(firstRencana).replace(/\n/g, '<br>')}</div>
                         <button onclick="editIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded whitespace-nowrap hover:bg-blue-200">✎ Edit</button>
                     </div>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 } else {
                     // UNSAVED MODE: Integration display-only, rencana empty textbox (NO button)
                     html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/5 align-top">${escapeHtml(behaviour)}</td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <textarea id="${textareaId}" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;"></textarea>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 }
@@ -344,15 +467,16 @@ function renderPhaseTable(bodyId, items) {
                     html += `
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-3"></td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <div class="flex gap-2 items-start">
                         <textarea id="plan_${item.id}_${integIdx}" rows="3" class="flex-1 border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;">${escapeHtml(thisRencana === '-' ? '' : thisRencana)}</textarea>
                         <button onclick="cancelEditIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap self-start hover:bg-red-200">✕</button>
                     </div>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 } else if (isThisIntegrationSaved) {
@@ -360,15 +484,16 @@ function renderPhaseTable(bodyId, items) {
                     html += `
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-3"></td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <div class="flex justify-between gap-3 items-start">
                         <div class="flex-1 text-sm text-gray-800 bg-gray-50 rounded px-3 py-2">${escapeHtml(thisRencana).replace(/\n/g, '<br>')}</div>
                         <button onclick="editIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded whitespace-nowrap hover:bg-blue-200">✎ Edit</button>
                     </div>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 } else {
@@ -376,12 +501,13 @@ function renderPhaseTable(bodyId, items) {
                     html += `
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-3"></td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
-                <td class="px-4 py-3 w-2/5 align-top">
+                <td class="px-4 py-3 w-1/3 align-top">
                     <textarea id="plan_${item.id}_${integIdx}" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;"></textarea>
                 </td>
+                ${statusCell}
             </tr>
                     `;
                 }
@@ -504,42 +630,39 @@ function collectUpdatedItems() {
         // Get main rencana aktivitas value (from first integration row)
         const mainTextarea = document.getElementById(`act_${item.id}`);
         
-        // If main textarea doesn't exist in DOM, user didn't edit this item
-        // Don't include deliverables to preserve existing data
-        if (!mainTextarea) {
-            return {
-                id: item.id,
-                implementation_date: item.implementation_date,
-                behavior_metrics: item.behavior_metrics,
-                // Deliberately omit deliverables to prevent overwriting existing data
-            };
-        }
-        
-        const mainRencana = mainTextarea.value || '';
-        
-        // Collect all integration textbox values
+        // Parse integrations to know how many there are
         const integrations = parseIntegrations(item.description);
         const integrationList = integrations === '-' ? ['-'] : integrations.split('\n').filter(s => s);
         
-        // Collect additional rencana for subsequent integrations (if any)
-        const allRencanaList = [mainRencana];
-        for (let i = 1; i < integrationList.length; i++) {
-            const rencana = document.getElementById(`plan_${item.id}_${i}`)?.value || '';
-            allRencanaList.push(rencana);
+        let finalDeliverables = '';
+        
+        if (mainTextarea) {
+            // Textareas exist in DOM - collect from them
+            const mainRencana = mainTextarea.value || '';
+            
+            // Collect additional rencana for subsequent integrations
+            const allRencanaList = [mainRencana];
+            for (let i = 1; i < integrationList.length; i++) {
+                const rencana = document.getElementById(`plan_${item.id}_${i}`)?.value || '';
+                allRencanaList.push(rencana);
+            }
+            
+            // Filter only non-empty rencana and join with separator
+            const filledRencana = allRencanaList
+                .filter(r => r.trim().length > 0)
+                .join('\n---\n');
+            
+            finalDeliverables = filledRencana.trim().length === 0 ? '' : filledRencana;
+        } else {
+            // Textareas don't exist in DOM (already saved, just displaying)
+            // Use existing deliverables from currentPlan
+            finalDeliverables = item.deliverables || '';
         }
-        
-        // Filter only non-empty rencana and join with separator
-        const filledRencana = allRencanaList
-            .filter(r => r.trim().length > 0)
-            .join('\n---\n');
-        
-        // If all rencana are empty, explicitly set to empty string for clearing
-        const finalDeliverables = filledRencana.trim().length === 0 ? '' : filledRencana;
         
         return {
             id: item.id,
             implementation_date: item.implementation_date,
-            deliverables: finalDeliverables,
+            deliverables: finalDeliverables,  // ALWAYS include this key
             behavior_metrics: item.behavior_metrics,
         };
     });
@@ -662,6 +785,7 @@ async function submitPlan() {
     if (res.success) {
         showAlert(res.message || 'Rencana berhasil diajukan');
         currentPlan = res.data;
+        renderItemsByPhase();
     } else {
         showAlert(res.message || res.error || 'Gagal mengajukan rencana', 'error');
     }

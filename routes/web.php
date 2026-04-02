@@ -15,7 +15,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
-    Route::get('/vnb-plans/pending-revisions', [PageController::class, 'vnbPlansPendingRevisions'])->name('vnb-plans.pending-revisions');
     Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
 
     // UC001 - Manage Intercomm

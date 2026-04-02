@@ -7,11 +7,6 @@ class PageController extends Controller
     public function dashboard() { return view('dashboard'); }
     public function employees() { return view('employees.index'); }
     public function vnbPlans() { return view('vnb-plans.index'); }
-    public function vnbPlansPendingRevisions()
-    {
-        abort_unless(auth()->check(), 403, 'Anda harus login');
-        return view('vnb-plans.pending-revisions');
-    }
     public function evidence() { return view('evidence.index'); }
     public function intercomm() 
     { 

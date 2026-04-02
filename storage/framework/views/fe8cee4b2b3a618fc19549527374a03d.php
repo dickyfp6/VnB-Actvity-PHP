@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','VnB - Pending Revisions')
-@section('content')
+
+<?php $__env->startSection('title','VnB - Pending Revisions'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
   <!-- Header -->
   <div class="flex items-center justify-between">
@@ -67,7 +67,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let currentRevision = null;
 let revisionChanges = {};
@@ -327,6 +327,8 @@ function viewRevisionHistory(planId) {
 // Init
 init();
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-plans/pending-revisions.blade.php ENDPATH**/ ?>

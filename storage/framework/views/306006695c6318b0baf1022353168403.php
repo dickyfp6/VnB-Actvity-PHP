@@ -2,33 +2,144 @@
 <?php $__env->startSection('title','Aktivitas VnB'); ?>
 <?php $__env->startSection('content'); ?>
 <div class="px-4">
-  <h1 class="text-2xl font-bold text-gray-800 mb-4">Aktivitas VnB</h1>
+  <!-- Plan Status Check Container -->
+  <div id="plan-status-container"></div>
 
-  <div id="deadline-banner" class="mb-5 rounded-lg px-4 py-3 text-sm hidden"></div>
+  <!-- Activity Content (hidden until plan is approved) -->
+  <div id="activity-content" style="display: none;">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Aktivitas VnB</h1>
 
-  <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Behaviour</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Phase</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Integrasi Pengukuran</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Description</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Date</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status</th>
-          <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="activity-body" class="divide-y divide-gray-200 text-sm text-gray-700">
-        <tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
-      </tbody>
-    </table>
+    <div id="deadline-banner" class="mb-5 rounded-lg px-4 py-3 text-sm hidden"></div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Behaviour</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Phase</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Integrasi Pengukuran</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Description</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Date</th>
+            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status</th>
+            <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="activity-body" class="divide-y divide-gray-200 text-sm text-gray-700">
+          <tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <?php $__env->startPush('scripts'); ?>
 <script>
 let activities = [];
+
+function renderPlanStatusLock(planStatus) {
+    const container = document.getElementById('plan-status-container');
+    const activityContent = document.getElementById('activity-content');
+    
+    // Determine message based on plan status
+    let message = '';
+    let buttonText = '';
+    let icon = '';
+    let bgColor = 'bg-blue-50';
+    let textColor = 'text-blue-900';
+    
+    if (!planStatus || planStatus === 'not_found') {
+        // No plan created yet
+        message = 'Rencana Aktivitas Belum Dibuat';
+        icon = '📋';
+        textColor = 'text-blue-900';
+        buttonText = 'Buat Rencana VnB';
+    } else if (planStatus === 'draft' || planStatus === 'revision_draft') {
+        // Still in draft
+        message = 'Rencana Aktivitas Masih Draft';
+        icon = '✏️';
+        bgColor = 'bg-yellow-50';
+        textColor = 'text-yellow-900';
+        buttonText = 'Lanjutkan Rencana';
+    } else if (planStatus === 'waiting_manager_approval' || planStatus === 'submitted') {
+        // Waiting for approval
+        message = 'Menunggu Persetujuan Rencana';
+        icon = '⏳';
+        bgColor = 'bg-purple-50';
+        textColor = 'text-purple-900';
+        buttonText = 'Lihat Status';
+    } else if (planStatus === 'revision_requested') {
+        // Needs revision
+        message = 'Rencana Aktivitas Perlu Perbaikan';
+        icon = '🔄';
+        bgColor = 'bg-red-50';
+        textColor = 'text-red-900';
+        buttonText = 'Perbaiki Rencana';
+    } else if (planStatus === 'approved') {
+        // Plan is approved, show activities
+        container.innerHTML = '';
+        activityContent.style.display = 'block';
+        loadActivities();
+        return;
+    }
+    
+    // Show lock screen
+    activityContent.style.display = 'none';
+    container.innerHTML = `
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <div class="text-5xl mb-4">${icon}</div>
+            <h2 class="text-2xl font-bold mb-2 ${textColor}">${message}</h2>
+            <p class="text-gray-600 mb-6 max-w-lg mx-auto">
+                ${
+                    planStatus === 'not_found' ? 'Anda perlu membuat rencana aktivitas VnB sebelum dapat mengakses fitur aktivitas.' :
+                    planStatus === 'draft' || planStatus === 'revision_draft' ? 'Selesaikan dan ajukan rencana Anda untuk dapat mengakses fitur aktivitas.' :
+                    planStatus === 'waiting_manager_approval' || planStatus === 'submitted' ? 'Rencana aktivitas Anda sedang dalam proses review oleh manager. Anda dapat mengakses fitur setelah rencana disetujui.' :
+                    planStatus === 'revision_requested' ? 'Rencana Anda belum disetujui. Silakan lakukan revisi sesuai masukan yang diberikan.' :
+                    'Selesaikan pengaturan rencana VnB Anda terlebih dahulu.'
+                }
+            </p>
+            <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
+                ${buttonText}
+            </a>
+        </div>
+    `;
+}
+
+async function checkPlanStatus() {
+    try {
+        console.log('🔍 Checking plan status...');
+        
+        // Check if apiGet exists
+        if (typeof apiGet !== 'function') {
+            console.error('❌ apiGet function not found');
+            renderPlanStatusLock('not_found');
+            return;
+        }
+        
+        const res = await apiGet('/api/vnb-plans/new-hire');
+        console.log('📊 Plan status response:', res);
+        
+        // Try multiple ways to extract status
+        const planStatus = res?.data?.status || res?.status || (res?.success === false ? 'not_found' : res?.data) || 'not_found';
+        console.log('✅ Extracted status:', planStatus);
+        
+        renderPlanStatusLock(planStatus);
+    } catch (e) {
+        console.error('❌ Error checking plan status:', {
+            message: e.message,
+            error: e,
+            stack: e.stack
+        });
+        
+        // Show error on page temporarily
+        const container = document.getElementById('plan-status-container');
+        container.innerHTML = `
+            <div class="bg-red-50 rounded-lg shadow p-8 text-center text-red-900">
+                <p class="text-sm mb-4">Error loading plan status. Please try refreshing the page.</p>
+                <p class="text-xs text-red-600">${e.message}</p>
+            </div>
+        `;
+    }
+}
 
 function statusBadge(status) {
   const map = {
@@ -135,7 +246,7 @@ function renderActivities() {
         ${a.revision_notes ? `<p class="text-xs text-red-600 mt-1"><i class="fas fa-exclamation-circle mr-1"></i>Revisi: ${escapeHtml(a.revision_notes)}</p>` : ''}
       </td>
       <td class="px-4 py-3">
-        <input id="date-${a.id}" type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
+        <input id="date-${a.id}"type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
         ${a.due_date ? `<p class="text-xs text-gray-400 mt-1">Due: ${a.due_date}</p>` : ''}
       </td>
       <td class="px-4 py-3">${statusBadge(a.submission_status)}</td>
@@ -189,7 +300,8 @@ async function submitActivity(id) {
   } else showAlert(res.error || 'Gagal submit', 'error');
 }
 
-loadActivities();
+// Check plan status on page load
+checkPlanStatus();
 </script>
 <?php $__env->stopPush(); ?>
 <?php $__env->stopSection(); ?>
