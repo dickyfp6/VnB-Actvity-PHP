@@ -1,6 +1,14 @@
 @extends('layouts.app')
 @section('title','Aktivitas VnB')
 @section('content')
+<style>
+  #lock-screen-btn:hover {
+    background-color: #0a2c00 !important;
+  }
+  .submit-btn:hover {
+    background-color: #37AA05 !important;
+  }
+</style>
 <div class="px-4">
   <!-- Plan Status Check Container -->
   <div id="plan-status-container"></div>
@@ -97,7 +105,7 @@ function renderPlanStatusLock(planStatus) {
                     'Selesaikan pengaturan rencana VnB Anda terlebih dahulu.'
                 }
             </p>
-            <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
+            <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" id="lock-screen-btn" style="background-color: #144600;">
                 ${buttonText}
             </a>
         </div>
@@ -258,13 +266,13 @@ function renderActivities() {
         ${a.revision_notes ? `<p class="text-xs text-red-600 mt-1"><i class="fas fa-exclamation-circle mr-1"></i>Revisi: ${escapeHtml(a.revision_notes)}</p>` : ''}
       </td>
       <td class="px-4 py-3">
-        <input id="date-${a.id}"type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
+        <input id="date-${a.id}" type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
         ${a.due_date ? `<p class="text-xs text-gray-400 mt-1">Due: ${a.due_date}</p>` : ''}
       </td>
       <td class="px-4 py-3">${statusBadge(a.submission_status)}</td>
       <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
         <button onclick="saveDraft(${a.id})" class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50">Save Draft</button>
-        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Submit</button>
+        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition submit-btn" style="background-color: #144600; cursor: pointer;">Submit</button>
       </td>
     </tr>
         `;

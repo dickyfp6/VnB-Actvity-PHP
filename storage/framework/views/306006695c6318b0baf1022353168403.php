@@ -97,7 +97,7 @@ function renderPlanStatusLock(planStatus) {
                     'Selesaikan pengaturan rencana VnB Anda terlebih dahulu.'
                 }
             </p>
-            <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
+            <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" id="lock-screen-btn" style="background-color: #144600;">
                 ${buttonText}
             </a>
         </div>
@@ -118,9 +118,21 @@ async function checkPlanStatus() {
         const res = await apiGet('/api/vnb-plans/new-hire');
         console.log('📊 Plan status response:', res);
         
-        // Try multiple ways to extract status
-        const planStatus = res?.data?.status || res?.status || (res?.success === false ? 'not_found' : res?.data) || 'not_found';
-        console.log('✅ Extracted status:', planStatus);
+        // Handle response
+        let planStatus = 'not_found';
+        
+        if (!res.success) {
+            // API returned error
+            console.log('⚠️ API returned success: false');
+            planStatus = 'not_found';
+        } else if (res.data && res.data.status) {
+            // Successfully got plan with status
+            planStatus = res.data.status;
+            console.log('✅ Found plan with status:', planStatus);
+        } else {
+            console.log('⚠️ Response has success but no data.status');
+            planStatus = 'not_found';
+        }
         
         renderPlanStatusLock(planStatus);
     } catch (e) {
@@ -246,13 +258,13 @@ function renderActivities() {
         ${a.revision_notes ? `<p class="text-xs text-red-600 mt-1"><i class="fas fa-exclamation-circle mr-1"></i>Revisi: ${escapeHtml(a.revision_notes)}</p>` : ''}
       </td>
       <td class="px-4 py-3">
-        <input id="date-${a.id}"type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
+        <input id="date-${a.id}" type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm" value="${a.activity_date || ''}">
         ${a.due_date ? `<p class="text-xs text-gray-400 mt-1">Due: ${a.due_date}</p>` : ''}
       </td>
       <td class="px-4 py-3">${statusBadge(a.submission_status)}</td>
       <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
         <button onclick="saveDraft(${a.id})" class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50">Save Draft</button>
-        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Submit</button>
+        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor=&#39;#37AA05&#39;" onmouseout="this.style.backgroundColor=&#39;#144600&#39;">Submit</button>
       </td>
     </tr>
         `;

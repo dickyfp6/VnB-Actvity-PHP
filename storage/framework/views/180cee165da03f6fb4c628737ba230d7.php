@@ -125,12 +125,50 @@ function renderPlanStatusLock(planStatus) {
 
 async function checkPlanStatus() {
     try {
+        console.log('🔍 Checking plan status from dashboard...');
+        
+        // Check if apiGet exists
+        if (typeof apiGet !== 'function') {
+            console.error('❌ apiGet function not found');
+            renderPlanStatusLock('not_found');
+            return;
+        }
+        
         const res = await apiGet('/api/vnb-plans/new-hire');
-        const planStatus = res.data?.status || res.status || 'not_found';
+        console.log('📊 Plan status response:', res);
+        
+        // Handle response
+        let planStatus = 'not_found';
+        
+        if (!res.success) {
+            // API returned error
+            console.log('⚠️ API returned success: false');
+            planStatus = 'not_found';
+        } else if (res.data && res.data.status) {
+            // Successfully got plan with status
+            planStatus = res.data.status;
+            console.log('✅ Found plan with status:', planStatus);
+        } else {
+            console.log('⚠️ Response has success but no data.status');
+            planStatus = 'not_found';
+        }
+        
         renderPlanStatusLock(planStatus);
     } catch (e) {
-        console.error('Error checking plan status:', e);
-        renderPlanStatusLock('not_found');
+        console.error('❌ Error checking plan status:', {
+            message: e.message,
+            error: e,
+            stack: e.stack
+        });
+        
+        // Show error on page temporarily
+        const container = document.getElementById('plan-status-container');
+        container.innerHTML = `
+            <div class="bg-red-50 rounded-lg shadow p-8 text-center text-red-900">
+                <p class="text-sm mb-4">Error loading plan status. Please try refreshing the page.</p>
+                <p class="text-xs text-red-600">${e.message}</p>
+            </div>
+        `;
     }
 }
 
