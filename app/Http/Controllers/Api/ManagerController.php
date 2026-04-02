@@ -1285,4 +1285,169 @@ class ManagerController extends Controller
             'data' => $revisions,
         ]);
     }
+
+    /**
+     * Manager: Approve planning item per-row
+     * POST /api/manager/plans/{planId}/items/{itemId}/approve
+     */
+    public function approvePlanningItem(Request $request, int $planId, int $itemId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $plan = VnbPlan::with('employee')->findOrFail($planId);
+        $item = VnbPlanItem::findOrFail($itemId);
+
+        // Validate that item belongs to this plan
+        abort_unless($item->plan_id == $planId, 422, 'Item tidak ditemukan di planning ini');
+
+        // Check authorization - user is manager of this new hire
+        $manager = $this->resolveCurrentManager();
+        $isAuthorized = $manager && (
+            $plan->employee->manager_functional_id == $manager->id ||
+            $plan->employee->manager_operational_id == $manager->id
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+
+        try {
+            DB::beginTransaction();
+
+            // Update item approval status based on manager type
+            if ($plan->employee->manager_functional_id == $manager->id) {
+                $item->update([
+                    'approved_functional_by' => $manager->id,
+                    'approved_functional_at' => now(),
+                ]);
+            } else {
+                $item->update([
+                    'approved_operational_by' => $manager->id,
+                    'approved_operational_at' => now(),
+                ]);
+            }
+
+            // Check if all items are fully approved
+            $allApproved = VnbPlanItem::where('plan_id', $planId)
+                ->where(function ($q) {
+                    $q->whereNull('approved_functional_by')
+                      ->orWhereNull('approved_operational_by');
+                })
+                ->count() === 0;
+
+            // If all items approved, update plan status
+            if ($allApproved && $plan->status === 'waiting_manager_approval') {
+                $plan->update([
+                    'status' => 'approved',
+                    'approved_by' => $manager->id,
+                    'approved_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Aktivitas berhasil di-approve',
+                'data' => [
+                    'item_id' => $item->id,
+                    'activity_title' => $item->activity_title,
+                    'approved_by' => $manager->name,
+                    'approved_at' => now()->format('Y-m-d H:i:s'),
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal approve aktivitas: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Manager: Request revision for planning item per-row
+     * POST /api/manager/plans/{planId}/items/{itemId}/request-revision
+     */
+    public function requestRevisionForItem(Request $request, int $planId, int $itemId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $request->validate([
+            'revision_notes' => 'required|string|min:3',
+        ]);
+
+        $plan = VnbPlan::with('employee')->findOrFail($planId);
+        $item = VnbPlanItem::findOrFail($itemId);
+
+        // Validate that item belongs to this plan
+        abort_unless($item->plan_id == $planId, 422, 'Item tidak ditemukan di planning ini');
+
+        // Check authorization
+        $manager = $this->resolveCurrentManager();
+        $isAuthorized = $manager && (
+            $plan->employee->manager_functional_id == $manager->id ||
+            $plan->employee->manager_operational_id == $manager->id
+        );
+
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+
+        try {
+            DB::beginTransaction();
+
+            // Get or create new revision
+            $latestRevision = $plan->revisions()
+                ->orderByDesc('revision_number')
+                ->first();
+
+            $newRevisionNumber = ($latestRevision?->revision_number ?? 0) + 1;
+
+            // Create revision record
+            $revision = VnbPlanRevision::create([
+                'vnb_plan_id' => $plan->id,
+                'revision_number' => $newRevisionNumber,
+                'requested_by' => $manager->id,
+                'revision_notes' => $request->revision_notes,
+                'status' => 'pending',
+                'requested_at' => now(),
+            ]);
+
+            // Create revision detail for this specific item
+            VnbPlanRevisionDetail::create([
+                'revision_id' => $revision->id,
+                'vnb_plan_item_id' => $item->id,
+                'changed_by' => $manager->id,
+                'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date'])),
+            ]);
+
+            // Update plan status
+            $plan->update([
+                'status' => 'revision_requested',
+                'revision_count' => $plan->revision_count + 1,
+            ]);
+
+            // Update item revision status
+            $item->update([
+                'revision_notes' => $request->revision_notes,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan revisi berhasil dikirim untuk aktivitas ini',
+                'data' => [
+                    'revision_id' => $revision->id,
+                    'revision_number' => $revision->revision_number,
+                    'item_id' => $item->id,
+                    'activity_title' => $item->activity_title,
+                    'status' => 'pending',
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim permintaan revisi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
