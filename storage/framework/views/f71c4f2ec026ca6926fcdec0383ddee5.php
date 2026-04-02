@@ -354,6 +354,11 @@
                 <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
                 <span>Planning</span>
             </a>
+            <a href="/vnb-plans/pending-revisions" class="nav-link" title="Pending Revisions">
+                <i class="fas fa-sync-alt w-5 flex-shrink-0"></i>
+                <span>Revisi Pending</span>
+                <span id="newhire-revisions-badge" class="ml-auto px-2 py-0.5 rounded-full text-xs bg-orange-600 text-white hidden">0</span>
+            </a>
             <a href="/vnb-activity" class="nav-link" title="Aktivitas">
                 <i class="fas fa-tasks w-5 flex-shrink-0"></i>
                 <span>Aktivitas</span>
