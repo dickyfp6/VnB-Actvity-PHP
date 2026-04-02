@@ -1,6 +1,14 @@
 
 <?php $__env->startSection('title','Aktivitas VnB'); ?>
 <?php $__env->startSection('content'); ?>
+<style>
+  #lock-screen-btn:hover {
+    background-color: #0a2c00 !important;
+  }
+  .submit-btn:hover {
+    background-color: #37AA05 !important;
+  }
+</style>
 <div class="px-4">
   <!-- Plan Status Check Container -->
   <div id="plan-status-container"></div>
@@ -264,7 +272,7 @@ function renderActivities() {
       <td class="px-4 py-3">${statusBadge(a.submission_status)}</td>
       <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
         <button onclick="saveDraft(${a.id})" class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-50">Save Draft</button>
-        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor=&#39;#37AA05&#39;" onmouseout="this.style.backgroundColor=&#39;#144600&#39;">Submit</button>
+        <button onclick="submitActivity(${a.id})" class="px-3 py-1.5 text-white rounded text-xs transition submit-btn" style="background-color: #144600; cursor: pointer;">Submit</button>
       </td>
     </tr>
         `;
