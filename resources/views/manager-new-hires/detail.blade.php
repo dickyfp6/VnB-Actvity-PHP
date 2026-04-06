@@ -57,36 +57,39 @@
     <div id="phase-status-list" class="grid grid-cols-1 gap-2 text-sm text-gray-700"></div>
   </div>
 
-  <div id="planning-approval-box" class="bg-white rounded-xl shadow-sm p-4 hidden">
-    <h2 class="text-base font-semibold text-gray-800 mb-2">Approval Planning</h2>
-    <p class="text-sm text-gray-600 mb-2">New Hire mengajukan planning dan menunggu approval manager.</p>
-    <textarea id="planning-notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3" placeholder="Catatan (wajib jika revisi, opsional jika approve)"></textarea>
-    <div class="flex gap-2">
-      <button onclick="approvePlanning()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">Accept Planning</button>
-      <button onclick="revisePlanning()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">Revisi Planning</button>
-    </div>
-  </div>
-
+  <!-- Global planning approval box removed as per request for point-per-point revision -->
   <div id="planning-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
     <div class="p-4 border-b border-gray-100">
       <h2 class="text-base font-semibold text-gray-800">Planning New Hire (Fase Planning)</h2>
       <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm" style="min-width: 1000px; table-layout: fixed;">
-        <thead class="bg-gray-50">
+      <table class="min-w-full divide-y divide-gray-200 text-sm h-full" style="min-width: 1000px; table-layout: fixed;">
+        <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm">
           <tr>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Behaviour</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 6%;">Fase</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Integrasi Pengukuran</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Rencana Aktivitas</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Aksi</th>
+            <th class="px-4 py-3 text-center text-xs uppercase text-gray-500" style="width: 12%;">Aksi</th>
           </tr>
         </thead>
         <tbody id="planning-body" class="divide-y divide-gray-200 text-gray-700">
           <tr><td colspan="5" class="text-center py-8 text-gray-400">Memuat planning...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Batch Action Bar (Sticky Bottom) -->
+    <div id="batch-action-bar" class="hidden bg-white border-t border-gray-200 p-4 flex justify-between items-center sticky bottom-0 z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] w-full">
+      <div>
+        <p class="text-base font-bold text-gray-900">Review Menunggu Konfirmasi</p>
+        <p class="text-xs text-gray-600 mt-1">Pilihan Anda sudah dicatat sementara. Klik kirim untuk menyimpan semua.</p>
+      </div>
+      <button id="batch-submit-btn" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 cursor-pointer" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+        Kirim Persetujuan & Revisi
+      </button>
     </div>
   </div>
 
@@ -118,6 +121,31 @@
   <div id="phase-note-box" class="bg-white rounded-xl shadow-sm p-4 hidden">
     <div id="phase-note-text" class="text-sm text-gray-700">-</div>
   </div>
+
+  <!-- Revision Modal -->
+  <div id="revision-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
+      <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Catatan Revisi</h3>
+      <div class="mb-4 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-100">
+        <div id="modal-behaviour-val" class="font-bold text-base mb-2 text-gray-900"></div>
+        <div class="font-semibold text-xs text-gray-500 uppercase mt-2">Integrasi Pengukuran</div>
+        <div id="modal-integrasi-val" class="ml-2 mb-2 whitespace-pre-wrap">-</div>
+        <div class="font-semibold text-xs text-gray-500 uppercase mt-2">Rencana Aktivitas</div>
+        <div id="modal-rencana-val" class="ml-2 whitespace-pre-wrap">-</div>
+      </div>
+      <div class="mb-4">
+        <textarea id="modal-revision-notes" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Masukkan catatan revisi di sini..."></textarea>
+      </div>
+      <div class="flex justify-between items-center mt-4">
+        <button id="modal-cancel-revision-btn" onclick="cancelRevisionFromModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg text-sm hover:bg-gray-300 font-medium hidden">Batalkan Revisi</button>
+        <div class="flex gap-2 w-full justify-end">
+          <button onclick="closeRevisionModal()" class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium">Cancel</button>
+          <button onclick="submitRevisionModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 @push('scripts')
@@ -125,6 +153,41 @@
 const employeeId = @json($employeeId);
 let detailData = null;
 let selectedTab = null;
+let pendingDecisions = {}; // Track local manager decisions { rowKey: { item_id, action: 'approve'/'revise', notes: '...' } }
+let totalPlanningSubRows = 0;
+
+function savePendingDecisionsLocal() {
+  if (detailData && detailData.plan && detailData.plan.id) {
+    localStorage.setItem(`vnb_batch_decisions_${detailData.plan.id}`, JSON.stringify(pendingDecisions));
+  }
+}
+
+function clearPendingDecisionsLocal() {
+  if (detailData && detailData.plan && detailData.plan.id) {
+    localStorage.removeItem(`vnb_batch_decisions_${detailData.plan.id}`);
+  }
+}
+
+function toggleBatchButtonBar() {
+  const bar = document.getElementById('batch-action-bar');
+  if (!bar) return;
+  if (Object.keys(pendingDecisions).length > 0) {
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function cancelPendingDecision(itemId, subIdx) {
+  const rowKey = itemId + '_' + subIdx;
+  delete pendingDecisions[rowKey];
+  savePendingDecisionsLocal();
+  // Re-render only planning table if it's the active view to restore button state
+  if (detailData && detailData.items) {
+      renderPlanningTable(detailData.items);
+  }
+  toggleBatchButtonBar();
+}
 
 function toLabelStatus(status) {
   const map = {
@@ -255,22 +318,17 @@ function renderPhaseContent(detail) {
   const planningWaiting = !!detail.approval_requests?.planning_waiting;
   const items = detail.items || [];
 
-  const planningApprovalBox = document.getElementById('planning-approval-box');
   const planningTableBox = document.getElementById('planning-table-box');
   const activityTableBox = document.getElementById('activity-table-box');
   const phaseNoteBox = document.getElementById('phase-note-box');
   const phaseNoteText = document.getElementById('phase-note-text');
 
-  planningApprovalBox.classList.add('hidden');
   planningTableBox.classList.add('hidden');
   activityTableBox.classList.add('hidden');
   phaseNoteBox.classList.add('hidden');
 
   if (activePhase === 'planning') {
     planningTableBox.classList.remove('hidden');
-    if (planningWaiting) {
-      planningApprovalBox.classList.remove('hidden');
-    }
     renderPlanningTable(items);
     return;
   }
@@ -358,6 +416,23 @@ function renderDetail() {
   document.getElementById('progress-label').textContent = `${progress}%`;
   document.getElementById('progress-bar').style.width = `${Math.max(0, Math.min(progress, 100))}%`;
   document.getElementById('phase-label').textContent = `Fase Saat Ini: ${detailData.phase || '-'}`;
+  
+  if (detailData?.plan?.id) {
+    const saved = localStorage.getItem(`vnb_batch_decisions_${detailData.plan.id}`);
+    if (saved) {
+      try {
+        pendingDecisions = JSON.parse(saved);
+      } catch (e) {
+        pendingDecisions = {};
+      }
+    } else {
+      pendingDecisions = {};
+    }
+  }
+
+  // Restore UI states from pending decisions (button colors, labels, etc.)
+  toggleBatchButtonBar();
+
   if (!selectedTab) {
     selectedTab = normalizeCurrentStage(detailData);
   }
@@ -385,14 +460,27 @@ function renderPlanningTable(items) {
   // Convert month range to phase number
   function convertMonthRangeToPhase(monthRange) {
     // e.g., "1-3" -> 1, "4-6" -> 2, "7-12" -> 3
-    if (monthRange.includes('1-3')) return '1';
-    if (monthRange.includes('4-6')) return '2';
-    if (monthRange.includes('7-12')) return '3';
+    if (!monthRange || monthRange === '-') return '-';
+    
+    // Handle ranges like "1-3", "4-6", "7-12"
+    if (monthRange.includes('1-3') || monthRange.includes('1 - 3')) return '1';
+    if (monthRange.includes('4-6') || monthRange.includes('4 - 6')) return '2';
+    if (monthRange.includes('7-12') || monthRange.includes('7 - 12')) return '3';
+    
+    // Handle single month numbers
+    const monthNum = parseInt(monthRange);
+    if (!isNaN(monthNum)) {
+      if (monthNum >= 1 && monthNum <= 3) return '1';
+      if (monthNum >= 4 && monthNum <= 6) return '2';
+      if (monthNum >= 7 && monthNum <= 12) return '3';
+    }
+    
     return monthRange || '-';
   }
 
   // Group items by behavior and create rows for each integration
   const groupedByBehavior = {};
+  totalPlanningSubRows = 0;
   
   items.forEach(item => {
     // Extract behavior name from activity_title (e.g., "Empathy - Phase 1-3" -> "Empathy")
@@ -414,12 +502,17 @@ function renderPlanningTable(items) {
       groupedByBehavior[behavior] = [];
     }
     
+    const rencanaList = (item.deliverables || '').split('\n---\n').map(s => s.trim());
+    
     // Create a row for each integration
-    integrations.forEach(integration => {
+    integrations.forEach((integration, idx) => {
+      totalPlanningSubRows++;
       groupedByBehavior[behavior].push({
         ...item,
         extracted_phase: phase,
-        integration_text: integration
+        integration_text: integration,
+        rencana_text: rencanaList[idx] || '-',
+        sub_idx: idx
       });
     });
   });
@@ -430,19 +523,47 @@ function renderPlanningTable(items) {
     let lastPhase = null;
     
     itemsInGroup.forEach((item, idx) => {
-      const showBehavior = idx === 0;  // Only show behavior name on first row
-      const showPhase = lastPhase !== item.extracted_phase;  // Only show fase if different from previous
+      const showBehavior = idx === 0;
+      const showPhase = lastPhase !== item.extracted_phase;
       lastPhase = item.extracted_phase;
       
+      const rowKey = item.id + '_' + item.sub_idx;
+      const decision = pendingDecisions[rowKey];
+      let actionHtml = '';
+      let rowBgClass = '';
+      
+      if (decision) {
+        if (decision.action === 'approve') {
+          rowBgClass = 'bg-green-50';
+          actionHtml = `
+            <span class="text-xs font-semibold text-green-700 block mb-1">✓ Disetujui</span>
+            <button onclick="cancelPendingDecision(${item.id}, ${item.sub_idx})" class="px-2 py-1 text-xs text-gray-600 bg-gray-200 hover:bg-gray-300 rounded transition cursor-pointer w-full text-center">Batalkan</button>
+          `;
+        } else if (decision.action === 'revise') {
+          rowBgClass = 'bg-red-50';
+          actionHtml = `
+            <span class="text-xs font-semibold text-red-700 block mb-1">✕ Revisi</span>
+            <div class="flex flex-col gap-1 items-center justify-center auto">
+              <button onclick="editPendingDecision(${item.id}, ${item.sub_idx}, '${encodeURIComponent(behavior).replace(/'/g, "%27")}', '${encodeURIComponent(item.integration_text).replace(/'/g, "%27")}', '${encodeURIComponent(item.rencana_text || '-').replace(/'/g, "%27")}')" class="px-2 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded transition cursor-pointer w-full text-center">Edit</button>
+              <button onclick="cancelPendingDecision(${item.id}, ${item.sub_idx})" class="px-2 py-1 text-xs text-gray-600 bg-gray-200 hover:bg-gray-300 rounded transition cursor-pointer w-full text-center">Batalkan</button>
+            </div>
+          `;
+        }
+      } else {
+        actionHtml = `
+          <button onclick="approvePlanningRow(${item.id}, ${item.sub_idx})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-600 text-white hover:bg-green-700 transition mr-2 cursor-pointer shadow-sm" title="Approve" style="font-size: 14px; font-weight: bold;">✓</button>
+          <button onclick="revisePlanningRow(${item.id}, ${item.sub_idx}, '${encodeURIComponent(behavior).replace(/'/g, "%27")}', '${encodeURIComponent(item.integration_text).replace(/'/g, "%27")}', '${encodeURIComponent(item.rencana_text || '-').replace(/'/g, "%27")}')" class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-600 text-white hover:bg-red-700 transition cursor-pointer shadow-sm" title="Revise" style="font-size: 14px; font-weight: bold;">✕</button>
+        `;
+      }
+
       html += `
-    <tr>
+    <tr class="${rowBgClass} hover:bg-gray-50 transition-colors">
       ${showBehavior ? `<td class="px-4 py-3 align-top font-medium" style="vertical-align: top;">${behavior}</td>` : '<td class="px-4 py-3"></td>'}
       ${showPhase ? `<td class="px-4 py-3 align-top text-center" style="vertical-align: top;">${item.extracted_phase}</td>` : '<td class="px-4 py-3"></td>'}
-      <td class="px-4 py-3 align-top"><span class="text-xs text-gray-700">${item.integration_text}</span></td>
-      <td class="px-4 py-3 align-top">${item.deliverables || '-'}</td>
+      <td class="px-4 py-3 align-top"><span class="text-xs text-gray-700 whitespace-pre-wrap">${item.integration_text}</span></td>
+      <td class="px-4 py-3 align-top whitespace-pre-wrap">${item.rencana_text || '-'}</td>
       <td class="px-4 py-3 align-top text-center">
-        <button onclick="approvePlanningRow(${item.id})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-600 text-white hover:bg-green-700 transition mr-2" title="Approve" style="font-size: 14px; font-weight: bold;">✓</button>
-        <button onclick="revisePlanningRow(${item.id})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-600 text-white hover:bg-red-700 transition" title="Revise" style="font-size: 14px; font-weight: bold;">✕</button>
+        ${actionHtml}
       </td>
     </tr>
       `;
@@ -450,75 +571,143 @@ function renderPlanningTable(items) {
   });
 
   tbody.innerHTML = html;
+  toggleBatchButtonBar();
 }
 
-async function approvePlanning() {
+async function submitBatchReview() {
   const planId = detailData?.plan?.id;
   if (!planId) return;
-  const notes = document.getElementById('planning-notes').value || '';
-  const res = await apiPost(`/api/vnb-plans/${planId}/manager-review`, { action: 'approve', notes });
-  if (res && res.success) {
-    showAlert('Planning berhasil di-approve');
-    loadDetail();
-  } else {
-    showAlert(res?.message || res?.error || 'Gagal approve planning', 'error');
-  }
-}
 
-async function revisePlanning() {
-  const planId = detailData?.plan?.id;
-  if (!planId) return;
-  const notes = (document.getElementById('planning-notes').value || '').trim();
-  if (!notes) {
-    showAlert('Isi catatan revisi planning terlebih dahulu', 'error');
-    return;
-  }
-  const res = await apiPost(`/api/vnb-plans/${planId}/manager-review`, { action: 'reject', notes });
-  if (res && res.success) {
-    showAlert('Revisi planning berhasil dikirim');
-    loadDetail();
-  } else {
-    showAlert(res?.message || res?.error || 'Gagal kirim revisi planning', 'error');
-  }
-}
-
-async function approvePlanningRow(itemId) {
-  const planId = detailData?.plan?.id;
-  if (!planId) {
-    showAlert('ID planning tidak ditemukan', 'error');
+  const pendingCount = Object.keys(pendingDecisions).length;
+  if (pendingCount < totalPlanningSubRows) {
+    showAlert('Harap berikan keputusan (Setujui atau Revisi) untuk seluruh rencana aktivitas terlebih dahulu.', 'error');
     return;
   }
 
-  if (!confirm('Approve aktivitas ini?')) return;
-
-  const res = await apiPost(`/api/manager/plans/${planId}/items/${itemId}/approve`, {});
-  if (res && res.success) {
-    showAlert(res.message || 'Aktivitas berhasil di-approve');
-    loadDetail();
-  } else {
-    showAlert(res?.message || res?.error || 'Gagal approve aktivitas', 'error');
-  }
-}
-
-async function revisePlanningRow(itemId) {
-  const planId = detailData?.plan?.id;
-  if (!planId) {
-    showAlert('ID planning tidak ditemukan', 'error');
-    return;
-  }
-
-  const revisionNotes = (window.prompt('Masukkan catatan revisi untuk aktivitas ini:') || '').trim();
-  if (!revisionNotes) return;
-
-  const res = await apiPost(`/api/manager/plans/${planId}/items/${itemId}/request-revision`, {
-    revision_notes: revisionNotes
+  const groupedReviews = {};
+  let validActionCount = 0;
+  
+  Object.values(pendingDecisions).forEach(data => {
+    validActionCount++;
+    if (!groupedReviews[data.item_id]) {
+      groupedReviews[data.item_id] = { id: data.item_id, action: data.action, notes: [] };
+    }
+    // If ANY integration marks it as revise, the whole DB item is revised.
+    if (data.action === 'revise') {
+      groupedReviews[data.item_id].action = 'revise';
+      if (data.notes) groupedReviews[data.item_id].notes.push(data.notes);
+    }
   });
+
+  if (validActionCount === 0) return;
+
+  const reviews = Object.values(groupedReviews).map(g => ({
+    id: g.id,
+    action: g.action,
+    notes: g.notes.join('\\n\\n') || null
+  }));
+
+  const btn = document.getElementById('batch-submit-btn');
+  const orgHtml = btn.innerHTML;
+  btn.innerHTML = 'Sedang Memproses...';
+  btn.disabled = true;
+
+  const res = await apiPost(`/api/manager/plans/${planId}/batch-review`, { reviews });
+  
+  btn.innerHTML = orgHtml;
+  btn.disabled = false;
+
   if (res && res.success) {
-    showAlert(res.message || 'Permintaan revisi berhasil dikirim');
+    pendingDecisions = {};
+    clearPendingDecisionsLocal();
+    toggleBatchButtonBar();
+    showAlert(res.message || 'Review berhasil disimpan', 'success');
     loadDetail();
   } else {
-    showAlert(res?.message || res?.error || 'Gagal kirim revisi aktivitas', 'error');
+    showAlert(res?.message || res?.error || 'Gagal menyimpan review', 'error');
   }
+}
+
+async function approvePlanningRow(itemId, subIdx) {
+  const rowKey = itemId + '_' + subIdx;
+  pendingDecisions[rowKey] = { item_id: itemId, action: 'approve' };
+  savePendingDecisionsLocal();
+  if (detailData && detailData.items) {
+      renderPlanningTable(detailData.items);
+  }
+  toggleBatchButtonBar();
+}
+
+let currentRevisionItemId = null;
+let currentRevisionSubIdx = null;
+
+function cancelRevisionFromModal() {
+  if (currentRevisionItemId && currentRevisionSubIdx !== null) {
+      cancelPendingDecision(currentRevisionItemId, currentRevisionSubIdx);
+  }
+  closeRevisionModal();
+}
+
+function editPendingDecision(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaEnc) {
+  const rowKey = itemId + '_' + subIdx;
+  const decision = pendingDecisions[rowKey];
+  currentRevisionItemId = itemId;
+  currentRevisionSubIdx = subIdx;
+  
+  document.getElementById('modal-behaviour-val').textContent = decodeURIComponent(behaviorEnc);
+  document.getElementById('modal-integrasi-val').textContent = '- ' + decodeURIComponent(integrasiEnc);
+  document.getElementById('modal-rencana-val').textContent = '- ' + decodeURIComponent(rencanaEnc);
+  
+  document.getElementById('modal-revision-notes').value = decision.notes || '';
+  document.getElementById('modal-cancel-revision-btn').classList.remove('hidden');
+  document.getElementById('revision-modal').classList.remove('hidden');
+}
+
+function revisePlanningRow(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaEnc) {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('ID planning tidak ditemukan', 'error');
+    return;
+  }
+  
+  currentRevisionItemId = itemId;
+  currentRevisionSubIdx = subIdx;
+  
+  document.getElementById('modal-behaviour-val').textContent = decodeURIComponent(behaviorEnc);
+  document.getElementById('modal-integrasi-val').textContent = '- ' + decodeURIComponent(integrasiEnc);
+  document.getElementById('modal-rencana-val').textContent = '- ' + decodeURIComponent(rencanaEnc);
+  
+  document.getElementById('modal-revision-notes').value = '';
+  document.getElementById('modal-cancel-revision-btn').classList.add('hidden');
+  document.getElementById('revision-modal').classList.remove('hidden');
+}
+
+function closeRevisionModal() {
+  document.getElementById('revision-modal').classList.add('hidden');
+  currentRevisionItemId = null;
+  currentRevisionSubIdx = null;
+}
+
+async function submitRevisionModal() {
+  if (!currentRevisionItemId || currentRevisionSubIdx === null) return;
+  
+  const revisionNotes = document.getElementById('modal-revision-notes').value.trim();
+  if (!revisionNotes) {
+    showAlert('Harap isi catatan revisi', 'error');
+    return;
+  }
+
+  // Update local pending state
+  const rowKey = currentRevisionItemId + '_' + currentRevisionSubIdx;
+  pendingDecisions[rowKey] = { item_id: currentRevisionItemId, action: 'revise', notes: revisionNotes };
+  savePendingDecisionsLocal();
+  closeRevisionModal();
+  
+  // Re-render
+  if (detailData && detailData.items) {
+      renderPlanningTable(detailData.items);
+  }
+  toggleBatchButtonBar();
 }
 
 async function approveActivity(planItemId) {

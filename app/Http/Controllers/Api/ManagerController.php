@@ -1412,7 +1412,7 @@ class ManagerController extends Controller
 
             // Create revision detail for this specific item
             VnbPlanRevisionDetail::create([
-                'revision_id' => $revision->id,
+                'vnb_plan_revision_id' => $revision->id,
                 'vnb_plan_item_id' => $item->id,
                 'changed_by' => $manager->id,
                 'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date'])),
@@ -1447,6 +1447,118 @@ class ManagerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengirim permintaan revisi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Manager: Batch review planning items (approves and revisions)
+     * POST /api/manager/plans/{planId}/batch-review
+     */
+    public function batchReviewPlanItems(Request $request, int $planId): JsonResponse
+    {
+        $this->authorizeManagerPortalAccess();
+
+        $request->validate([
+            'reviews' => 'required|array',
+            'reviews.*.id' => 'required|integer|exists:vnb_plan_items,id',
+            'reviews.*.action' => 'required|in:approve,revise',
+            'reviews.*.notes' => 'nullable|string',
+        ]);
+
+        $plan = VnbPlan::with('employee')->findOrFail($planId);
+        
+        $manager = $this->resolveCurrentManager();
+        $isFunctional = $plan->employee->manager_functional_id == $manager->id;
+        $isOperational = $plan->employee->manager_operational_id == $manager->id;
+        
+        abort_unless($isFunctional || $isOperational, 403, 'Anda bukan manager dari new hire ini');
+
+        try {
+            DB::beginTransaction();
+
+            $reviews = $request->input('reviews');
+            $hasRevisions = false;
+            $revisionRecord = null;
+            $managerId = $manager->id;
+
+            foreach ($reviews as $review) {
+                $item = VnbPlanItem::where('id', $review['id'])->where('plan_id', $planId)->first();
+                if (!$item) continue;
+
+                if ($review['action'] === 'approve') {
+                    if ($isFunctional) {
+                        $item->approved_functional_by = $managerId;
+                        $item->approved_functional_at = now();
+                    } else {
+                        $item->approved_operational_by = $managerId;
+                        $item->approved_operational_at = now();
+                    }
+                    $item->save();
+                } elseif ($review['action'] === 'revise') {
+                    $hasRevisions = true;
+
+                    // Group all revisions into one revision round
+                    if (!$revisionRecord) {
+                        $latestRevision = $plan->revisions()->orderByDesc('revision_number')->first();
+                        $newRevisionNumber = ($latestRevision?->revision_number ?? 0) + 1;
+
+                        $revisionRecord = VnbPlanRevision::create([
+                            'vnb_plan_id' => $plan->id,
+                            'revision_number' => $newRevisionNumber,
+                            'requested_by' => $managerId,
+                            'revision_notes' => 'Grouped batch revision', // Could be aggregated or generic
+                            'status' => 'pending',
+                            'requested_at' => now(),
+                        ]);
+                    }
+
+                    VnbPlanRevisionDetail::create([
+                        'vnb_plan_revision_id' => $revisionRecord->id,
+                        'vnb_plan_item_id' => $item->id,
+                        'changed_by' => $managerId,
+                        // Note: old_values represents state before current changes. Should include specifics over time.
+                        'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date', 'deliverables'])),
+                    ]);
+
+                    $item->update([
+                        'revision_notes' => $review['notes'],
+                    ]);
+                }
+            }
+
+            // Check if all items are fully approved
+            $allApproved = VnbPlanItem::where('plan_id', $planId)
+                ->where(function ($q) {
+                    $q->whereNull('approved_functional_by')
+                      ->orWhereNull('approved_operational_by');
+                })
+                ->count() === 0;
+
+            if ($allApproved && in_array($plan->status, ['waiting_manager_approval', 'submitted'])) {
+                $plan->update([
+                    'status' => 'approved',
+                    'approved_by' => $managerId,
+                    'approved_at' => now(),
+                ]);
+            } elseif ($hasRevisions) {
+                $plan->update([
+                    'status' => 'revision_requested',
+                    'revision_count' => $plan->revision_count + 1,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review berhasil disimpan secara batch',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan review: ' . $e->getMessage(),
             ], 500);
         }
     }
