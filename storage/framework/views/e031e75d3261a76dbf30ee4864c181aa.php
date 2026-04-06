@@ -482,14 +482,43 @@ async function revisePlanning() {
   }
 }
 
-function approvePlanningRow(itemId) {
-  showAlert('Fitur approval per-row akan segera diaktifkan', 'info');
-  // TODO: Implement row-level approval
+async function approvePlanningRow(itemId) {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('ID planning tidak ditemukan', 'error');
+    return;
+  }
+
+  if (!confirm('Approve aktivitas ini?')) return;
+
+  const res = await apiPost(`/api/manager/plans/${planId}/items/${itemId}/approve`, {});
+  if (res && res.success) {
+    showAlert(res.message || 'Aktivitas berhasil di-approve');
+    loadDetail();
+  } else {
+    showAlert(res?.message || res?.error || 'Gagal approve aktivitas', 'error');
+  }
 }
 
-function revisePlanningRow(itemId) {
-  showAlert('Fitur revise per-row akan segera diaktifkan', 'info');
-  // TODO: Implement row-level revision
+async function revisePlanningRow(itemId) {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('ID planning tidak ditemukan', 'error');
+    return;
+  }
+
+  const revisionNotes = (window.prompt('Masukkan catatan revisi untuk aktivitas ini:') || '').trim();
+  if (!revisionNotes) return;
+
+  const res = await apiPost(`/api/manager/plans/${planId}/items/${itemId}/request-revision`, {
+    revision_notes: revisionNotes
+  });
+  if (res && res.success) {
+    showAlert(res.message || 'Permintaan revisi berhasil dikirim');
+    loadDetail();
+  } else {
+    showAlert(res?.message || res?.error || 'Gagal kirim revisi aktivitas', 'error');
+  }
 }
 
 async function approveActivity(planItemId) {

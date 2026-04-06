@@ -20,6 +20,7 @@ $users = User::where('email', 'like', "%$username%")
 if ($users->count() > 0) {
     echo "=== Found " . $users->count() . " users ===\n";
     foreach ($users as $user) {
+        /** @var \App\Models\User $user */
         echo "\nUser ID: " . $user->id . "\n";
         echo "Name: " . $user->name . "\n";
         echo "Email: " . $user->email . "\n";
@@ -43,6 +44,7 @@ if ($users->count() > 0) {
         if ($employee->user_id) {
             $linkedUser = User::find($employee->user_id);
             if ($linkedUser) {
+                /** @var \App\Models\User $linkedUser */
                 echo "\nLinked User Found:\n";
                 echo "User ID: " . $linkedUser->id . "\n";
                 echo "User Email: " . $linkedUser->email . "\n";
@@ -53,6 +55,7 @@ if ($users->count() > 0) {
         // Check if there's a user with same email
         $userWithSameEmail = User::where('email', $employee->email)->first();
         if ($userWithSameEmail) {
+            /** @var \App\Models\User $userWithSameEmail */
             echo "\nUser with same email found:\n";
             echo "User ID: " . $userWithSameEmail->id . "\n";
             echo "User Email: " . $userWithSameEmail->email . "\n";
@@ -65,6 +68,7 @@ if ($users->count() > 0) {
         echo "\n=== All Users (limit 10) ===\n";
         $allUsers = User::limit(10)->get();
         foreach ($allUsers as $user) {
+            /** @var \App\Models\User $user */
             echo "- " . $user->email . " (" . implode(', ', $user->getRoleNames()->toArray()) . ")\n";
         }
     }

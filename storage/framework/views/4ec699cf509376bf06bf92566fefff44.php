@@ -725,6 +725,25 @@ async function submitPlan() {
         return;
     }
 
+    // Pastikan rencana disimpan terlebih dahulu jika ada yang masih di-edit
+    const itemsToSave = collectUpdatedItems();
+    if (itemsToSave && itemsToSave.length > 0) {
+        // Ada perubahan yang belum disimpan, simpan dulu
+        const saveRes = await apiPost(`/api/vnb-plans/${currentPlan.id}/draft`, {
+            title: currentPlan.title,
+            description: currentPlan.description,
+            items: itemsToSave,
+        });
+        
+        if (!saveRes.success) {
+            showAlert(saveRes.message || saveRes.error || 'Gagal menyimpan draft sebelum submit', 'error');
+            return;
+        }
+        
+        // Update currentPlan dengan data terbaru
+        currentPlan = saveRes.data;
+    }
+
     // Validasi: hitung rencana kosong
     const emptyFields = [];
     
@@ -736,7 +755,8 @@ async function submitPlan() {
         for (let integIdx = 0; integIdx < integrationList.length; integIdx++) {
             let textareaValue = '';
             
-            // First try to get from DOM (if textarea exists - user is editing)
+            // Setelah save, semua items seharusnya ada di currentPlan.deliverables
+            // Tapi tetap cek DOM terlebih dahulu untuk kemungkinan perubahan belum tersimpan
             let textareaId;
             if (integIdx === 0) {
                 textareaId = `act_${item.id}`;
