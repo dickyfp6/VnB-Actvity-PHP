@@ -1412,7 +1412,7 @@ class ManagerController extends Controller
 
             // Create revision detail for this specific item
             VnbPlanRevisionDetail::create([
-                'vnb_plan_revision_id' => $revision->id,
+                'revision_id' => $revision->id,
                 'vnb_plan_item_id' => $item->id,
                 'changed_by' => $manager->id,
                 'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date'])),
@@ -1514,7 +1514,7 @@ class ManagerController extends Controller
                     }
 
                     VnbPlanRevisionDetail::create([
-                        'vnb_plan_revision_id' => $revisionRecord->id,
+                        'revision_id' => $revisionRecord->id,
                         'vnb_plan_item_id' => $item->id,
                         'changed_by' => $managerId,
                         // Note: old_values represents state before current changes. Should include specifics over time.
