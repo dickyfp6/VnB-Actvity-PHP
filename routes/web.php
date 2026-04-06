@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\AuthWebController;
 
@@ -10,61 +8,6 @@ Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
 Route::get('/register', [AuthWebController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthWebController::class, 'register'])->name('register.post');
-
-// Data Salvage Route - Migrate data from SQLite backup to MariaDB
-Route::get('/salvage-data', function () {
-    try {
-        // 1. MATIKAN pengecekan relasi sementara agar tidak error "Foreign Key"
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        config(['database.connections.sqlite_backup' => [
-            'driver' => 'sqlite',
-            'database' => database_path('database.sqlite'),
-            'prefix' => '',
-        ]]);
-
-        $tables = ['users', 'employees', 'vnb_plans', 'vnb_plan_items', 'vnb_plan_revisions']; 
-        $report = [];
-
-        foreach ($tables as $table) {
-            if (!Schema::hasTable($table)) {
-                $report[] = "<span style='color:orange;'>⚠️ Tabel $table tidak ada di MariaDB. Jalankan migrate dulu!</span>";
-                continue;
-            }
-
-            $oldData = DB::connection('sqlite_backup')->table($table)->get();
-            $count = 0;
-            $errors = [];
-
-            foreach ($oldData as $item) {
-                try {
-                    // Pakai insertOrIgnore supaya kalau ID sudah ada, dia nggak bikin error
-                    DB::table($table)->insertOrIgnore((array)$item);
-                    $count++;
-                } catch (\Exception $e) {
-                    $errors[] = $e->getMessage();
-                }
-            }
-
-            $msg = "✅ Tabel <strong>$table</strong>: $count data berhasil.";
-            if (count($errors) > 0) {
-                $msg .= " <span style='color:red;'>(Error pertama: " . $errors[0] . ")</span>";
-            }
-            $report[] = $msg;
-        }
-
-        // 2. NYALAKAN KEMBALI pengecekan relasi
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        return '<div style="font-family:sans-serif; padding:20px; line-height:1.6;">'
-             . '<h2>Hasil Operasi Penyelamatan Data</h2>'
-             . implode('<br>', $report)
-             . '<br><br><a href="/">Kembali ke Dashboard</a></div>';
-
-    } catch (\Exception $e) {
-        return "Gagal total: " . $e->getMessage();
-    }
-});
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
