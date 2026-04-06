@@ -806,10 +806,9 @@ class EmployeeController extends Controller
             $firstName = 'user';
         }
 
-        $waDigits = preg_replace('/\D+/', '', (string) ($employee->whatsapp ?? '')) ?? '';
+        // Get last 2 digits from NIP
         $nipDigits = preg_replace('/\D+/', '', (string) ($employee->employee_number ?? '')) ?? '';
-        $suffixSource = $waDigits !== '' ? $waDigits : $nipDigits;
-        $suffix = $suffixSource === '' ? '000' : str_pad(substr($suffixSource, -3), 3, '0', STR_PAD_LEFT);
+        $suffix = $nipDigits === '' ? '00' : str_pad(substr($nipDigits, -2), 2, '0', STR_PAD_LEFT);
 
         return $firstName . $suffix;
     }

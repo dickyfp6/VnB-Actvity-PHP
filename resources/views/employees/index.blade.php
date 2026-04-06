@@ -182,6 +182,32 @@
             <div id="missing-master-checkboxes" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm"></div>
         </div>
 
+        <div id="missing-manager-alert" class="mb-4 p-3 border border-red-400 rounded-lg bg-red-50 hidden shadow-sm w-full">
+            <div class="flex items-start gap-2">
+                <div class="flex-shrink-0 pt-0.5">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-bold text-red-900 mb-1">Manager Belum Terdaftar</h3>
+                    <p class="text-xs text-red-800 mb-2 leading-relaxed">Manager berikut belum terdaftar di sistem. Silakan daftarkan manager terlebih dahulu di Halaman Manager, atau biarkan kolom manager kosong jika ingin diisi nanti.</p>
+                    
+                    <div class="bg-red-100/50 p-2 rounded border border-red-200 mb-3">
+                        <span class="text-xs font-semibold text-red-900 block mb-1">Manager yang tidak ditemukan:</span>
+                        <div id="missing-managers-list" class="flex flex-wrap gap-1"></div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <a href="/managers" target="_blank" class="inline-flex items-center justify-center px-3 py-1.5 rounded text-xs font-semibold text-white hover:opacity-90 transition" style="background-color: #144600;">
+                            <i class="fas fa-user-plus mr-1.5"></i> Buka Halaman Manager
+                        </a>
+                        <button type="button" onclick="closeImportValidationModal()" class="inline-flex items-center justify-center px-3 py-1.5 rounded text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition">
+                            Abaikan & Batal Import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="overflow-x-auto border rounded-lg">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50">
@@ -1107,6 +1133,7 @@ function applyPreviewValidationState(state) {
 function recomputePreviewValidation() {
     const state = validatePreviewRows(importPreviewRows);
     applyPreviewValidationState(state);
+    checkAndDisplayMissingManagers(state);
 }
 
 function onPreviewCellInput(rowIndex, field, value) {
@@ -1150,6 +1177,53 @@ function openImportValidationModal(preview) {
     recomputePreviewValidation();
 
     document.getElementById('import-validation-modal').classList.remove('hidden');
+}
+
+function checkAndDisplayMissingManagers(state) {
+    const missingManagers = new Set();
+    
+    if (state && state.errorsByRow) {
+        state.errorsByRow.forEach((errors, rowIndex) => {
+            const row = importPreviewRows[rowIndex];
+            if (!row) return;
+
+            errors.forEach(error => {
+                if (error.field === 'manager_functional_input') {
+                    const managerName = (row.manager_functional_input || '').trim();
+                    if (managerName) {
+                        missingManagers.add(managerName);
+                    }
+                }
+                
+                if (error.field === 'manager_operational_input') {
+                    const managerName = (row.manager_operational_input || '').trim();
+                    if (managerName) {
+                        missingManagers.add(managerName);
+                    }
+                }
+            });
+        });
+    }
+    
+    const alertBox = document.getElementById('missing-manager-alert');
+    const listBox = document.getElementById('missing-managers-list');
+    
+    if (missingManagers.size > 0) {
+        // Tampilkan alert
+        console.log('Showing missing manager alert');
+        const managerList = Array.from(missingManagers)
+            .sort()
+            .map(name => `<span class="inline-block bg-red-200 px-3 py-1 rounded text-xs mr-1 mb-1 font-semibold">${escapeHtml(name)}</span>`)
+            .join('');
+        
+        listBox.innerHTML = managerList;
+        alertBox.classList.remove('hidden');
+        console.log('Alert box displayed with managers:', Array.from(missingManagers));
+    } else {
+        // Sembunyikan alert kalau tidak ada missing manager
+        console.log('Hiding missing manager alert');
+        alertBox.classList.add('hidden');
+    }
 }
 
 function collectAddMissingMasterOptions() {
