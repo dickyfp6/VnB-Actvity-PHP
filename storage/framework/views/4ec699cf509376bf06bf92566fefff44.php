@@ -736,10 +736,24 @@ async function submitPlan() {
         for (let integIdx = 0; integIdx < integrationList.length; integIdx++) {
             let textareaValue = '';
             
+            // First try to get from DOM (if textarea exists - user is editing)
+            let textareaId;
             if (integIdx === 0) {
-                textareaValue = document.getElementById(`act_${item.id}`)?.value || '';
+                textareaId = `act_${item.id}`;
             } else {
-                textareaValue = document.getElementById(`plan_${item.id}_${integIdx}`)?.value || '';
+                textareaId = `plan_${item.id}_${integIdx}`;
+            }
+            
+            const textarea = document.getElementById(textareaId);
+            if (textarea) {
+                // Textarea exists in DOM - get value from it
+                textareaValue = textarea.value || '';
+            } else {
+                // Textarea doesn't exist - get from currentPlan.deliverables (already saved)
+                if (item.deliverables && item.deliverables.trim().length > 0 && item.deliverables.trim() !== '-') {
+                    const rencanaLines = item.deliverables.split('\n---\n');
+                    textareaValue = rencanaLines[integIdx] ? rencanaLines[integIdx].trim() : '';
+                }
             }
             
             if (!textareaValue || textareaValue.trim().length === 0) {
@@ -750,7 +764,7 @@ async function submitPlan() {
     
     // Jika ada field kosong, highlight dan tampilkan peringatan
     if (emptyFields.length > 0) {
-        // Highlight empty textboxes
+        // Highlight empty textboxes (if they exist in DOM)
         emptyFields.forEach(({ itemId, integIdx }) => {
             let textareaId;
             if (integIdx === 0) {

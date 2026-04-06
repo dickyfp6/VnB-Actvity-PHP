@@ -356,7 +356,7 @@ class VnbPlanController extends Controller
             'rejection_reason' => null,
         ]);
 
-        $this->createPlanRevisionSubmission($plan->fresh('items'));
+        $this->createPlanRevisionSubmission($plan->fresh()->load('items'));
 
         // TODO: Send notification to manager
 

@@ -182,7 +182,7 @@ function renderDeadlineBanner() {
     b.className = 'mb-5 rounded-lg px-4 py-3 text-sm bg-red-100 text-red-700';
     b.textContent = `Ada aktivitas melewati due date (${Math.abs(min)} hari). Mohon segera update / submit.`;
   } else {
-    b.className = 'mb-5 rounded-lg px-4 py-3 text-sm' + (status === 'active' ? (' background-color: #D0EC98; color: #144600;' : ' background-color: #f3f4f6; color: #9ca3af;');
+    b.className = 'mb-5 rounded-lg px-4 py-3 text-sm ' + (typeof status !== 'undefined' && status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600');
     b.textContent = `Deadline terdekat: ${min} hari lagi.`;
   }
   b.classList.remove('hidden');

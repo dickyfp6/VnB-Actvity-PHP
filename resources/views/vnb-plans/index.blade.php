@@ -725,6 +725,25 @@ async function submitPlan() {
         return;
     }
 
+    // Pastikan rencana disimpan terlebih dahulu jika ada yang masih di-edit
+    const itemsToSave = collectUpdatedItems();
+    if (itemsToSave && itemsToSave.length > 0) {
+        // Ada perubahan yang belum disimpan, simpan dulu
+        const saveRes = await apiPost(`/api/vnb-plans/${currentPlan.id}/draft`, {
+            title: currentPlan.title,
+            description: currentPlan.description,
+            items: itemsToSave,
+        });
+        
+        if (!saveRes.success) {
+            showAlert(saveRes.message || saveRes.error || 'Gagal menyimpan draft sebelum submit', 'error');
+            return;
+        }
+        
+        // Update currentPlan dengan data terbaru
+        currentPlan = saveRes.data;
+    }
+
     // Validasi: hitung rencana kosong
     const emptyFields = [];
     
@@ -736,10 +755,25 @@ async function submitPlan() {
         for (let integIdx = 0; integIdx < integrationList.length; integIdx++) {
             let textareaValue = '';
             
+            // Setelah save, semua items seharusnya ada di currentPlan.deliverables
+            // Tapi tetap cek DOM terlebih dahulu untuk kemungkinan perubahan belum tersimpan
+            let textareaId;
             if (integIdx === 0) {
-                textareaValue = document.getElementById(`act_${item.id}`)?.value || '';
+                textareaId = `act_${item.id}`;
             } else {
-                textareaValue = document.getElementById(`plan_${item.id}_${integIdx}`)?.value || '';
+                textareaId = `plan_${item.id}_${integIdx}`;
+            }
+            
+            const textarea = document.getElementById(textareaId);
+            if (textarea) {
+                // Textarea exists in DOM - get value from it
+                textareaValue = textarea.value || '';
+            } else {
+                // Textarea doesn't exist - get from currentPlan.deliverables (already saved)
+                if (item.deliverables && item.deliverables.trim().length > 0 && item.deliverables.trim() !== '-') {
+                    const rencanaLines = item.deliverables.split('\n---\n');
+                    textareaValue = rencanaLines[integIdx] ? rencanaLines[integIdx].trim() : '';
+                }
             }
             
             if (!textareaValue || textareaValue.trim().length === 0) {
@@ -750,7 +784,7 @@ async function submitPlan() {
     
     // Jika ada field kosong, highlight dan tampilkan peringatan
     if (emptyFields.length > 0) {
-        // Highlight empty textboxes
+        // Highlight empty textboxes (if they exist in DOM)
         emptyFields.forEach(({ itemId, integIdx }) => {
             let textareaId;
             if (integIdx === 0) {
