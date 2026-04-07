@@ -141,11 +141,21 @@ class VnbPlanController extends Controller
         
         foreach ($frameworkItems as $phaseNumber => $items) {
             foreach ($items as $item) {
+                // Build description from integration_1 and integration_2 with pipe separator
+                $integrationParts = [];
+                if ($item->integration_1) {
+                    $integrationParts[] = $item->integration_1;
+                }
+                if ($item->integration_2) {
+                    $integrationParts[] = $item->integration_2;
+                }
+                $description = !empty($integrationParts) ? implode(' | ', $integrationParts) : 'Activity for ' . $item->behaviour;
+
                 $itemsToInsert[] = [
                     'plan_id' => $plan->id,
                     'framework_item_id' => $item->id,
                     'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
-                    'description' => 'Activity for ' . $item->behaviour,
+                    'description' => $description,
                     'integration_1' => $item->integration_1,
                     'integration_2' => $item->integration_2,
                     'implementation_date' => now()->addDays(7),
