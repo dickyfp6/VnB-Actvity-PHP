@@ -197,6 +197,26 @@ class AuthController extends Controller
     }
 
     /**
+     * Verify current password
+     */
+    public function verifyPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        $isValid = Hash::check($validated['current_password'], $user->password);
+
+        return response()->json([
+            'success' => true,
+            'valid' => $isValid,
+            'message' => $isValid ? 'Password saat ini sesuai.' : 'Password saat ini tidak sesuai.',
+        ]);
+    }
+
+    /**
      * Change password for authenticated user
      */
     public function changePassword(Request $request): JsonResponse

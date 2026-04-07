@@ -44,4 +44,5 @@ Route::middleware('auth')->group(function () {
 
     // Account - Profile (dengan profile info + password change dalam satu halaman)
     Route::get('/my-account/profile', [PageController::class, 'profile'])->name('my-account.profile');
+    Route::get('/my-account/change-password', [PageController::class, 'changePassword'])->name('my-account.change-password');
 });

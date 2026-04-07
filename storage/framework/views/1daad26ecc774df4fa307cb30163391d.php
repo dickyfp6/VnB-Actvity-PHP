@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','Ganti Password')
-@section('content')
+
+<?php $__env->startSection('title','Ganti Password'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Header Section -->
@@ -208,9 +208,9 @@
     </div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const step1Content = document.getElementById('step1-content');
@@ -493,4 +493,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/account/change-password.blade.php ENDPATH**/ ?>

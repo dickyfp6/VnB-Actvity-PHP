@@ -138,6 +138,7 @@ class VnbPlanController extends Controller
             foreach ($items as $item) {
                 $itemsToInsert[] = [
                     'plan_id' => $plan->id,
+                    'framework_item_id' => $item->id,
                     'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
                     'description' => 'Activity for ' . $item->behaviour,
                     'integration_1' => $item->integration_1,
@@ -228,6 +229,7 @@ class VnbPlanController extends Controller
                     foreach ($items as $item) {
                         $itemsToInsert[] = [
                             'plan_id' => $plan->id,
+                            'framework_item_id' => $item->id,
                             'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
                             'description' => ($item->integration_1 ?? '') . ' | ' . ($item->integration_2 ?? ''),
                             'implementation_date' => now()->addDays(7),

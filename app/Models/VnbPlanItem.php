@@ -34,7 +34,7 @@ class VnbPlanItem extends Model
     protected $table = 'vnb_plan_items';
 
     protected $fillable = [
-        'plan_id', 'activity_title', 'description', 'integration_1', 'integration_2', 'implementation_date',
+        'plan_id', 'framework_item_id', 'activity_title', 'description', 'integration_1', 'integration_2', 'implementation_date',
         'deliverables', 'behavior_metrics', 'status', 'completion_percentage',
         'activity_description', 'activity_date', 'submission_status', 'revision_notes',
         'submitted_at', 'due_date', 'approved_functional_by', 'approved_functional_at',
@@ -54,6 +54,11 @@ class VnbPlanItem extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(VnbPlan::class);
+    }
+
+    public function frameworkItem(): BelongsTo
+    {
+        return $this->belongsTo(VnbFrameworkItem::class);
     }
 
     public function evidences(): HasMany

@@ -56,4 +56,10 @@ class PageController extends Controller
         $role = $user->getRoleNames()->first();
         return view('account.profile', compact('user', 'employee', 'manager', 'role'));
     }
+
+    public function changePassword()
+    {
+        abort_unless(auth()->check(), 403, 'Anda harus login.');
+        return view('account.change-password');
+    }
 }
