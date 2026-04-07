@@ -109,6 +109,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/manager/new-hires/{employeeId}/planning-history', [ManagerController::class, 'myNewHirePlanningHistory']);
     Route::get('/manager/approval-requests', [ManagerController::class, 'myApprovalRequests']);
     Route::get('/manager/approval-summary', [ManagerController::class, 'myApprovalSummary']);
+    
+    // Manager Profile
+    Route::get('/manager/profile', [ManagerController::class, 'getMyProfile']);
+    Route::put('/manager/profile', [ManagerController::class, 'updateMyProfile']);
 
     // Manager Approval Flow - Revisions
     Route::post('/manager/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);

@@ -28,7 +28,7 @@ class AuthWebController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|string',
-            'password' => 'required|min:6',
+            'password' => 'required',
         ]);
 
         $credential = trim((string) $validated['email']);
@@ -84,7 +84,7 @@ class AuthWebController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6|confirmed',
+            'password' => 'required|confirmed',
             'role' => 'required|in:new_hire,manager,pcx_manager,intercomm,admin',
         ]);
 

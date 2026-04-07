@@ -9,6 +9,7 @@ use App\Models\VnbFrameworkItem;
 use App\Models\VnbPlanRevision;
 use App\Models\VnbPlanRevisionDetail;
 use App\Models\Manager;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -190,44 +191,78 @@ class VnbPlanController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'planning_mode' => 'required|in:adjust_all,custom',
-            'items' => 'required|array|min:1',
-            'items.*.activity_title' => 'required|string|max:255',
-            'items.*.description' => 'required|string',
-            'items.*.implementation_date' => 'required|date',
-            'items.*.deliverables' => 'required|string',
-            'items.*.behavior_metrics' => 'required|array',
+            'items' => 'nullable|array',
+            'items.*.activity_title' => 'nullable|string|max:255',
+            'items.*.description' => 'nullable|string',
+            'items.*.implementation_date' => 'nullable|date',
+            'items.*.deliverables' => 'nullable|string',
+            'items.*.behavior_metrics' => 'nullable|array',
         ]);
 
+        $employee = Employee::find($validated['employee_id']);
+        
         $plan = VnbPlan::create([
             'employee_id' => $validated['employee_id'],
             'period_id' => $validated['period_id'],
-            'phase_number' => $validated['period_id'] ? VnbPeriod::find($validated['period_id'])->phase_number : 1,
+            'phase_number' => VnbPeriod::find($validated['period_id'])->phase_number ?? 1,
             'title' => $validated['title'],
             'description' => $validated['description'],
             'planning_mode' => $validated['planning_mode'],
         ]);
 
-        // ✅ FIX #1: Batch insert items instead of looping + create individual
-        // Before: 51 queries | After: 2 queries (25.5x faster)
-        $itemsData = array_map(function($item) use ($plan) {
-            return [
-                'plan_id' => $plan->id,
-                'activity_title' => $item['activity_title'],
-                'description' => $item['description'],
-                'implementation_date' => $item['implementation_date'],
-                'deliverables' => $item['deliverables'],
-                'behavior_metrics' => json_encode($item['behavior_metrics']),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }, $validated['items']);
+        // ✅ Auto-generate items dari framework jika items kosong atau tidak dikirim
+        $itemsToInsert = [];
+        
+        if (empty($validated['items'])) {
+            // Auto-generate dari framework berdasarkan career stage
+            $careerStage = $this->mapLevelToCareerStage($employee->level);
+            
+            $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStage)
+                ->get()
+                ->groupBy('phase');
 
-        VnbPlanItem::insert($itemsData);
+            if (!$frameworkItems->isEmpty()) {
+                foreach ($frameworkItems as $phaseNumber => $items) {
+                    foreach ($items as $item) {
+                        $itemsToInsert[] = [
+                            'plan_id' => $plan->id,
+                            'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
+                            'description' => ($item->integration_1 ?? '') . ' | ' . ($item->integration_2 ?? ''),
+                            'implementation_date' => now()->addDays(7),
+                            'deliverables' => '-',
+                            'behavior_metrics' => json_encode([$item->behaviour, 'phase_' . $phaseNumber]),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+            }
+        } else {
+            // Gunakan items yang dikirim dari frontend
+            $itemsToInsert = array_map(function($item) use ($plan) {
+                return [
+                    'plan_id' => $plan->id,
+                    'activity_title' => $item['activity_title'] ?? '',
+                    'description' => $item['description'] ?? '',
+                    'implementation_date' => $item['implementation_date'] ?? now()->addDays(7),
+                    'deliverables' => $item['deliverables'] ?? '-',
+                    'behavior_metrics' => isset($item['behavior_metrics']) ? json_encode($item['behavior_metrics']) : json_encode([]),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }, $validated['items']);
+        }
+
+        // Insert all items at once
+        if (!empty($itemsToInsert)) {
+            VnbPlanItem::insert($itemsToInsert);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Plan created successfully',
-            'data' => $plan->load('items')
+            'data' => $plan->load(['items', 'period']),
+            'career_stage' => $this->mapLevelToCareerStage($employee->level),
         ], 201);
     }
 

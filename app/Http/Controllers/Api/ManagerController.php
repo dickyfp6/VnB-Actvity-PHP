@@ -1562,4 +1562,98 @@ class ManagerController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get authenticated manager's profile info
+     */
+    public function getMyProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->hasRole('manager')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya manager yang dapat mengakses profil ini'
+            ], 403);
+        }
+
+        $manager = Manager::where('user_id', $user->id)->first();
+        $employee = $manager ? Employee::find($manager->employee_id) : null;
+
+        if (!$manager || !$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data manager tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'employee_id' => $employee->id,
+                'employee_number' => $employee->employee_number,
+                'division' => $employee->division?->name,
+                'department' => $employee->department?->name,
+                'position' => $employee->position?->name,
+                'level' => $employee->level,
+                'date_joined' => $employee->date_joined?->toDateString(),
+                'status' => $user->status,
+                'created_at' => $user->created_at?->toDateString(),
+            ]
+        ]);
+    }
+
+    /**
+     * Update authenticated manager's profile (name, phone, email)
+     */
+    public function updateMyProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->hasRole('manager')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya manager yang dapat mengakses fitur ini'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('users')->ignore($user->id),
+            ],
+        ]);
+
+        $updateData = [];
+        if (isset($validated['name'])) {
+            $updateData['name'] = $validated['name'];
+        }
+        if (isset($validated['phone'])) {
+            $updateData['phone'] = $validated['phone'];
+        }
+        if (isset($validated['email']) && !empty($validated['email'])) {
+            $updateData['email'] = $validated['email'];
+        }
+
+        if (!empty($updateData)) {
+            $user->update($updateData);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
+            'data' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ]
+        ]);
+    }
 }

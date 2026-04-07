@@ -13,11 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Buat test users untuk development
+        // Buat test users untuk development (hanya untuk testing, gunakan akun real employee untuk demo)
         $users = [
             ['name' => 'Admin User', 'email' => 'admin@vnb.local'],
             ['name' => 'Manager User', 'email' => 'manager@vnb.local'],
-            ['name' => 'New Hire User', 'email' => 'newhire@vnb.local'],
             ['name' => 'PCX Manager', 'email' => 'pcx@vnb.local'],
             ['name' => 'Intercomm User', 'email' => 'intercomm@vnb.local'],
         ];

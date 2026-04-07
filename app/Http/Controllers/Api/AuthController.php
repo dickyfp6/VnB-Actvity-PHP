@@ -21,7 +21,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6|confirmed',
+            'password' => 'required|confirmed',
             'phone' => 'nullable|string',
             'role' => 'required|in:new_hire,manager,pcx_manager,intercomm,admin',
         ]);
@@ -56,7 +56,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|string',
-            'password' => 'required|min:6',
+            'password' => 'required',
         ]);
 
         $credential = trim((string) $validated['email']);
@@ -202,8 +202,8 @@ class AuthController extends Controller
     public function changePassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'current_password' => 'required|string|min:6',
-            'password' => 'required|string|min:6|confirmed|different:current_password',
+            'current_password' => 'required|string',
+            'password' => 'required|string|confirmed|different:current_password',
         ]);
 
         $user = $request->user();
