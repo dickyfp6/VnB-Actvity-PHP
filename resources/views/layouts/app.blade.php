@@ -347,6 +347,10 @@
                 <span>Approval Request</span>
                 <span id="manager-approval-badge" class="ml-auto px-2 py-0.5 rounded-full text-xs bg-red-600 text-white hidden">0</span>
             </a>
+            <a href="/my-account/profile" class="nav-link" title="Akun Saya">
+                <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
+                <span>Akun Saya</span>
+            </a>
             @endif
 
             @if(in_array($role, ['admin','new_hire']))

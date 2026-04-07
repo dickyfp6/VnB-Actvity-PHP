@@ -52,6 +52,8 @@ class PageController extends Controller
         abort_unless(auth()->check(), 403, 'Anda harus login.');
         $user = auth()->user();
         $employee = $user->employee;
-        return view('account.profile', compact('user', 'employee'));
+        $manager = $user->manager; // untuk manager role
+        $role = $user->getRoleNames()->first();
+        return view('account.profile', compact('user', 'employee', 'manager', 'role'));
     }
 }

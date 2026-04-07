@@ -6,12 +6,47 @@
 <div class="space-y-6 px-4">
     <h1 class="text-2xl font-bold text-gray-900">Profil Akun</h1>
 
-    <!-- Data Pribadi New Hire -->
+    <!-- Data Pribadi New Hire atau Manager -->
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Pribadi</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            @if($employee)
+            @if($role === 'manager' && $manager)
+                <!-- Manager Profile Data -->
+                <div>
+                    <p class="text-gray-500 mb-1">Nama Lengkap</p>
+                    <p class="font-medium text-gray-900">{{ $manager->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Email</p>
+                    <p class="font-medium text-gray-900">{{ $manager->email ?? $user->email }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">WhatsApp</p>
+                    <p class="font-medium text-gray-900">{{ $manager->whatsapp ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Perusahaan</p>
+                    <p class="font-medium text-gray-900">{{ $manager->company ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Divisi</p>
+                    <p class="font-medium text-gray-900">{{ $manager->division?->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Departemen</p>
+                    <p class="font-medium text-gray-900">{{ $manager->department?->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Posisi</p>
+                    <p class="font-medium text-gray-900">{{ $manager->position?->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-1">Level</p>
+                    <p class="font-medium text-gray-900">{{ $manager->level ?? '-' }}</p>
+                </div>
+            @elseif($role === 'new_hire' && $employee)
+                <!-- New Hire Profile Data -->
                 <div>
                     <p class="text-gray-500 mb-1">Nomor Karyawan</p>
                     <p class="font-medium text-gray-900">{{ $employee->employee_number ?? '-' }}</p>
@@ -69,7 +104,7 @@
                     <p class="font-medium text-gray-900">{{ $employee->vnb_status ?? '-' }}</p>
                 </div>
             @else
-                <p class="text-gray-500">Data New Hire tidak ditemukan.</p>
+                <p class="text-gray-500">Data profil tidak ditemukan.</p>
             @endif
         </div>
     </div>
