@@ -8,97 +8,75 @@ return new class extends Migration
 {
     /**
      * Restructure vnb_plan_items table dengan proper foreign keys dan approval workflow
-     * 
-     * Perubahan:
-     * 1. Tambah employee_id FK ke employees
-     * 2. Tambah vnb_framework_id FK ke vnb_framework_items
-     * 3. Hapus implementation_date (deprecated)
-     * 4. Update status ENUM dengan workflow baru
-     * 5. Tambah approval tracking fields
      */
     public function up(): void
     {
         Schema::table('vnb_plan_items', function (Blueprint $table) {
-            // --- FASE 1: Tambah kolom baru ---
-            
-            // Foreign Key ke employees (untuk quick filter by employee)
-            if (!Schema::hasColumn('vnb_plan_items', 'employee_id')) {
-                $table->unsignedBigInteger('employee_id')->nullable()->after('plan_id')->comment('Direct reference to employee');
-                $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
-            }
+            // Tambah Foreign Key ke employees
+            $table->after('id', function (Blueprint $table) {
+                $table->foreignId('employee_id')->nullable()->constrained()->onDelete('cascade')->comment('Direct reference to employee for easy filtering');
+            });
 
-            // Foreign Key ke vnb_framework_items (template reference)
-            if (!Schema::hasColumn('vnb_plan_items', 'vnb_framework_id')) {
-                $table->unsignedBigInteger('vnb_framework_id')->nullable()->after('employee_id')->comment('Link to framework template');
-                $table->foreign('vnb_framework_id')->references('id')->on('vnb_framework_items')->onDelete('set null');
-            }
+            // Tambah Foreign Key ke vnb_framework_items
+            $table->after('employee_id', function (Blueprint $table) {
+                $table->foreignId('vnb_framework_id')->nullable()->constrained('vnb_framework_items')->onDelete('set null')->comment('Link to framework template item');
+            });
 
-            // Approval tracking fields (untuk dual approval: functional & operational)
-            if (!Schema::hasColumn('vnb_plan_items', 'approved_functional_by')) {
-                $table->unsignedBigInteger('approved_functional_by')->nullable()->after('completion_percentage')->comment('Approved by Manager Functional');
-                $table->dateTime('approved_functional_at')->nullable()->after('approved_functional_by');
-                $table->foreign('approved_functional_by')->references('id')->on('employees')->onDelete('set null');
-            }
-
-            if (!Schema::hasColumn('vnb_plan_items', 'approved_operational_by')) {
-                $table->unsignedBigInteger('approved_operational_by')->nullable()->after('approved_functional_at')->comment('Approved by Manager Operational');
-                $table->dateTime('approved_operational_at')->nullable()->after('approved_operational_by');
-                $table->foreign('approved_operational_by')->references('id')->on('employees')->onDelete('set null');
-            }
-
-            // --- FASE 2: Hapus kolom yang deprecated ---
-            
+            // Hapus implementation_date karena tidak dipakai
             if (Schema::hasColumn('vnb_plan_items', 'implementation_date')) {
                 $table->dropColumn('implementation_date');
             }
-        });
 
-        // --- FASE 3: Update status ENUM (jika perlu) ---
-        // Note: Ini hanya bisa dilakukan di beberapa database. 
-        // Kalau di MySQL perlu raw SQL untuk safety
-        DB::statement("ALTER TABLE vnb_plan_items MODIFY status ENUM('draft', 'submitted', 'approved', 'revision') DEFAULT 'draft' COMMENT 'Workflow: draft → submitted → approved/revision'");
+            // Update status enum dengan opsi baru
+            $table->dropColumn('status');
+            $table->after('behavior_metrics', function (Blueprint $table) {
+                $table->enum('status', ['draft', 'submitted', 'approved', 'revision', 'completed', 'rejected'])->default('draft')->comment('Workflow status: draft → submitted → approved/revision → completed/rejected');
+            });
+
+            // Tambah approval fields
+            $table->after('status', function (Blueprint $table) {
+                $table->unsignedBigInteger('approved_functional_by')->nullable()->comment('Manager functional yang approve');
+                $table->unsignedBigInteger('approved_operational_by')->nullable()->comment('Manager operational yang approve');
+                $table->dateTime('approved_functional_at')->nullable();
+                $table->dateTime('approved_operational_at')->nullable();
+                
+                // Foreign key constraints
+                $table->foreign('approved_functional_by')->references('id')->on('employees')->onDelete('set null');
+                $table->foreign('approved_operational_by')->references('id')->on('employees')->onDelete('set null');
+            });
+
+            // Tambah index untuk performa query
+            $table->index(['employee_id', 'status']);
+            $table->index(['vnb_framework_id']);
+            $table->index(['approved_functional_by']);
+            $table->index(['approved_operational_by']);
+        });
     }
 
     public function down(): void
     {
         Schema::table('vnb_plan_items', function (Blueprint $table) {
-            // Drop foreign keys terlebih dahulu
-            try {
-                $table->dropForeignKeyIfExists('vnb_plan_items_employee_id_foreign');
-                $table->dropForeignKeyIfExists('vnb_plan_items_vnb_framework_id_foreign');
-                $table->dropForeignKeyIfExists('vnb_plan_items_approved_functional_by_foreign');
-                $table->dropForeignKeyIfExists('vnb_plan_items_approved_operational_by_foreign');
-            } catch (\Exception $e) {
-                // Silent fail jika FK tidak ada
-            }
+            // Drop foreign keys
+            $table->dropForeignKeyIfExists('vnb_plan_items_employee_id_foreign');
+            $table->dropForeignKeyIfExists('vnb_plan_items_vnb_framework_id_foreign');
+            $table->dropForeignKeyIfExists('vnb_plan_items_approved_functional_by_foreign');
+            $table->dropForeignKeyIfExists('vnb_plan_items_approved_operational_by_foreign');
 
-            // Drop columns yang ditambah
-            $columns = [
-                'employee_id', 
-                'vnb_framework_id', 
-                'approved_functional_by', 
-                'approved_functional_at',
-                'approved_operational_by', 
-                'approved_operational_at'
-            ];
-
-            foreach ($columns as $col) {
-                if (Schema::hasColumn('vnb_plan_items', $col)) {
-                    $table->dropColumn($col);
-                }
-            }
+            // Drop columns
+            $table->dropColumn(['employee_id', 'vnb_framework_id', 'approved_functional_by', 'approved_operational_by', 'approved_functional_at', 'approved_operational_at']);
 
             // Restore implementation_date
-            if (!Schema::hasColumn('vnb_plan_items', 'implementation_date')) {
-                $table->date('implementation_date')->after('description');
-            }
-        });
+            $table->date('implementation_date')->after('description');
 
-        // Restore status enum ke original
-        try {
-            DB::statement("ALTER TABLE vnb_plan_items MODIFY status ENUM('not_started', 'in_progress', 'completed', 'not_achieved') DEFAULT 'not_started'");
-        } catch (\Exception $e) {
-            // Silent fail
-        }
+            // Restore status enum ke original
+            $table->dropColumn('status');
+            $table->enum('status', ['not_started', 'in_progress', 'completed', 'not_achieved'])->default('not_started')->after('completion_percentage');
+
+            // Drop indexes
+            $table->dropIndex('vnb_plan_items_employee_id_status_index');
+            $table->dropIndex('vnb_plan_items_vnb_framework_id_index');
+            $table->dropIndex('vnb_plan_items_approved_functional_by_index');
+            $table->dropIndex('vnb_plan_items_approved_operational_by_index');
+        });
     }
 };
