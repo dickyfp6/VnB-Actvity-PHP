@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $plan_id
  * @property string $activity_title
  * @property string|null $description
+ * @property string|null $integration_1
+ * @property string|null $integration_2
  * @property \Illuminate\Support\Carbon|null $implementation_date
  * @property string|null $deliverables
  * @property array|null $behavior_metrics
@@ -32,7 +34,7 @@ class VnbPlanItem extends Model
     protected $table = 'vnb_plan_items';
 
     protected $fillable = [
-        'plan_id', 'activity_title', 'description', 'implementation_date',
+        'plan_id', 'activity_title', 'description', 'integration_1', 'integration_2', 'implementation_date',
         'deliverables', 'behavior_metrics', 'status', 'completion_percentage',
         'activity_description', 'activity_date', 'submission_status', 'revision_notes',
         'submitted_at', 'due_date', 'approved_functional_by', 'approved_functional_at',

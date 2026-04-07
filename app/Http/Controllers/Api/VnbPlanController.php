@@ -139,7 +139,9 @@ class VnbPlanController extends Controller
                 $itemsToInsert[] = [
                     'plan_id' => $plan->id,
                     'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
-                    'description' => ($item->integration_1 ?? '') . ' | ' . ($item->integration_2 ?? ''),
+                    'description' => 'Activity for ' . $item->behaviour,
+                    'integration_1' => $item->integration_1,
+                    'integration_2' => $item->integration_2,
                     'implementation_date' => now()->addDays(7),
                     'deliverables' => '-',
                     'behavior_metrics' => json_encode([$item->behaviour, 'phase_' . $phaseNumber]),

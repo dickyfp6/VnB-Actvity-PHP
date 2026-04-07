@@ -13,14 +13,18 @@ return new class extends Migration
     {
         Schema::table('vnb_plan_items', function (Blueprint $table) {
             // Tambah Foreign Key ke employees
-            $table->after('id', function (Blueprint $table) {
-                $table->foreignId('employee_id')->nullable()->constrained()->onDelete('cascade')->comment('Direct reference to employee for easy filtering');
-            });
+            if (!Schema::hasColumn('vnb_plan_items', 'employee_id')) {
+                $table->after('id', function (Blueprint $table) {
+                    $table->foreignId('employee_id')->nullable()->constrained()->onDelete('cascade')->comment('Direct reference to employee for easy filtering');
+                });
+            }
 
             // Tambah Foreign Key ke vnb_framework_items
-            $table->after('employee_id', function (Blueprint $table) {
-                $table->foreignId('vnb_framework_id')->nullable()->constrained('vnb_framework_items')->onDelete('set null')->comment('Link to framework template item');
-            });
+            if (!Schema::hasColumn('vnb_plan_items', 'vnb_framework_id')) {
+                $table->after('employee_id', function (Blueprint $table) {
+                    $table->foreignId('vnb_framework_id')->nullable()->constrained('vnb_framework_items')->onDelete('set null')->comment('Link to framework template item');
+                });
+            }
 
             // Hapus implementation_date karena tidak dipakai
             if (Schema::hasColumn('vnb_plan_items', 'implementation_date')) {
@@ -28,24 +32,28 @@ return new class extends Migration
             }
 
             // Update status enum dengan opsi baru
-            $table->dropColumn('status');
+            if (Schema::hasColumn('vnb_plan_items', 'status')) {
+                $table->dropColumn('status');
+            }
             $table->after('behavior_metrics', function (Blueprint $table) {
                 $table->enum('status', ['draft', 'submitted', 'approved', 'revision', 'completed', 'rejected'])->default('draft')->comment('Workflow status: draft → submitted → approved/revision → completed/rejected');
             });
 
-            // Tambah approval fields
-            $table->after('status', function (Blueprint $table) {
-                $table->unsignedBigInteger('approved_functional_by')->nullable()->comment('Manager functional yang approve');
-                $table->unsignedBigInteger('approved_operational_by')->nullable()->comment('Manager operational yang approve');
-                $table->dateTime('approved_functional_at')->nullable();
-                $table->dateTime('approved_operational_at')->nullable();
-                
-                // Foreign key constraints
-                $table->foreign('approved_functional_by')->references('id')->on('employees')->onDelete('set null');
-                $table->foreign('approved_operational_by')->references('id')->on('employees')->onDelete('set null');
-            });
+            // Tambah approval fields kalau belum ada
+            if (!Schema::hasColumn('vnb_plan_items', 'approved_functional_by')) {
+                $table->after('status', function (Blueprint $table) {
+                    $table->unsignedBigInteger('approved_functional_by')->nullable()->comment('Manager functional yang approve');
+                    $table->unsignedBigInteger('approved_operational_by')->nullable()->comment('Manager operational yang approve');
+                    $table->dateTime('approved_functional_at')->nullable();
+                    $table->dateTime('approved_operational_at')->nullable();
+                    
+                    // Foreign key constraints
+                    $table->foreign('approved_functional_by')->references('id')->on('employees')->onDelete('set null');
+                    $table->foreign('approved_operational_by')->references('id')->on('employees')->onDelete('set null');
+                });
+            }
 
-            // Tambah index untuk performa query
+            // Tambah index untuk performa query (Laravel akan skip jika sudah ada)
             $table->index(['employee_id', 'status']);
             $table->index(['vnb_framework_id']);
             $table->index(['approved_functional_by']);

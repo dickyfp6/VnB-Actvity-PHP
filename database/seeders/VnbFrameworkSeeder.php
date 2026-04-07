@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\VnbFrameworkItem;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class VnbFrameworkSeeder extends Seeder
 {
@@ -30,10 +31,12 @@ class VnbFrameworkSeeder extends Seeder
             'Open Mind',
         ];
 
-        $phases = ['1-3', '4-6', '6+'];
+        $phases = ['1', '2', '3'];
 
-        // Clear existing data
+        // Clear existing data (disable foreign keys first)
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         VnbFrameworkItem::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         // Create combination of all career stages, behaviours, and phases
         foreach ($careerStages as $stage) {

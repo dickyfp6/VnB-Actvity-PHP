@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
         $users = [
             ['name' => 'Admin User', 'email' => 'admin@vnb.local'],
             ['name' => 'Manager User', 'email' => 'manager@vnb.local'],
-            ['name' => 'PCX Manager', 'email' => 'pcx@vnb.local'],
             ['name' => 'Intercomm User', 'email' => 'intercomm@vnb.local'],
         ];
 
