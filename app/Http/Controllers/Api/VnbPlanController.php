@@ -31,12 +31,17 @@ class VnbPlanController extends Controller
         $primaryRole = explode('/', $level)[0];
         $primaryRole = strtolower(trim($primaryRole));
         
+        // Check for Non-Staff FIRST (before generic "staff" check)
+        if (str_contains($primaryRole, 'non-staff') || str_contains($primaryRole, 'non staff')) {
+            return 'manage_self_non_staff';
+        }
+        
         // Check Manager/Kepala
         if (str_contains($primaryRole, 'manager') || str_contains($primaryRole, 'kepala')) {
             return 'manage_managers';
         }
         
-        // Check Staff (primary role)
+        // Check Staff (primary role) - now won't match non-staff
         if (str_contains($primaryRole, 'staff')) {
             return 'manage_self_staff';
         }
