@@ -2,6 +2,13 @@
 
 @section('title','Profil Akun - VnB Platform')
 
+@php
+    /** @var \App\Models\User $user */
+    /** @var \App\Models\Employee|null $employee */
+    /** @var \App\Models\Manager|null $manager */
+    /** @var string $role */
+@endphp
+
 @section('content')
 <div class="space-y-6 px-4">
     <h1 class="text-2xl font-bold text-gray-900">Profil Akun</h1>
@@ -19,7 +26,7 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Email</p>
-                    <p class="font-medium text-gray-900">{{ $manager->email ?? $user->email }}</p>
+                    <p class="font-medium text-gray-900">{{ $manager->email ?? ($user?->email ?? '-') }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">WhatsApp</p>
@@ -31,15 +38,15 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Divisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->division?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $manager->division ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Departemen</p>
-                    <p class="font-medium text-gray-900">{{ $manager->department?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $manager->department ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Posisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->position?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $manager->position ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Level</p>
@@ -57,7 +64,7 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Email</p>
-                    <p class="font-medium text-gray-900">{{ $employee->email ?? $user->email }}</p>
+                    <p class="font-medium text-gray-900">{{ $employee->email ?? ($user?->email ?? '-') }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">WhatsApp</p>
@@ -69,15 +76,15 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Divisi</p>
-                    <p class="font-medium text-gray-900">{{ $employee->division?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $employee->division ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Departemen</p>
-                    <p class="font-medium text-gray-900">{{ $employee->department?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $employee->department ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Posisi</p>
-                    <p class="font-medium text-gray-900">{{ $employee->position?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $employee->position ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Level</p>
@@ -89,7 +96,7 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Tanggal Bergabung</p>
-                    <p class="font-medium text-gray-900">{{ $employee->date_joined ? $employee->date_joined->format('d M Y') : '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ $employee->date_joined ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Tanggal Induction</p>
@@ -116,19 +123,19 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
             <div>
                 <p class="text-gray-500 mb-1">Email Login</p>
-                <p class="font-medium text-gray-900">{{ $user->email }}</p>
+                <p class="font-medium text-gray-900">{{ $user?->email ?? '-' }}</p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Nama Pengguna</p>
-                <p class="font-medium text-gray-900">{{ $user->name }}</p>
+                <p class="font-medium text-gray-900">{{ $user?->name ?? '-' }}</p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Nomor Telepon</p>
-                <p class="font-medium text-gray-900">{{ $user->phone ?? '-' }}</p>
+                <p class="font-medium text-gray-900">{{ $user?->phone ?? '-' }}</p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Status Akun</p>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: #D0EC98; color: #144600;">{{ $user->status === 'active' ? 'Aktif' : 'Nonaktif' }}</span>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: #D0EC98; color: #144600;">{{ $user?->status === 'active' ? 'Aktif' : 'Nonaktif' }}</span>
             </div>
         </div>
 

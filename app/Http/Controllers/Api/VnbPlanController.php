@@ -617,18 +617,19 @@ class VnbPlanController extends Controller
 
     /**
      * New Hire: Submit revision changes dari manager revision
-     * POST /api/new-hire/plans/{planId}/submit-revision/{revisionId}
+     * POST /api/vnb-plans/{plan}/submit-revision/{revision}
      */
-    public function submitRevisionChanges(Request $request, int $planId, int $revisionId): JsonResponse
+    public function submitRevisionChanges(Request $request, VnbPlan $plan, VnbPlanRevision $revision): JsonResponse
     {
         $user = auth()->user();
         abort_unless($user !== null, 401);
 
-        $plan = VnbPlan::findOrFail($planId);
-        
         // Check ownership - user harus employee dari plan ini
         $employee = $user->employee;
         abort_unless($employee && $employee->id === $plan->employee_id, 403, 'Anda bukan pemilik plan ini');
+
+        // Verify revision belongs to this plan
+        abort_unless($revision->vnb_plan_id === $plan->id, 403, 'Revisi tidak sesuai dengan planning');
 
         $request->validate([
             'changes' => 'required|array',
@@ -639,10 +640,6 @@ class VnbPlanController extends Controller
 
         try {
             DB::beginTransaction();
-
-            $revision = VnbPlanRevision::where('id', $revisionId)
-                ->where('vnb_plan_id', $planId)
-                ->firstOrFail();
 
             $changes = $request->input('changes', []);
 
@@ -674,7 +671,7 @@ class VnbPlanController extends Controller
 
                 // Prepare revision detail for batch insert
                 $revisionDetailsData[] = [
-                    'vnb_plan_revision_id' => $revisionId,
+                    'vnb_plan_revision_id' => $revision->id,
                     'vnb_plan_item_id' => $itemId,
                     'old_values' => json_encode($oldValues),
                     'new_values' => json_encode($newValues),
@@ -684,7 +681,7 @@ class VnbPlanController extends Controller
                 ];
             }
 
-            // 4. Batch insert all revision details at once
+            // Batch insert all revision details at once
             if (!empty($revisionDetailsData)) {
                 DB::table('vnb_plan_revision_details')->insert($revisionDetailsData);
             }
