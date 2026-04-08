@@ -494,7 +494,15 @@ class ManagerController extends Controller
                     'planning_waiting' => (bool) ($plan && $plan->status === 'waiting_manager_approval'),
                     'activity_waiting_count' => $activityWaitingCount,
                 ],
-                'items' => $items->map(function (VnbPlanItem $item) {
+                'items' => $items->map(function (VnbPlanItem $item) use ($employee) {
+                    // Determine approval type for this item
+                    $approvalType = 'all_approved';
+                    if (!$item->approved_functional_by) {
+                        $approvalType = 'functional';
+                    } elseif (!$item->approved_operational_by && $employee->manager_operational_id !== null) {
+                        $approvalType = 'operational';
+                    }
+
                     return [
                         'id' => $item->id,
                         'activity_title' => $item->activity_title,
@@ -507,6 +515,11 @@ class ManagerController extends Controller
                         'submission_status' => $item->submission_status,
                         'revision_notes' => $item->revision_notes,
                         'completion_percentage' => (int) $item->completion_percentage,
+                        'approval_type' => $approvalType, // 'functional', 'operational', or 'all_approved'
+                        'approved_functional_by' => $item->approved_functional_by,
+                        'approved_functional_at' => optional($item->approved_functional_at)->toDateTimeString(),
+                        'approved_operational_by' => $item->approved_operational_by,
+                        'approved_operational_at' => optional($item->approved_operational_at)->toDateTimeString(),
                     ];
                 })->values(),
             ],
@@ -610,61 +623,30 @@ class ManagerController extends Controller
             ], 404);
         }
 
-        $planRequests = VnbPlan::query()
-            ->whereIn('employee_id', $employeeIds)
-            ->where('status', 'waiting_manager_approval')
-            ->with('employee')
-            ->orderByDesc('submitted_at')
-            ->get()
-            ->map(function (VnbPlan $plan) {
-                return [
-                    'type' => 'planning',
-                    'employee_id' => $plan->employee_id,
-                    'employee_name' => $plan->employee?->name,
-                    'employee_number' => $plan->employee?->employee_number,
-                    'company' => $plan->employee?->company,
-                    'reference_id' => $plan->id,
-                    'title' => $plan->title ?: 'Planning Approval',
-                    'phase' => 'Planning',
-                    'submitted_at' => optional($plan->submitted_at)->toDateTimeString(),
-                ];
-            });
+        // Get requests by ownership (manager is owner of stage)
+        $ownershipData = $this->getMyApprovalRequestsByOwnership();
+        $myApprovals = $ownershipData['my_approvals'];
 
-        $activityRequests = VnbPlanItem::query()
-            ->where('submission_status', 'waiting_approval')
-            ->whereHas('plan', function ($q) use ($employeeIds) {
-                $q->whereIn('employee_id', $employeeIds);
-            })
-            ->with('plan.employee')
-            ->orderByDesc('submitted_at')
-            ->get()
-            ->map(function (VnbPlanItem $item) {
-                return [
-                    'type' => 'activity',
-                    'employee_id' => $item->plan?->employee_id,
-                    'employee_name' => $item->plan?->employee?->name,
-                    'employee_number' => $item->plan?->employee?->employee_number,
-                    'company' => $item->plan?->employee?->company,
-                    'reference_id' => $item->id,
-                    'title' => $item->activity_title,
-                    'phase' => 'Fase ' . ($item->plan?->phase_number ?? 1),
-                    'submitted_at' => optional($item->submitted_at)->toDateTimeString(),
-                ];
-            });
+        // Get monitoring requests (manager is not owner but can see)
+        $monitoringRequests = $this->getMyMonitoringRequests();
 
-        $rows = $planRequests
-            ->merge($activityRequests)
-            ->sortByDesc('submitted_at')
-            ->values();
+        // Combine for total stats
+        $allRequests = array_merge($myApprovals, $monitoringRequests);
+        $planningCount = count(array_filter($myApprovals, fn($r) => $r['type'] === 'planning'));
+        $activityCount = count(array_filter($myApprovals, fn($r) => $r['type'] === 'activity'));
 
         return response()->json([
             'success' => true,
             'summary' => [
-                'planning_count' => $planRequests->count(),
-                'activity_count' => $activityRequests->count(),
-                'total_count' => $rows->count(),
+                'planning_count' => $planningCount,
+                'activity_count' => $activityCount,
+                'total_approval_needed' => count($myApprovals),
+                'total_monitoring' => count($monitoringRequests),
             ],
-            'data' => $rows,
+            'data' => [
+                'my_approvals' => array_values($myApprovals),
+                'monitoring' => array_values($monitoringRequests),
+            ],
         ]);
     }
 
@@ -675,25 +657,18 @@ class ManagerController extends Controller
     {
         $this->authorizeManagerPortalAccess();
 
-        $employeeIds = $this->resolveManagerEmployeeIds();
-        if ($employeeIds === null) {
+        $manager = $this->resolveCurrentManager();
+        if (!$manager && !auth()->user()?->hasRole('admin')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data manager untuk akun ini tidak ditemukan.',
             ], 404);
         }
 
-        $planningCount = VnbPlan::query()
-            ->whereIn('employee_id', $employeeIds)
-            ->where('status', 'waiting_manager_approval')
-            ->count();
-
-        $activityCount = VnbPlanItem::query()
-            ->where('submission_status', 'waiting_approval')
-            ->whereHas('plan', function ($q) use ($employeeIds) {
-                $q->whereIn('employee_id', $employeeIds);
-            })
-            ->count();
+        // Get requests filtered by role-based ownership
+        $requestData = $this->getMyApprovalRequestsByOwnership();
+        $planningCount = $requestData['planning_count'];
+        $activityCount = $requestData['activity_count'];
 
         return response()->json([
             'success' => true,
@@ -1086,14 +1061,11 @@ class ManagerController extends Controller
 
         $plan = VnbPlan::with('employee')->findOrFail($planId);
 
-        // Check authorization
+        // Check authorization: ONLY functional manager can approve planning
         $manager = $this->resolveCurrentManager();
-        $isAuthorized = $manager && (
-            $plan->employee->manager_functional_id == $manager->id ||
-            $plan->employee->manager_operational_id == $manager->id
-        );
+        $isAuthorized = $manager && $plan->employee->manager_functional_id == $manager->id;
 
-        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+        abort_unless($isAuthorized, 403, 'Hanya manager fungsional yang dapat approve planning tahap ini');
         abort_unless(
             in_array($plan->status, ['waiting_manager_approval', 'revision_requested']),
             422,
@@ -1300,46 +1272,58 @@ class ManagerController extends Controller
         // Validate that item belongs to this plan
         abort_unless($item->plan_id == $planId, 422, 'Item tidak ditemukan di planning ini');
 
-        // Check authorization - user is manager of this new hire
+        // Determine current approval stage and validate manager owns it
+        $stage = $this->getCurrentApprovalStage($plan->employee);
         $manager = $this->resolveCurrentManager();
-        $isAuthorized = $manager && (
-            $plan->employee->manager_functional_id == $manager->id ||
-            $plan->employee->manager_operational_id == $manager->id
-        );
-
-        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+        
+        abort_unless($this->isManagerStageOwner($plan->employee, $stage), 403, 
+            'Anda tidak memiliki otorisasi untuk approve tahap ini');
 
         try {
             DB::beginTransaction();
 
-            // Update item approval status based on manager type
-            if ($plan->employee->manager_functional_id == $manager->id) {
+            // Update item approval status based on current stage
+            if ($stage === 'planning') {
+                // Functional manager approves planning items
                 $item->update([
                     'approved_functional_by' => $manager->id,
                     'approved_functional_at' => now(),
                 ]);
             } else {
+                // Operational manager approves activity items
                 $item->update([
                     'approved_operational_by' => $manager->id,
                     'approved_operational_at' => now(),
                 ]);
             }
 
-            // Check if all items are fully approved
-            $allApproved = VnbPlanItem::where('plan_id', $planId)
-                ->where(function ($q) {
-                    $q->whereNull('approved_functional_by')
-                      ->orWhereNull('approved_operational_by');
-                })
-                ->count() === 0;
+            // Check if all items are fully approved for current stage
+            if ($stage === 'planning') {
+                // All items must have functional approval
+                $allApproved = VnbPlanItem::where('plan_id', $planId)
+                    ->whereNull('approved_functional_by')
+                    ->count() === 0;
 
-            // If all items approved, update plan status
-            if ($allApproved && $plan->status === 'waiting_manager_approval') {
-                $plan->update([
-                    'status' => 'approved',
-                    'approved_by' => $manager->id,
-                    'approved_at' => now(),
-                ]);
+                if ($allApproved && $plan->status === 'waiting_manager_approval') {
+                    $plan->update([
+                        'status' => 'approved',
+                        'approved_by' => $manager->id,
+                        'approved_at' => now(),
+                    ]);
+                }
+            } else {
+                // All items must have operational approval
+                $allApproved = VnbPlanItem::where('plan_id', $planId)
+                    ->whereNull('approved_operational_by')
+                    ->count() === 0;
+
+                if ($allApproved && $plan->status === 'waiting_execution_approval') {
+                    $plan->update([
+                        'status' => 'activity_approved',
+                        'approved_by' => $manager->id,
+                        'approved_at' => now(),
+                    ]);
+                }
             }
 
             DB::commit();
@@ -1350,6 +1334,7 @@ class ManagerController extends Controller
                 'data' => [
                     'item_id' => $item->id,
                     'activity_title' => $item->activity_title,
+                    'stage' => $stage,
                     'approved_by' => $manager->name,
                     'approved_at' => now()->format('Y-m-d H:i:s'),
                 ]
@@ -1468,11 +1453,12 @@ class ManagerController extends Controller
 
         $plan = VnbPlan::with('employee')->findOrFail($planId);
         
+        // Determine stage and validate manager owns it
+        $stage = $this->getCurrentApprovalStage($plan->employee);
         $manager = $this->resolveCurrentManager();
-        $isFunctional = $plan->employee->manager_functional_id == $manager->id;
-        $isOperational = $plan->employee->manager_operational_id == $manager->id;
         
-        abort_unless($isFunctional || $isOperational, 403, 'Anda bukan manager dari new hire ini');
+        abort_unless($this->isManagerStageOwner($plan->employee, $stage), 403, 
+            'Anda tidak memiliki otorisasi untuk review tahap ini');
 
         try {
             DB::beginTransaction();
@@ -1487,10 +1473,12 @@ class ManagerController extends Controller
                 if (!$item) continue;
 
                 if ($review['action'] === 'approve') {
-                    if ($isFunctional) {
+                    if ($stage === 'planning') {
+                        // Functional manager approves planning items
                         $item->approved_functional_by = $managerId;
                         $item->approved_functional_at = now();
                     } else {
+                        // Operational manager approves activity items
                         $item->approved_operational_by = $managerId;
                         $item->approved_operational_at = now();
                     }
@@ -1507,7 +1495,8 @@ class ManagerController extends Controller
                             'vnb_plan_id' => $plan->id,
                             'revision_number' => $newRevisionNumber,
                             'requested_by' => $managerId,
-                            'revision_notes' => 'Grouped batch revision', // Could be aggregated or generic
+                            'stage' => $stage,
+                            'revision_notes' => 'Grouped batch revision',
                             'status' => 'pending',
                             'requested_at' => now(),
                         ]);
@@ -1517,7 +1506,6 @@ class ManagerController extends Controller
                         'vnb_plan_revision_id' => $revisionRecord->id,
                         'vnb_plan_item_id' => $item->id,
                         'changed_by' => $managerId,
-                        // Note: old_values represents state before current changes. Should include specifics over time.
                         'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date', 'deliverables'])),
                     ]);
 
@@ -1527,21 +1515,34 @@ class ManagerController extends Controller
                 }
             }
 
-            // Check if all items are fully approved
-            $allApproved = VnbPlanItem::where('plan_id', $planId)
-                ->where(function ($q) {
-                    $q->whereNull('approved_functional_by')
-                      ->orWhereNull('approved_operational_by');
-                })
-                ->count() === 0;
+            // Check if all items are fully approved for current stage
+            if ($stage === 'planning') {
+                $allApproved = VnbPlanItem::where('plan_id', $planId)
+                    ->whereNull('approved_functional_by')
+                    ->count() === 0;
 
-            if ($allApproved && in_array($plan->status, ['waiting_manager_approval', 'submitted'])) {
-                $plan->update([
-                    'status' => 'approved',
-                    'approved_by' => $managerId,
-                    'approved_at' => now(),
-                ]);
-            } elseif ($hasRevisions) {
+                if ($allApproved && in_array($plan->status, ['waiting_manager_approval', 'submitted'])) {
+                    $plan->update([
+                        'status' => 'approved',
+                        'approved_by' => $managerId,
+                        'approved_at' => now(),
+                    ]);
+                }
+            } else {
+                $allApproved = VnbPlanItem::where('plan_id', $planId)
+                    ->whereNull('approved_operational_by')
+                    ->count() === 0;
+
+                if ($allApproved && $plan->status === 'waiting_execution_approval') {
+                    $plan->update([
+                        'status' => 'activity_approved',
+                        'approved_by' => $managerId,
+                        'approved_at' => now(),
+                    ]);
+                }
+            }
+
+            if ($hasRevisions) {
                 $plan->update([
                     'status' => 'revision_requested',
                     'revision_count' => $plan->revision_count + 1,
@@ -1655,5 +1656,248 @@ class ManagerController extends Controller
                 'phone' => $user->phone,
             ]
         ]);
+    }
+
+    /**
+     * ========== APPROVAL WORKFLOW HELPERS ==========
+     * Role-based approval per stage implementation
+     * Planning stage: owner = manager_functional_id
+     * Activity stage: owner = manager_operational_id || manager_functional_id (fallback)
+     */
+
+    /**
+     * Determine employee manager mode (single vs dual)
+     *
+     * @return string 'single' | 'dual'
+     */
+    private function getEmployeeManagerMode(Employee $employee): string
+    {
+        // If employee has only functional manager OR operational is null/same as functional
+        if (!$employee->manager_operational_id || $employee->manager_operational_id === $employee->manager_functional_id) {
+            return 'single';
+        }
+        return 'dual';
+    }
+
+    /**
+     * Get current approval stage for an employee based on plan status
+     *
+     * @return string 'planning' | 'activity'
+     */
+    private function getCurrentApprovalStage(Employee $employee): string
+    {
+        $latestPlan = VnbPlan::where('employee_id', $employee->id)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$latestPlan || in_array($latestPlan->status, ['draft', 'waiting_manager_approval', 'rejected'])) {
+            return 'planning';
+        }
+
+        return 'activity';
+    }
+
+    /**
+     * Determine which manager is the owner for a specific approval stage
+     * Returns manager ID or null if no owner found
+     *
+     * @param string $stage 'planning' | 'activity'
+     * @return int|null
+     */
+    private function getStageOwnerManagerId(Employee $employee, string $stage): ?int
+    {
+        if ($stage === 'planning') {
+            // Planning stage always owned by functional manager
+            return $employee->manager_functional_id;
+        }
+
+        if ($stage === 'activity') {
+            // Activity stage: operational manager if exists, else fallback to functional
+            if ($employee->manager_operational_id && $employee->manager_operational_id !== $employee->manager_functional_id) {
+                return $employee->manager_operational_id;
+            }
+            return $employee->manager_functional_id;
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if current authenticated manager is the owner of approval stage
+     *
+     * @param Employee $employee
+     * @param string $stage 'planning' | 'activity'
+     * @return bool
+     */
+    private function isManagerStageOwner(Employee $employee, string $stage): bool
+    {
+        $manager = $this->resolveCurrentManager();
+        if (!$manager) {
+            return auth()->user()?->hasRole('admin') ?? false;
+        }
+
+        $ownerManagerId = $this->getStageOwnerManagerId($employee, $stage);
+        return $manager->id === $ownerManagerId;
+    }
+
+    /**
+     * Get approval requests filtered by role/stage ownership
+     * Returns only requests where manager is the owner of current stage
+     *
+     * @return array
+     */
+    private function getMyApprovalRequestsByOwnership(): array
+    {
+        $employeeIds = $this->resolveManagerEmployeeIds();
+        if ($employeeIds === null) {
+            return [];
+        }
+
+        $employees = Employee::whereIn('id', $employeeIds)->get();
+
+        $planRequests = [];
+        $activityRequests = [];
+
+        foreach ($employees as $employee) {
+            $currentStage = $this->getCurrentApprovalStage($employee);
+            $isStageOwner = $this->isManagerStageOwner($employee, $currentStage);
+
+            // Planning requests: only if manager is owner and stage is 'planning'
+            if ($currentStage === 'planning' && $isStageOwner) {
+                $plan = VnbPlan::where('employee_id', $employee->id)
+                    ->where('status', 'waiting_manager_approval')
+                    ->orderByDesc('submitted_at')
+                    ->first();
+
+                if ($plan) {
+                    $planRequests[] = [
+                        'type' => 'planning',
+                        'employee_id' => $employee->id,
+                        'employee_name' => $employee->name,
+                        'employee_number' => $employee->employee_number,
+                        'company' => $employee->company,
+                        'reference_id' => $plan->id,
+                        'title' => $plan->title ?: 'Planning Approval',
+                        'phase' => 'Planning',
+                        'submitted_at' => optional($plan->submitted_at)->toDateTimeString(),
+                        'stage' => 'planning',
+                        'approval_mode' => $this->getEmployeeManagerMode($employee),
+                    ];
+                }
+            }
+
+            // Activity requests: only if manager is owner and stage is 'activity'
+            if ($currentStage === 'activity' && $isStageOwner) {
+                $items = VnbPlanItem::where('submission_status', 'waiting_approval')
+                    ->whereHas('plan', function ($q) use ($employee) {
+                        $q->where('employee_id', $employee->id);
+                    })
+                    ->orderByDesc('submitted_at')
+                    ->get();
+
+                foreach ($items as $item) {
+                    $activityRequests[] = [
+                        'type' => 'activity',
+                        'employee_id' => $employee->id,
+                        'employee_name' => $item->plan?->employee?->name,
+                        'employee_number' => $item->plan?->employee?->employee_number,
+                        'company' => $item->plan?->employee?->company,
+                        'reference_id' => $item->id,
+                        'title' => $item->activity_title,
+                        'phase' => 'Fase ' . ($item->plan?->phase_number ?? 1),
+                        'submitted_at' => optional($item->submitted_at)->toDateTimeString(),
+                        'stage' => 'activity',
+                        'approval_mode' => $this->getEmployeeManagerMode($item->plan?->employee),
+                    ];
+                }
+            }
+        }
+
+        return [
+            'my_approvals' => array_merge($planRequests, $activityRequests),
+            'planning_count' => count($planRequests),
+            'activity_count' => count($activityRequests),
+        ];
+    }
+
+    /**
+     * Get monitoring requests (for non-owners to see)
+     * Returns requests where manager is NOT the owner but can see
+     *
+     * @return array
+     */
+    private function getMyMonitoringRequests(): array
+    {
+        $employeeIds = $this->resolveManagerEmployeeIds();
+        if ($employeeIds === null) {
+            return [];
+        }
+
+        $employees = Employee::whereIn('id', $employeeIds)->get();
+        $monitoringRequests = [];
+
+        foreach ($employees as $employee) {
+            $currentStage = $this->getCurrentApprovalStage($employee);
+            $isStageOwner = $this->isManagerStageOwner($employee, $currentStage);
+
+            // If manager is NOT the owner, add to monitoring
+            if (!$isStageOwner) {
+                // Get current request being processed
+                if ($currentStage === 'planning') {
+                    $plan = VnbPlan::where('employee_id', $employee->id)
+                        ->where('status', 'waiting_manager_approval')
+                        ->orderByDesc('submitted_at')
+                        ->first();
+
+                    if ($plan) {
+                        $monitoringRequests[] = [
+                            'type' => 'planning',
+                            'employee_id' => $employee->id,
+                            'employee_name' => $employee->name,
+                            'employee_number' => $employee->employee_number,
+                            'company' => $employee->company,
+                            'reference_id' => $plan->id,
+                            'title' => $plan->title ?: 'Planning Approval',
+                            'phase' => 'Planning',
+                            'submitted_at' => optional($plan->submitted_at)->toDateTimeString(),
+                            'stage' => 'planning',
+                            'approval_mode' => $this->getEmployeeManagerMode($employee),
+                            'owner_type' => 'functional',
+                        ];
+                    }
+                } else if ($currentStage === 'activity') {
+                    $items = VnbPlanItem::where('submission_status', 'waiting_approval')
+                        ->whereHas('plan', function ($q) use ($employee) {
+                            $q->where('employee_id', $employee->id);
+                        })
+                        ->orderByDesc('submitted_at')
+                        ->get();
+
+                    $ownerType = $employee->manager_operational_id && $employee->manager_operational_id !== $employee->manager_functional_id
+                        ? 'operational'
+                        : 'functional';
+
+                    foreach ($items as $item) {
+                        $monitoringRequests[] = [
+                            'type' => 'activity',
+                            'employee_id' => $employee->id,
+                            'employee_name' => $item->plan?->employee?->name,
+                            'employee_number' => $item->plan?->employee?->employee_number,
+                            'company' => $item->plan?->employee?->company,
+                            'reference_id' => $item->id,
+                            'title' => $item->activity_title,
+                            'phase' => 'Fase ' . ($item->plan?->phase_number ?? 1),
+                            'submitted_at' => optional($item->submitted_at)->toDateTimeString(),
+                            'stage' => 'activity',
+                            'approval_mode' => $this->getEmployeeManagerMode($item->plan?->employee),
+                            'owner_type' => $ownerType,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $monitoringRequests;
     }
 }
