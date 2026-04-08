@@ -33,9 +33,11 @@ class MasterDataSeeder extends Seeder
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // 1. Master Company
+        // 1. Master Company - Exactly 3 companies
         $companies = [
-            ['name' => 'Wismilak'],
+            ['name' => 'PT Wismilak Inti Makmur'],
+            ['name' => 'PT Gelora Djaja'],
+            ['name' => 'PT Gawih Djaja'],
         ];
 
         foreach ($companies as $company) {
@@ -168,15 +170,32 @@ class MasterDataSeeder extends Seeder
             MasterEmployeeStatus::create($status);
         }
 
-        // 7. Master Placement
+        // 7. Master Placement - Exactly 24 locations
         $placements = [
-            ['name' => 'HQ'],
-            ['name' => 'Plant A'],
-            ['name' => 'Plant B'],
-            ['name' => 'Warehouse'],
-            ['name' => 'Regional Office - Jakarta'],
-            ['name' => 'Regional Office - Surabaya'],
-            ['name' => 'Regional Office - Medan'],
+            ['name' => 'Bandung'],
+            ['name' => 'Banjarmasin'],
+            ['name' => 'Bengkulu'],
+            ['name' => 'Bogor'],
+            ['name' => 'Buntaran'],
+            ['name' => 'Cirebon'],
+            ['name' => 'Jakarta'],
+            ['name' => 'Jember'],
+            ['name' => 'Jombang'],
+            ['name' => 'Kediri'],
+            ['name' => 'Malang'],
+            ['name' => 'Medan'],
+            ['name' => 'Padangsidimpuan'],
+            ['name' => 'Pamekasan'],
+            ['name' => 'Pati'],
+            ['name' => 'Pematangsiantar'],
+            ['name' => 'Purwokerto'],
+            ['name' => 'Semarang'],
+            ['name' => 'Solo'],
+            ['name' => 'Jambi'],
+            ['name' => 'Surabaya'],
+            ['name' => 'Tangerang'],
+            ['name' => 'Tegal'],
+            ['name' => 'Yogyakarta'],
         ];
 
         foreach ($placements as $placement) {

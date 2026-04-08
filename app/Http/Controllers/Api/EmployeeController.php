@@ -72,9 +72,20 @@ class EmployeeController extends Controller
         }
 
         $employees = $query
-            ->with(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods'])
+            ->with([
+                'division', 
+                'department', 
+                'position', 
+                'managerFunctional', 
+                'managerOperational', 
+                'vnbPeriods'
+            ])
             ->orderBy('id')
             ->get();
+
+        // Load master data for level and status lookup
+        $levels = MasterLevel::pluck('name', 'id')->toArray();
+        $statuses = MasterEmployeeStatus::pluck('name', 'name')->toArray();
 
         // Ensure relationships are loaded, fallback if null
         $employees->each(function ($emp) {
@@ -106,7 +117,7 @@ class EmployeeController extends Controller
             ->groupBy('employee_id')
             ->map(fn ($plans) => $plans->first());
 
-        $rows = $employees->values()->map(function (Employee $employee, int $index) use ($progressMap, $latestPlanMap) {
+        $rows = $employees->values()->map(function (Employee $employee, int $index) use ($progressMap, $latestPlanMap, $levels, $statuses) {
             $periodStart = $employee->vnb_period_start ?? $employee->induction_date ?? $employee->date_joined;
             $periodEnd = $employee->vnb_period_end ?? ($periodStart ? Carbon::parse($periodStart)->copy()->addYear()->subDay() : null);
             $phase = $this->deriveEmployeePhaseLabel($employee, $latestPlanMap->get($employee->id));
@@ -133,7 +144,7 @@ class EmployeeController extends Controller
                 'whatsapp' => $employee->whatsapp,
                 'vnb_period_start' => optional($periodStart)->toDateString(),
                 'vnb_period_end' => optional($periodEnd)->toDateString(),
-                'career_stage' => $this->deriveCareerStage($employee->level),
+                'career_stage' => $employee->getCareerStage(),
                 'phase' => $phase,
                 'progress' => round((float) $progress, 1),
                 'manager_functional' => $employee->managerFunctional?->name,
@@ -148,7 +159,8 @@ class EmployeeController extends Controller
                 'position_id' => $employee->position_id,
                 'position' => $employee->position?->name ?? ($employee->position_id ? "Pos #{$employee->position_id}" : '-'),
                 'placement' => $employee->placement,
-                'level' => $employee->level,
+                'level_id' => $employee->level,
+                'level' => $levels[$employee->level] ?? ($employee->level ? "Level #{$employee->level}" : '-'),
                 'employee_status' => $employee->employee_status,
                 'vnb_status' => $employee->vnb_status,
                 'employment_state' => $employee->employment_state ?? 'active',
@@ -239,7 +251,7 @@ class EmployeeController extends Controller
             'success' => true,
             'data' => [
                 ...$employee->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods.plans', 'user'])->toArray(),
-                'career_stage' => $this->deriveCareerStage($employee->level),
+                'career_stage' => $employee->getCareerStage(),
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $latestPlan),
                 'account_credential_preview' => $this->buildCredentialPreview($employee->fresh(['user'])),
             ],

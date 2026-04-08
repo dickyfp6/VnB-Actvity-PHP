@@ -32,7 +32,7 @@ class VnbActivityController extends Controller
             $q->where('employee_id', $employee->id)
               ->where('status', 'approved');
         })
-        ->with('plan')
+        ->with(['plan.employee.position'])
         ->get()
         ->map(function (VnbPlanItem $item): array {
             return $this->formatActivityItem($item);
@@ -113,7 +113,7 @@ class VnbActivityController extends Controller
         if (!$manager) {
             // Fallback: show all pending if admin/intercomm
             $items = VnbPlanItem::where('submission_status', 'waiting_approval')
-                ->with(['plan.employee'])
+                ->with(['plan.employee.position'])
                 ->get()
                 ->map(fn(VnbPlanItem $item): array => $this->formatActivityItem($item, withEmployee: true));
         } else {
@@ -124,7 +124,7 @@ class VnbActivityController extends Controller
 
             $items = VnbPlanItem::where('submission_status', 'waiting_approval')
                 ->whereHas('plan', fn($q) => $q->whereIn('employee_id', $newHireIds))
-                ->with(['plan.employee'])
+                ->with(['plan.employee.position'])
                 ->get()
                 ->map(fn(VnbPlanItem $item): array => $this->formatActivityItem($item, withEmployee: true));
         }
@@ -241,7 +241,18 @@ class VnbActivityController extends Controller
 
         if ($withEmployee && $item->relationLoaded('plan')) {
             $employee = $item->plan->employee;
-            $data['employee'] = $employee ? $employee->only('id', 'name', 'email', 'level', 'company') : null;
+            if ($employee) {
+                $data['employee'] = [
+                    'id'           => $employee->id,
+                    'name'         => $employee->name,
+                    'email'        => $employee->email,
+                    'company'      => $employee->company,
+                    'golongan'     => $employee->position?->name ?? null,
+                    'career_stage' => $employee->getCareerStage() ?? null,
+                ];
+            } else {
+                $data['employee'] = null;
+            }
         }
 
         return $data;

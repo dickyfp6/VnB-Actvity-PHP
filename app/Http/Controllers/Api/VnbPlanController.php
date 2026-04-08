@@ -87,22 +87,22 @@ class VnbPlanController extends Controller
                 'success' => true,
                 'data' => $existingPlan->load(['items', 'period']),
                 'deadline' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->addDays(7)->toDateString() : null,
-                'career_stage' => $this->mapLevelToCareerStage($existingPlan->employee->level),
+                'career_stage' => $existingPlan->employee->getCareerStage(),
             ]);
         }
 
         // Auto-create plan dari framework template berdasarkan career stage
-        $careerStage = $this->mapLevelToCareerStage($employee->level);
+        $careerStageCode = $employee->getCareerStageCode();
         
         // Ambil framework items untuk career stage ini
-        $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStage)
+        $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStageCode)
             ->get()
             ->groupBy('phase');
 
         if ($frameworkItems->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Framework template tidak ditemukan untuk career stage: ' . $careerStage
+                'message' => 'Framework template tidak ditemukan untuk career stage: ' . $employee->getCareerStage()
             ], 404);
         }
 
@@ -233,9 +233,9 @@ class VnbPlanController extends Controller
         
         if (empty($validated['items'])) {
             // Auto-generate dari framework berdasarkan career stage
-            $careerStage = $this->mapLevelToCareerStage($employee->level);
+            $careerStageCode = $employee->getCareerStageCode();
             
-            $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStage)
+            $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStageCode)
                 ->get()
                 ->groupBy('phase');
 
@@ -281,7 +281,7 @@ class VnbPlanController extends Controller
             'success' => true,
             'message' => 'Plan created successfully',
             'data' => $plan->load(['items', 'period']),
-            'career_stage' => $this->mapLevelToCareerStage($employee->level),
+            'career_stage' => $employee->getCareerStage(),
         ], 201);
     }
 
