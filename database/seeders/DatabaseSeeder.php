@@ -13,7 +13,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create test users with proper roles
+        // 1. FIRST: Create roles and permissions
+        $this->call([
+            RolePermissionSeeder::class,
+            MasterDataSeeder::class,
+        ]);
+
+        // 2. THEN: Create test users WITHOUT employee_id (will assign later after EmployeeAndManagerSeeder runs)
         $users = [
             [
                 'name' => 'Admin User',
@@ -37,15 +43,13 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Manager',
                 'email' => 'manager@vnb.local',
                 'phone' => null,
-                'roles' => ['manager'],
-                'employee_id' => null
+                'roles' => ['manager']
             ],
             [
                 'name' => 'New Hire',
                 'email' => 'newhire@vnb.local',
                 'phone' => '082123456789',
-                'roles' => ['new_hire'],
-                'employee_id' => 1
+                'roles' => ['new_hire']
             ],
             [
                 'name' => 'Dicky Febri Primadhani',
@@ -57,15 +61,13 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Ahnaf Fathan',
                 'email' => 'fathan@vnb.local',
                 'phone' => '081234567890',
-                'roles' => ['new_hire'],
-                'employee_id' => 2
+                'roles' => ['new_hire']
             ],
             [
                 'name' => 'Regina Dwi',
                 'email' => 'rere@vnb.local',
                 'phone' => '082123456788',
-                'roles' => ['new_hire'],
-                'employee_id' => 3
+                'roles' => ['new_hire']
             ],
         ];
 
@@ -79,7 +81,7 @@ class DatabaseSeeder extends Seeder
                     'name' => $userData['name'],
                     'password' => Hash::make('password'),
                     'phone' => $userData['phone'] ?? null,
-                    'employee_id' => $userData['employee_id'] ?? null,
+                    'employee_id' => null,  // Don't assign yet
                     'status' => 'active',
                     'email_verified_at' => now(),
                 ]
@@ -89,10 +91,8 @@ class DatabaseSeeder extends Seeder
             $user->syncRoles($roles);
         }
 
-        // Panggil semua seeders dalam order yang benar
+        // 3. FINALLY: Seed all other data
         $this->call([
-            RolePermissionSeeder::class,
-            MasterDataSeeder::class,
             EmployeeAndManagerSeeder::class,
             VnbPeriodSeeder::class,
             VnbFrameworkSeeder::class,

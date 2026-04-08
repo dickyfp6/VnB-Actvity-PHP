@@ -1,6 +1,6 @@
-@extends('layouts.app')
 
-@section('content')
+
+<?php $__env->startSection('content'); ?>
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
@@ -15,21 +15,22 @@
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
                     <select name="period" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="current_year" @selected($selectedPeriod === 'current_year')>Tahun Ini</option>
-                        <option value="last_quarter" @selected($selectedPeriod === 'last_quarter')>Kuartal Terakhir</option>
-                        <option value="last_month" @selected($selectedPeriod === 'last_month')>Bulan Terakhir</option>
+                        <option value="current_year" <?php if($selectedPeriod === 'current_year'): echo 'selected'; endif; ?>>Tahun Ini</option>
+                        <option value="last_quarter" <?php if($selectedPeriod === 'last_quarter'): echo 'selected'; endif; ?>>Kuartal Terakhir</option>
+                        <option value="last_month" <?php if($selectedPeriod === 'last_month'): echo 'selected'; endif; ?>>Bulan Terakhir</option>
                     </select>
                 </div>
 
                 <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Divisi</label>
-                    <select name="division" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Semua Divisi</option>
-                        @foreach($divisions as $div)
-                            <option value="{{ $div->id }}" @selected($selectedDivision === (string)$div->id)>
-                                {{ $div->name }}
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
+                    <select name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Semua Departemen</option>
+                        <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($dept->id); ?>" <?php if($selectedDepartment === (string)$dept->id): echo 'selected'; endif; ?>>
+                                <?php echo e($dept->name); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </div>
 
@@ -46,7 +47,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-sm font-medium">Total New Hire Aktif</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['total_active'] }}</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo e($stats['total_active']); ?></p>
                     </div>
                     <div class="p-3 bg-blue-100 rounded-lg">
                         <i class="fas fa-users text-blue-600 text-xl"></i>
@@ -59,7 +60,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-sm font-medium">Rata-rata Penyelesaian</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['avg_completion'] }}%</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo e($stats['avg_completion']); ?>%</p>
                     </div>
                     <div class="p-3 bg-green-100 rounded-lg">
                         <i class="fas fa-chart-line text-green-600 text-xl"></i>
@@ -72,7 +73,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-sm font-medium">Perlu Perhatian</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['critical_alerts'] }}</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo e($stats['critical_alerts']); ?></p>
                     </div>
                     <div class="p-3 bg-red-100 rounded-lg">
                         <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
@@ -80,13 +81,13 @@
                 </div>
             </div>
 
-            <!-- Top Division -->
+            <!-- Top Department -->
             <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Divisi Terbaik</p>
-                        <p class="text-lg font-bold text-gray-900 mt-2">{{ $stats['top_department'] }}</p>
-                        <p class="text-sm text-gray-500 mt-1">{{ $stats['top_department_progress'] }}% progress</p>
+                        <p class="text-gray-600 text-sm font-medium">Departemen Terbaik</p>
+                        <p class="text-lg font-bold text-gray-900 mt-2"><?php echo e($stats['top_department']); ?></p>
+                        <p class="text-sm text-gray-500 mt-1"><?php echo e($stats['top_department_progress']); ?>% progress</p>
                     </div>
                     <div class="p-3 bg-purple-100 rounded-lg">
                         <i class="fas fa-trophy text-purple-600 text-xl"></i>
@@ -123,44 +124,44 @@
             </div>
         </div>
 
-        <!-- Divisional Heatmap -->
+        <!-- Departmental Heatmap -->
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Divisional Heatmap (Progres per Fase)</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Departmental Heatmap (Progres per Fase)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200">
                             <th class="text-left py-3 px-4 font-semibold text-gray-700">Departemen</th>
-                            @foreach(['Phase 1', 'Phase 2', 'Phase 3'] as $phase)
-                                <th class="text-center py-3 px-4 font-semibold text-gray-700">{{ $phase }}</th>
-                            @endforeach
+                            <?php $__currentLoopData = ['Phase 1', 'Phase 2', 'Phase 3']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $phase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <th class="text-center py-3 px-4 font-semibold text-gray-700"><?php echo e($phase); ?></th>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($heatmapData as $row)
+                        <?php $__empty_1 = true; $__currentLoopData = $heatmapData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                <td class="py-3 px-4 font-medium text-gray-900">{{ $row['division'] }}</td>
-                                @foreach($row['phases'] as $phase)
+                                <td class="py-3 px-4 font-medium text-gray-900"><?php echo e($row['department']); ?></td>
+                                <?php $__currentLoopData = $row['phases']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $phase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <td class="text-center py-3 px-4">
-                                        @php
+                                        <?php
                                             $bgClass = match($phase['status']) {
                                                 'excellent' => 'bg-green-100 text-green-800',
                                                 'good' => 'bg-yellow-100 text-yellow-800',
                                                 'needs_attention' => 'bg-red-100 text-red-800',
                                                 default => 'bg-gray-100 text-gray-800'
                                             };
-                                        @endphp
-                                        <span class="inline-block px-3 py-1 rounded-full font-semibold text-xs {{ $bgClass }}">
-                                            {{ $phase['progress'] }}%
+                                        ?>
+                                        <span class="inline-block px-3 py-1 rounded-full font-semibold text-xs <?php echo e($bgClass); ?>">
+                                            <?php echo e($phase['progress']); ?>%
                                         </span>
                                     </td>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
                                 <td colspan="4" class="text-center py-8 text-gray-500">Belum ada data tersedia</td>
                             </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -168,7 +169,7 @@
 
         <!-- Employee List Summary -->
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Daftar New Hire ({{ count($employees) }} employees)</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Daftar New Hire (<?php echo e(count($employees)); ?> employees)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
@@ -181,8 +182,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($employees->take(10) as $employee)
-                            @php
+                        <?php $__empty_1 = true; $__currentLoopData = $employees->take(10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $employee): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <?php
                                 $plans = $employee->vnbPlans;
                                 $totalItems = $plans->sum(fn($p) => $p->items->count());
                                 $completedItems = $plans->sum(fn($p) => $p->items->where('completion_percentage', 100)->count());
@@ -193,40 +194,41 @@
                                     $progress >= 50 => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'label' => 'Sedang Berjalan'],
                                     default => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'label' => 'Baru Dimulai']
                                 };
-                            @endphp
+                            ?>
                             <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                <td class="py-3 px-4 text-gray-900">{{ $employee->employee_number }}</td>
+                                <td class="py-3 px-4 text-gray-900"><?php echo e($employee->employee_number); ?></td>
                                 <td class="py-3 px-4">
-                                    <span class="font-medium text-gray-900">{{ $employee->name }}</span>
+                                    <span class="font-medium text-gray-900"><?php echo e($employee->name); ?></span>
                                 </td>
-                                <td class="py-3 px-4 text-gray-600">{{ $employee->department?->name ?? 'N/A' }}</td>
+                                <td class="py-3 px-4 text-gray-600"><?php echo e($employee->department?->name ?? 'N/A'); ?></td>
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-2">
                                         <div class="w-24 bg-gray-200 rounded-full h-2">
-                                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ $progress }}%"></div>
+                                            <div class="bg-blue-600 h-2 rounded-full" style="width: <?php echo e($progress); ?>%"></div>
                                         </div>
-                                        <span class="text-sm font-semibold text-gray-700">{{ $progress }}%</span>
+                                        <span class="text-sm font-semibold text-gray-700"><?php echo e($progress); ?>%</span>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold {{ $statusBadge['bg'] }} {{ $statusBadge['text'] }}">
-                                        {{ $statusBadge['label'] }}
+                                    <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold <?php echo e($statusBadge['bg']); ?> <?php echo e($statusBadge['text']); ?>">
+                                        <?php echo e($statusBadge['label']); ?>
+
                                     </span>
                                 </td>
                             </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
                                 <td colspan="5" class="text-center py-8 text-gray-500">Belum ada data tersedia</td>
                             </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-            @if(count($employees) > 10)
+            <?php if(count($employees) > 10): ?>
                 <div class="mt-4 text-center text-sm text-gray-600">
-                    Menampilkan 10 dari {{ count($employees) }} employees
+                    Menampilkan 10 dari <?php echo e(count($employees)); ?> employees
                 </div>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -240,10 +242,10 @@
     new Chart(behaviourCtx, {
         type: 'radar',
         data: {
-            labels: {!! json_encode($behaviourData['labels']) !!},
+            labels: <?php echo json_encode($behaviourData['labels']); ?>,
             datasets: [{
                 label: 'Rata-rata Penyelesaian Behaviour',
-                data: {!! json_encode($behaviourData['data']) !!},
+                data: <?php echo json_encode($behaviourData['data']); ?>,
                 borderColor: 'rgb(59, 130, 246)',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,
@@ -280,10 +282,10 @@
     new Chart(velocityCtx, {
         type: 'line',
         data: {
-            labels: {!! json_encode($velocityData['dates']) !!},
+            labels: <?php echo json_encode($velocityData['dates']); ?>,
             datasets: [{
                 label: 'Rata-rata Progress (%)',
-                data: {!! json_encode($velocityData['data']) !!},
+                data: <?php echo json_encode($velocityData['data']); ?>,
                 borderColor: 'rgb(34, 197, 94)',
                 backgroundColor: 'rgba(34, 197, 94, 0.1)',
                 borderWidth: 2,
@@ -317,4 +319,6 @@
         }
     });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/dashboard/pcx/index.blade.php ENDPATH**/ ?>

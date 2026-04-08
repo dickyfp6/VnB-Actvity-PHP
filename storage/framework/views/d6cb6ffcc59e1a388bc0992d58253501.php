@@ -37,16 +37,16 @@
   </div>
 
   
-  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
+  <div class="table-container">
+    <table class="table-modern">
+      <thead>
         <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-          <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+          <th>Kode</th>
+          <th>Nama</th>
+          <th class="text-right">Aksi</th>
         </tr>
       </thead>
-      <tbody id="table-body" class="divide-y divide-gray-200 text-sm text-gray-700">
+      <tbody id="table-body">
         <tr><td colspan="3" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
       </tbody>
     </table>

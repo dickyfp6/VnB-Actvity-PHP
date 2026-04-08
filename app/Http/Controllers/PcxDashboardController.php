@@ -6,7 +6,7 @@ use App\Models\Employee;
 use App\Models\VnbPlan;
 use App\Models\VnbPlanItem;
 use App\Models\VnbFrameworkItem;
-use App\Models\MasterDepartment;
+use App\Models\MasterDivision;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,15 +19,17 @@ class PcxDashboardController extends Controller
     public function index(Request $request)
     {
         $period = $request->input('period', 'current_year');
-        $department = $request->input('department');
+        $division = $request->input('division');
 
         // Base query for active employees in onboarding
         $query = Employee::query()
-            ->where('vnb_status', 'in_progress')
-            ->with(['department', 'vnbPlans.items']);
+            ->where('vnb_status', 'active')
+            ->with(['department.division', 'vnbPlans.items']);
 
-        if ($department) {
-            $query->where('department_id', $department);
+        if ($division) {
+            $query->whereHas('department', function ($q) use ($division) {
+                $q->where('division_id', $division);
+            });
         }
 
         $employees = $query->get();
@@ -38,14 +40,14 @@ class PcxDashboardController extends Controller
         // Calculate behaviour mastery data for radar chart
         $behaviourData = $this->calculateBehaviourMastery($employees);
 
-        // Calculate departmental heatmap data
-        $heatmapData = $this->calculateDepartmentHeatmap();
+        // Calculate divisional heatmap data (divisions × phases)
+        $heatmapData = $this->calculateDivisionHeatmap();
 
         // Calculate completion velocity
         $velocityData = $this->calculateVelocity($employees);
 
-        // Get all departments for filter
-        $departments = MasterDepartment::all();
+        // Get all divisions for filter
+        $divisions = MasterDivision::all();
 
         return view('dashboard.pcx.index', [
             'stats' => $stats,
@@ -53,8 +55,8 @@ class PcxDashboardController extends Controller
             'heatmapData' => $heatmapData,
             'velocityData' => $velocityData,
             'employees' => $employees,
-            'departments' => $departments,
-            'selectedDepartment' => $department,
+            'divisions' => $divisions,
+            'selectedDivision' => $division,
             'selectedPeriod' => $period,
         ]);
     }
@@ -96,15 +98,19 @@ class PcxDashboardController extends Controller
             return false;
         })->count();
 
-        // Find top department
-        $topDepartment = $employees->groupBy('department_id')->map(function ($group) {
+        // Find top division
+        $topDivision = $employees->groupBy(function ($emp) {
+            return $emp->department?->division_id ?? null;
+        })->map(function ($group) {
             $plans = VnbPlanItem::whereIn('plan_id',
                 VnbPlan::whereIn('employee_id', $group->pluck('id'))->pluck('id')
             )->get();
             
+            $division = $group->first()->department?->division;
+            
             return [
                 'avg' => $plans->count() > 0 ? $plans->avg('completion_percentage') : 0,
-                'dept' => $group->first()->department,
+                'div' => $division,
             ];
         })->sortByDesc('avg')->first();
 
@@ -112,8 +118,8 @@ class PcxDashboardController extends Controller
             'total_active' => $totalActive,
             'avg_completion' => round($avgCompletion, 1),
             'critical_alerts' => $criticalCount,
-            'top_department' => $topDepartment['dept']->name ?? 'N/A',
-            'top_department_progress' => round($topDepartment['avg'] ?? 0, 1),
+            'top_department' => $topDivision['div']->name ?? 'N/A',
+            'top_department_progress' => round($topDivision['avg'] ?? 0, 1),
         ];
     }
 
@@ -159,24 +165,27 @@ class PcxDashboardController extends Controller
     }
 
     /**
-     * Calculate departmental heatmap data (departments × phases)
+     * Calculate divisional heatmap data (divisions × phases)
      */
-    private function calculateDepartmentHeatmap()
+    private function calculateDivisionHeatmap()
     {
-        $departments = MasterDepartment::all();
+        $divisions = MasterDivision::all();
         $phases = [1, 2, 3];
         
         $heatmapData = [];
 
-        foreach ($departments as $dept) {
-            $row = ['department' => $dept->name, 'phases' => []];
+        foreach ($divisions as $div) {
+            $row = ['division' => $div->name, 'phases' => []];
             
             foreach ($phases as $phase) {
+                // Get employees in this division
+                $divisionEmployeeIds = Employee::whereHas('department', function ($q) use ($div) {
+                    $q->where('division_id', $div->id);
+                })->pluck('id');
+                
                 $items = VnbPlanItem::whereIn('plan_id',
                     VnbPlan::where('phase_number', $phase)
-                        ->whereIn('employee_id', 
-                            Employee::where('department_id', $dept->id)->pluck('id')
-                        )
+                        ->whereIn('employee_id', $divisionEmployeeIds)
                         ->pluck('id')
                 )
                 ->get();

@@ -6,18 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * This migration is deprecated - framework_item_id FK moved to 2026_04_08_000001_add_framework_foreign_key_to_vnb_plan_items.php
+     * Keeping this for backward compatibility with existing deployment history
+     */
     public function up(): void
     {
-        Schema::table('vnb_plan_items', function (Blueprint $table) {
-            // Add framework_item_id foreign key
-            $table->foreignId('framework_item_id')->nullable()->after('plan_id')->constrained('vnb_framework_items')->onDelete('set null');
-        });
+        // Framework foreign key is now handled by newer migration to avoid ordering issues
     }
 
     public function down(): void
     {
-        Schema::table('vnb_plan_items', function (Blueprint $table) {
-            $table->dropForeignIdFor(\App\Models\VnbFrameworkItem::class, 'framework_item_id');
-        });
+        // No changes to roll back
     }
 };

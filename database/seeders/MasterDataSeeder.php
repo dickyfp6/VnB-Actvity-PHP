@@ -42,37 +42,83 @@ class MasterDataSeeder extends Seeder
             MasterCompany::create($company);
         }
 
-        // 2. Master Division
+        // 2. Master Division - Wismilak organizational structure
         $divisions = [
-            ['name' => 'Operations'],
-            ['name' => 'Sales & Marketing'],
-            ['name' => 'Finance'],
-            ['name' => 'Human Resources'],
-            ['name' => 'Quality Control'],
-            ['name' => 'IT & Systems'],
-            ['name' => 'Logistics'],
+            ['name' => 'Operations (Pusat Produksi)'],
+            ['name' => 'Supply Chain Management (SCM)'],
+            ['name' => 'Commercial (Sales & Marketing)'],
+            ['name' => 'Human Capital & Corporate Affairs'],
+            ['name' => 'Finance & Business Support'],
+            ['name' => 'Strategic Research & Development (R&D)'],
         ];
 
         foreach ($divisions as $division) {
             MasterDivision::create($division);
         }
 
-        // 3. Master Department
+        // Get division IDs for department assignment - using map to get all divisions in order
+        $divisionList = MasterDivision::orderBy('id')->get();
+        $divisionMap = [
+            'OPS' => $divisionList[0]->id ?? 1,      // Operations
+            'SCM' => $divisionList[1]->id ?? 2,      // SCM
+            'COM' => $divisionList[2]->id ?? 3,      // Commercial
+            'HCCA' => $divisionList[3]->id ?? 4,     // Human Capital & Corporate Affairs
+            'FBS' => $divisionList[4]->id ?? 5,      // Finance & Business Support
+            'RD' => $divisionList[5]->id ?? 6,       // R&D
+        ];
+
+        // 3. Master Department - Organized by division
         $departments = [
-            ['name' => 'Production'],
-            ['name' => 'Maintenance'],
-            ['name' => 'Sales Team'],
-            ['name' => 'Marketing'],
-            ['name' => 'Accounting'],
-            ['name' => 'Finance Planning'],
-            ['name' => 'Recruitment'],
-            ['name' => 'Training & Development'],
-            ['name' => 'Quality Assurance'],
-            ['name' => 'Lab Testing'],
-            ['name' => 'Infrastructure'],
-            ['name' => 'Applications'],
-            ['name' => 'Warehouse'],
-            ['name' => 'Distribution'],
+            // 1. Operations Division (OPS)
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Primary Process (Pemrosesan bahan baku/daun)'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Secondary Process (Linting/Produksi barang jadi)'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Engineering & Maintenance'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Quality Assurance (QA)'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Quality Control (QC)'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Health, Safety, & Environment (HSE)'],
+            ['division_id' => $divisionMap['OPS'], 'name' => 'Continuous Improvement (Lean Manufacturing)'],
+            
+            // 2. Supply Chain Management (SCM)
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Production Planning & Inventory Control (PPIC)'],
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Procurement (Direct Material)'],
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Procurement (Indirect Material/Services)'],
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Warehouse Raw Material'],
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Warehouse Finished Goods'],
+            ['division_id' => $divisionMap['SCM'], 'name' => 'Logistics & Fleet Management'],
+            
+            // 3. Commercial (Sales & Marketing)
+            ['division_id' => $divisionMap['COM'], 'name' => 'Brand Management (Product A)'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Brand Management (Product B)'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Trade Marketing / Field Marketing'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Sales Retail / General Trade'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Key Account Management / Modern Trade'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Marketing Strategy & Research'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Area Sales (East Region)'],
+            ['division_id' => $divisionMap['COM'], 'name' => 'Area Sales (West Region)'],
+            
+            // 4. Human Capital & Corporate Affairs (HCCA)
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'People & Culture Excellence (PCX)'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Internal Communication (Intercomm)'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Talent Acquisition & Employer Branding'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Learning & Organizational Development'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Compensation & Benefit (Payroll)'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Industrial Relation (IR)'],
+            ['division_id' => $divisionMap['HCCA'], 'name' => 'Corporate Social Responsibility (CSR)'],
+            
+            // 5. Finance & Business Support (FBS)
+            ['division_id' => $divisionMap['FBS'], 'name' => 'Financial Planning & Analysis (FP&A)'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'Accounting & Tax'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'Treasury & Cash Management'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'Internal Audit & Risk Management'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'IT Infrastructure'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'IT Digital Transformation / Software Dev'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'General Affairs & Asset Management'],
+            ['division_id' => $divisionMap['FBS'], 'name' => 'Legal & Compliance'],
+            
+            // 6. Strategic Research & Development (R&D)
+            ['division_id' => $divisionMap['RD'], 'name' => 'Product Development'],
+            ['division_id' => $divisionMap['RD'], 'name' => 'Packaging Development'],
+            ['division_id' => $divisionMap['RD'], 'name' => 'Regulatory Affairs'],
         ];
 
         foreach ($departments as $department) {
@@ -141,8 +187,8 @@ class MasterDataSeeder extends Seeder
 
         echo "Master Data seeder completed:\n";
         echo "- Companies: " . MasterCompany::count() . "\n";
-        echo "- Divisions: " . MasterDivision::count() . "\n";
-        echo "- Departments: " . MasterDepartment::count() . "\n";
+        echo "- Divisions: " . MasterDivision::count() . " (Operations, SCM, Commercial, HC&CA, Finance, R&D)\n";
+        echo "- Departments: " . MasterDepartment::count() . " (organized by division)\n";
         echo "- Positions: " . MasterPosition::count() . "\n";
         echo "- Levels: " . MasterLevel::count() . "\n";
         echo "- Employee Statuses: " . MasterEmployeeStatus::count() . "\n";

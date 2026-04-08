@@ -2,9 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Redirect;
+
 class PageController extends Controller
 {
-    public function dashboard() { return view('dashboard'); }
+    public function dashboard() 
+    { 
+        $user = auth()->user();
+        
+        // Redirect based on user role
+        if ($user->hasRole('pcx_manager') || $user->hasRole('intercomm')) {
+            return Redirect::route('dashboard.pcx');
+        }
+        
+        if ($user->hasRole('manager')) {
+            // Akan membuat manager dashboard nanti
+            // return Redirect::route('dashboard.manager');
+        }
+        
+        if ($user->hasRole('new_hire')) {
+            // Akan membuat new hire dashboard nanti
+            // return Redirect::route('dashboard.new-hire');
+        }
+        
+        // Default fallback
+        return view('dashboard');
+    }
     public function employees() { return view('employees.index'); }
     public function vnbPlans() { return view('vnb-plans.index'); }
     public function evidence() { return view('evidence.index'); }

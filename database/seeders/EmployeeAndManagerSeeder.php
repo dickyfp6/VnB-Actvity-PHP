@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Employee;
 use App\Models\Manager;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -25,6 +26,11 @@ class EmployeeAndManagerSeeder extends Seeder
 
         // ========== MANAGERS ==========
         // Managers ter-link ke users dengan role 'manager'
+        
+        // Get actual user IDs from database
+        $managerUser = User::where('email', 'manager@vnb.local')->first();
+        $dickyUser = User::where('email', 'dicky@vnb.id')->first();
+
         $managers = [
             [
                 'name' => 'Manager',
@@ -33,7 +39,7 @@ class EmployeeAndManagerSeeder extends Seeder
                 'company' => 'PT Gawih Djaja',
                 'division' => 'Information and Technology',
                 'status' => 'active',
-                'user_id' => 11, // manager@vnb.local user
+                'user_id' => $managerUser?->id,
             ],
             [
                 'name' => 'Dicky Febri Primadhani',
@@ -42,12 +48,14 @@ class EmployeeAndManagerSeeder extends Seeder
                 'company' => 'PT Wismilak Inti Makmur, Tbk',
                 'division' => 'Information and Technology',
                 'status' => 'active',
-                'user_id' => 13, // dicky@vnb.id user
+                'user_id' => $dickyUser?->id,
             ],
         ];
 
         foreach ($managers as $managerData) {
-            Manager::create($managerData);
+            if ($managerData['user_id']) {  // Only create if user exists
+                Manager::create($managerData);
+            }
         }
 
         // ========== EMPLOYEES (New Hires) ==========
@@ -61,11 +69,11 @@ class EmployeeAndManagerSeeder extends Seeder
                 'date_joined' => '2026-04-01',
                 'induction_date' => '2026-04-07',
                 'company' => 'PT Gawih Djaja',
-                'division_id' => 5,
-                'department_id' => 4,
-                'position_id' => 2,
+                'division_id' => 1,
+                'department_id' => 1,
+                'position_id' => 1,
                 'placement' => 'Bengkulu',
-                'level' => 'Staff/Supervisor',
+                'level' => 1,
                 'employee_status' => 'OS',
                 'vnb_status' => 'active',
                 'employment_state' => 'active',
@@ -79,15 +87,15 @@ class EmployeeAndManagerSeeder extends Seeder
                 'date_joined' => '2026-04-01',
                 'induction_date' => '2026-04-07',
                 'company' => 'PT Gelora Djaja',
-                'division_id' => 6,
-                'department_id' => 12,
-                'position_id' => 5,
+                'division_id' => 1,
+                'department_id' => 1,
+                'position_id' => 1,
                 'placement' => 'Bandung',
-                'level' => 'Staff/Supervisor',
+                'level' => 1,
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
                 'employment_state' => 'active',
-                'manager_functional_id' => 2,
+                'manager_functional_id' => 1,
             ],
             [
                 'employee_number' => '5026221063',
@@ -97,16 +105,15 @@ class EmployeeAndManagerSeeder extends Seeder
                 'date_joined' => '2026-04-01',
                 'induction_date' => '2026-04-07',
                 'company' => 'PT Wismilak Inti Makmur, Tbk',
-                'division_id' => 6,
-                'department_id' => 5,
-                'position_id' => 3,
+                'division_id' => 1,
+                'department_id' => 1,
+                'position_id' => 1,
                 'placement' => 'Banjarmasin',
-                'level' => 'Manager',
+                'level' => 1,
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
                 'employment_state' => 'active',
                 'manager_functional_id' => 1,
-                'manager_operational_id' => 2,
             ],
         ];
 
