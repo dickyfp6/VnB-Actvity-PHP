@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MasterDepartment extends Model
@@ -12,7 +13,12 @@ class MasterDepartment extends Model
 
     protected $table = 'master_departments';
 
-    protected $fillable = ['name'];
+    protected $fillable = ['division_id', 'name'];
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(MasterDivision::class, 'division_id');
+    }
 
     public function employees(): HasMany
     {

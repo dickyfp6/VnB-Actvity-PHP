@@ -141,29 +141,27 @@ class MasterDataSeeder extends Seeder
             MasterPosition::create($position);
         }
 
-        // 5. Master Level
+        // 5. Master Level - Employee Hierarchy Levels
         $levels = [
-            ['name' => 'Level 1 (Staff)'],
-            ['name' => 'Level 2 (Senior Staff)'],
-            ['name' => 'Level 3 (Supervisor)'],
-            ['name' => 'Level 4 (Manager)'],
-            ['name' => 'Level 5 (Senior Manager)'],
-            ['name' => 'Level 6 (Head of Division)'],
-            ['name' => 'Level 7 (Director)'],
+            ['name' => 'Non-Staff'],
+            ['name' => 'Staff'],
+            ['name' => 'Supervisor'],
+            ['name' => 'Manager'],
+            ['name' => 'Kepala Tim'],
+            ['name' => 'General Manager'],
+            ['name' => 'Kepala Divisi'],
+            ['name' => 'Direktur'],
         ];
 
         foreach ($levels as $level) {
             MasterLevel::create($level);
         }
 
-        // 6. Master Employee Status
+        // 6. Master Employee Status - Employment Contract Types
         $statuses = [
-            ['name' => 'Training'],
-            ['name' => 'Probation'],
-            ['name' => 'Active'],
-            ['name' => 'On Leave'],
-            ['name' => 'Terminated'],
-            ['name' => 'Resigned'],
+            ['name' => 'OS'],
+            ['name' => 'PKWT'],
+            ['name' => 'PKWTT'],
         ];
 
         foreach ($statuses as $status) {

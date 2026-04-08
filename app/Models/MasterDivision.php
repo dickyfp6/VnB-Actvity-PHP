@@ -14,6 +14,11 @@ class MasterDivision extends Model
 
     protected $fillable = ['name'];
 
+    public function departments(): HasMany
+    {
+        return $this->hasMany(MasterDepartment::class, 'division_id');
+    }
+
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class, 'division_id');

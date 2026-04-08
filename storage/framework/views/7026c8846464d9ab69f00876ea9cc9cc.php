@@ -22,12 +22,12 @@
                 </div>
 
                 <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
-                    <select name="department" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Semua Departemen</option>
-                        <?php $__currentLoopData = $departments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $dept): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($dept->id); ?>" <?php if($selectedDepartment === (string)$dept->id): echo 'selected'; endif; ?>>
-                                <?php echo e($dept->name); ?>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Divisi</label>
+                    <select name="division" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Semua Divisi</option>
+                        <?php $__currentLoopData = $divisions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $div): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($div->id); ?>" <?php if($selectedDivision === (string)$div->id): echo 'selected'; endif; ?>>
+                                <?php echo e($div->name); ?>
 
                             </option>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -81,11 +81,11 @@
                 </div>
             </div>
 
-            <!-- Top Department -->
+            <!-- Top Division -->
             <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Departemen Terbaik</p>
+                        <p class="text-gray-600 text-sm font-medium">Divisi Terbaik</p>
                         <p class="text-lg font-bold text-gray-900 mt-2"><?php echo e($stats['top_department']); ?></p>
                         <p class="text-sm text-gray-500 mt-1"><?php echo e($stats['top_department_progress']); ?>% progress</p>
                     </div>
@@ -124,14 +124,14 @@
             </div>
         </div>
 
-        <!-- Departmental Heatmap -->
+        <!-- Divisional Heatmap -->
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Departmental Heatmap (Progres per Fase)</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Divisional Heatmap (Progres per Fase)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200">
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Departemen</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Divisi</th>
                             <?php $__currentLoopData = ['Phase 1', 'Phase 2', 'Phase 3']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $phase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <th class="text-center py-3 px-4 font-semibold text-gray-700"><?php echo e($phase); ?></th>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -140,7 +140,7 @@
                     <tbody>
                         <?php $__empty_1 = true; $__currentLoopData = $heatmapData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                <td class="py-3 px-4 font-medium text-gray-900"><?php echo e($row['department']); ?></td>
+                                <td class="py-3 px-4 font-medium text-gray-900"><?php echo e($row['division']); ?></td>
                                 <?php $__currentLoopData = $row['phases']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $phase): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <td class="text-center py-3 px-4">
                                         <?php

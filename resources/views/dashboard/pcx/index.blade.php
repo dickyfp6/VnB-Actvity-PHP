@@ -130,7 +130,7 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-gray-200">
-                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Departemen</th>
+                            <th class="text-left py-3 px-4 font-semibold text-gray-700">Divisi</th>
                             @foreach(['Phase 1', 'Phase 2', 'Phase 3'] as $phase)
                                 <th class="text-center py-3 px-4 font-semibold text-gray-700">{{ $phase }}</th>
                             @endforeach

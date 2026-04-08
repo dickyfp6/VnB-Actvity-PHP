@@ -3,54 +3,67 @@
 <?php $__env->startSection('title', 'Rencana VnB - VnB Platform'); ?>
 
 <?php $__env->startSection('content'); ?>
-<div class="space-y-6 px-4">
-    <div class="flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Rencana VnB</h1>
-            <div id="career-stage-info" class="mt-2" style="display: none;"></div>
-            <div id="deadline-info" class="mt-3" style="display: none;"></div>
-        </div>
-        <div class="flex gap-3">
-            <button onclick="saveDraft()" class="text-white px-4 py-2 rounded-lg text-sm transition" style="background-color: #37AA05; cursor: pointer;" onmouseover="this.style.backgroundColor='#2d8903'" onmouseout="this.style.backgroundColor='#37AA05'">
-                <i class="fas fa-floppy-disk mr-1"></i> Simpan Draft
-            </button>
-            <button onclick="submitPlan()" class="text-white px-4 py-2 rounded-lg text-sm transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
-                <i class="fas fa-paper-plane mr-1"></i> Ajukan
-            </button>
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="card-glass rounded-xl p-6 md:p-8">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+            <div class="flex-1">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Rencana VnB</h1>
+                <p class="text-gray-600 mb-4">Perencanaan pengembangan nilai dan perilaku Wismilak</p>
+                <div id="career-stage-info" class="mt-3" style="display: none;"></div>
+                <div id="deadline-info" class="mt-2" style="display: none;"></div>
+            </div>
+            <div class="flex gap-3 flex-shrink-0">
+                <button onclick="saveDraft()" class="btn-secondary flex items-center gap-2 hover:bg-green-50" title="Simpan sebagai draft">
+                    <i class="fas fa-floppy-disk"></i>
+                    <span>Simpan Draft</span>
+                </button>
+                <button onclick="submitPlan()" class="btn-primary flex items-center gap-2" title="Ajukan rencana untuk approval">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Ajukan</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Progress Bar -->
-    <div id="progress-container" class="bg-white rounded-lg shadow p-4" style="display: none;">
-        <div class="flex justify-between items-center mb-2">
-            <p class="text-sm font-semibold text-gray-700">Progress Pengisian</p>
-            <p class="text-sm font-semibold text-gray-900"><span id="progress-percent">0</span>%</p>
+    <div id="progress-container" class="card-glass rounded-xl p-6" style="display: none;">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900">Progres Pengisian</h3>
+                <p class="text-xs text-gray-500 mt-1">Jumlah aktivitas yang sudah direncanakan</p>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-green-600"><span id="progress-percent">0</span>%</p>
+            </div>
         </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-            <div id="progress-bar" class="bg-green-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+        <div class="w-full bg-gray-200/50 h-3 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
-        <p class="text-xs text-gray-500 mt-2"><span id="filled-count">0</span> dari <span id="total-count">0</span> rencana aktivitas terisi</p>
+        <p class="text-xs text-gray-600 mt-3">
+            <span id="filled-count">0</span> dari <span id="total-count">0</span> rencana aktivitas terisi
+        </p>
     </div>
 
     <!-- Phase Tables -->
     <div id="phases-container" class="space-y-6">
         <!-- Fase 1 -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-b border-gray-200/50">
                 <h2 class="text-lg font-semibold text-gray-900">FASE 1</h2>
-                <p class="text-xs text-gray-600 mt-1">Bulan ke-1 hingga ke-3</p>
+                <p class="text-sm text-gray-600 mt-1">Bulan ke-1 hingga ke-3 | Orientasi & Onboarding</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-100">
+                <table class="table-modern">
+                    <thead>
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
+                            <th class="w-1/6">Value</th>
+                            <th class="w-1/3">Integrasi Pengukuran</th>
+                            <th class="w-1/3">Rencana Aktivitas</th>
+                            <th class="w-1/6">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="phase-1-body" class="divide-y divide-gray-200 text-gray-700">
+                    <tbody id="phase-1-body">
                         <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>
@@ -58,22 +71,22 @@
         </div>
 
         <!-- Fase 2 -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div class="px-6 py-4 bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-b border-gray-200/50">
                 <h2 class="text-lg font-semibold text-gray-900">FASE 2</h2>
-                <p class="text-xs text-gray-600 mt-1">Bulan ke-4 hingga ke-6</p>
+                <p class="text-sm text-gray-600 mt-1">Bulan ke-4 hingga ke-6 | Pengembangan & Adaptasi</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-100">
+                <table class="table-modern">
+                    <thead>
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
+                            <th class="w-1/6">Value</th>
+                            <th class="w-1/3">Integrasi Pengukuran</th>
+                            <th class="w-1/3">Rencana Aktivitas</th>
+                            <th class="w-1/6">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="phase-2-body" class="divide-y divide-gray-200 text-gray-700">
+                    <tbody id="phase-2-body">
                         <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>
@@ -81,22 +94,22 @@
         </div>
 
         <!-- Fase 3 -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div class="px-6 py-4 bg-gradient-to-r from-green-500/10 to-green-600/10 border-b border-gray-200/50">
                 <h2 class="text-lg font-semibold text-gray-900">FASE 3</h2>
-                <p class="text-xs text-gray-600 mt-1">Bulan ke-7 hingga ke-12</p>
+                <p class="text-sm text-gray-600 mt-1">Bulan ke-7 hingga ke-12 | Konsolidasi & Kemandirian</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-100">
+                <table class="table-modern">
+                    <thead>
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Value</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Integrasi Pengukuran</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/3">Rencana Aktivitas</th>
-                            <th class="px-3 py-2 text-left text-xs uppercase font-semibold text-gray-700 w-1/6">Keterangan</th>
+                            <th class="w-1/6">Value</th>
+                            <th class="w-1/3">Integrasi Pengukuran</th>
+                            <th class="w-1/3">Rencana Aktivitas</th>
+                            <th class="w-1/6">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="phase-3-body" class="divide-y divide-gray-200 text-gray-700">
+                    <tbody id="phase-3-body">
                         <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat template...</td></tr>
                     </tbody>
                 </table>

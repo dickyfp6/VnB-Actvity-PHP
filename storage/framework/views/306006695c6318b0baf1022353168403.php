@@ -1,41 +1,49 @@
 
-<?php $__env->startSection('title','Aktivitas VnB'); ?>
+<?php $__env->startSection('title','Aktivitas VnB'); ?> 
 <?php $__env->startSection('content'); ?>
-<style>
-  #lock-screen-btn:hover {
-    background-color: #0a2c00 !important;
-  }
-  .submit-btn:hover {
-    background-color: #37AA05 !important;
-  }
-</style>
-<div class="px-4">
+<div class="space-y-6">
   <!-- Plan Status Check Container -->
   <div id="plan-status-container"></div>
 
   <!-- Activity Content (hidden until plan is approved) -->
   <div id="activity-content" style="display: none;">
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Aktivitas VnB</h1>
+    <!-- Header -->
+    <div class="card-glass rounded-xl p-6 md:p-8 mb-6">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Aktivitas VnB</h1>
+      <p class="text-gray-600">Pelacakan pelaksanaan aktivitas pengembangan nilai dan perilaku</p>
+    </div>
 
-    <div id="deadline-banner" class="mb-5 rounded-lg px-4 py-3 text-sm hidden"></div>
+    <!-- Deadline Banner -->
+    <div id="deadline-banner" class="card-glass rounded-xl px-6 py-4 hidden border-l-4 border-amber-500">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-calendar-alt text-amber-600 flex-shrink-0"></i>
+        <div>
+          <p class="text-sm font-semibold text-amber-900" id="deadline-text">Deadline mendekati</p>
+          <p class="text-xs text-amber-700" id="deadline-detail">Pastikan semua aktivitas selesai sebelum tenggat waktu</p>
+        </div>
+      </div>
+    </div>
 
-    <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Behaviour</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Phase</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Integrasi Pengukuran</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Description</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity Date</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status</th>
-            <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="activity-body" class="divide-y divide-gray-200 text-sm text-gray-700">
-          <tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
-        </tbody>
-      </table>
+    <!-- Activities Table -->
+    <div class="table-container overflow-hidden hover:shadow-lg transition-all duration-300">
+      <div class="overflow-x-auto">
+        <table class="table-modern">
+          <thead>
+            <tr>
+              <th>Behaviour</th>
+              <th>Phase</th>
+              <th>Integrasi Pengukuran</th>
+              <th>Deskripsi Aktivitas</th>
+              <th>Tanggal</th>
+              <th>Status</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="activity-body">
+            <tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -48,56 +56,73 @@ function renderPlanStatusLock(planStatus) {
     const container = document.getElementById('plan-status-container');
     const activityContent = document.getElementById('activity-content');
     
-    // Determine message based on plan status
-    let message = '';
-    let buttonText = '';
-    let icon = '';
-    let bgColor = 'bg-blue-50';
-    let textColor = 'text-blue-900';
-    
-    if (!planStatus || planStatus === 'not_found') {
-        // No plan created yet
-        message = 'Rencana Aktivitas Belum Dibuat';
-        icon = '📋';
-        textColor = 'text-blue-900';
-        buttonText = 'Buat Rencana VnB';
-    } else if (planStatus === 'draft' || planStatus === 'revision_draft') {
-        // Still in draft
-        message = 'Rencana Aktivitas Masih Draft';
-        icon = '✏️';
-        bgColor = 'bg-yellow-50';
-        textColor = 'text-yellow-900';
-        buttonText = 'Lanjutkan Rencana';
-    } else if (planStatus === 'waiting_manager_approval' || planStatus === 'submitted') {
-        // Waiting for approval
-        message = 'Menunggu Persetujuan Rencana';
-        icon = '⏳';
-        bgColor = 'bg-purple-50';
-        textColor = 'text-purple-900';
-        buttonText = 'Lihat Status';
-    } else if (planStatus === 'revision_requested') {
-        // Needs revision
-        message = 'Rencana Aktivitas Perlu Perbaikan';
-        icon = '🔄';
-        bgColor = 'bg-red-50';
-        textColor = 'text-red-900';
-        buttonText = 'Perbaiki Rencana';
-    } else if (planStatus === 'approved') {
-        // Plan is approved, show activities
+    const statusConfig = {
+        'not_found': {
+            message: 'Rencana Aktivitas Belum Dibuat',
+            icon: '📋',
+            textColor: 'text-blue-700',
+            bgColor: 'bg-blue-50',
+            buttonText: 'Buat Rencana VnB',
+            description: 'Anda perlu membuat rencana aktivitas VnB sebelum dapat mencatat pelaksanaan aktivitas.'
+        },
+        'draft': {
+            message: 'Rencana Aktivitas Masih Draft',
+            icon: '✏️',
+            textColor: 'text-amber-700',
+            bgColor: 'bg-amber-50',
+            buttonText: 'Lanjutkan Rencana',
+            description: 'Selesaikan dan ajukan rencana Anda untuk dapat mencatat pelaksanaan aktivitas.'
+        },
+        'revision_draft': {
+            message: 'Rencana Aktivitas Masih Draft',
+            icon: '✏️',
+            textColor: 'text-amber-700',
+            bgColor: 'bg-amber-50',
+            buttonText: 'Lanjutkan Rencana',
+            description: 'Selesaikan dan ajukan rencana Anda untuk dapat mencatat pelaksanaan aktivitas.'
+        },
+        'waiting_manager_approval': {
+            message: 'Menunggu Persetujuan Rencana',
+            icon: '⏳',
+            textColor: 'text-purple-700',
+            bgColor: 'bg-purple-50',
+            buttonText: 'Lihat Status',
+            description: 'Rencana Anda sedang dalam review. Anda dapat mencatat aktivitas setelah rencana disetujui.'
+        },
+        'submitted': {
+            message: 'Menunggu Persetujuan Rencana',
+            icon: '⏳',
+            textColor: 'text-purple-700',
+            bgColor: 'bg-purple-50',
+            buttonText: 'Lihat Status',
+            description: 'Rencana Anda sedang dalam review. Anda dapat mencatat aktivitas setelah rencana disetujui.'
+        },
+        'revision_requested': {
+            message: 'Rencana Aktivitas Perlu Perbaikan',
+            icon: '🔄',
+            textColor: 'text-red-700',
+            bgColor: 'bg-red-50',
+            buttonText: 'Perbaiki Rencana',
+            description: 'Rencana Anda memerlukan revisi. Silakan selesaikan revisi untuk melanjutkan.'
+        }
+    };
+
+    const config = statusConfig[planStatus] || statusConfig['not_found'];
+
+    if (planStatus === 'approved') {
         container.innerHTML = '';
         activityContent.style.display = 'block';
         loadActivities();
         return;
     }
-    
-    // Show lock screen
+
     activityContent.style.display = 'none';
     container.innerHTML = `
-        <div class="bg-white rounded-lg shadow p-8 text-center">
-            <div class="text-5xl mb-4">${icon}</div>
-            <h2 class="text-2xl font-bold mb-2 ${textColor}">${message}</h2>
-            <p class="text-gray-600 mb-6 max-w-lg mx-auto">
-                ${
+        <div class="card-glass rounded-xl p-8 md:p-12 text-center">
+            <div class="text-6xl mb-4 animate-fade-in">${config.icon}</div>
+            <h2 class="text-3xl font-bold mb-3 ${config.textColor}">${config.message}</h2>
+            <p class="text-gray-600 mb-8 max-w-2xl mx-auto text-base leading-relaxed">
+                ${config.description}
                     planStatus === 'not_found' ? 'Anda perlu membuat rencana aktivitas VnB sebelum dapat mengakses fitur aktivitas.' :
                     planStatus === 'draft' || planStatus === 'revision_draft' ? 'Selesaikan dan ajukan rencana Anda untuk dapat mengakses fitur aktivitas.' :
                     planStatus === 'waiting_manager_approval' || planStatus === 'submitted' ? 'Rencana aktivitas Anda sedang dalam proses review oleh manager. Anda dapat mengakses fitur setelah rencana disetujui.' :
