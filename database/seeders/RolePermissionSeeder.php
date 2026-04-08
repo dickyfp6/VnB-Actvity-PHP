@@ -39,6 +39,7 @@ class RolePermissionSeeder extends Seeder
             'delete_employee',
             'import_employees',
             'cancel_vnb',
+            'reset_password',
 
             // Planning
             'create_planning',
@@ -109,6 +110,7 @@ class RolePermissionSeeder extends Seeder
             'delete_employee',
             'import_employees',
             'cancel_vnb',
+            'reset_password',
             'view_planning',
             'view_evidence',
             'view_dashboard',
@@ -121,6 +123,7 @@ class RolePermissionSeeder extends Seeder
         // Intercomm
         $intercommPermissions = [
             'view_employee',
+            'reset_password',
             'view_planning',
             'view_evidence',
             'view_dashboard',

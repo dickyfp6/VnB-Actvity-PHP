@@ -260,6 +260,14 @@ class EmployeeController extends Controller
 
     public function resetCredential(Employee $employee): JsonResponse
     {
+        // Check permission
+        if (!auth()->user()?->can('reset_password')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk reset password.',
+            ], 403);
+        }
+
         $rawPassword = $this->resetNewHireCredential($employee);
 
         $emailSent = false;

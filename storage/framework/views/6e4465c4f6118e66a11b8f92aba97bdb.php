@@ -546,7 +546,7 @@ async function openDetailModal(id) {
 async function resetDetailCredential() {
     if (!currentDetailEmployeeId) return;
 
-    const confirmed = confirm('Generate ulang password sementara untuk New Hire ini?');
+    const confirmed = await showConfirm('Generate ulang password sementara untuk New Hire ini?', 'Reset Password');
     if (!confirmed) return;
 
     const res = await apiPost(`/api/employees/${currentDetailEmployeeId}/reset-credential`, {}, 'POST');
@@ -694,7 +694,7 @@ async function mutateEmployeeLifecycle(id) {
     }
 
     const reason = prompt('Catatan mutasi status (opsional):', '') || '';
-    const confirmed = confirm(`Ubah status ${row.name || '-'} menjadi ${getEmploymentStateLabel(selectedState)}?`);
+    const confirmed = await showConfirm(`Ubah status ${row.name || '-'} menjadi ${getEmploymentStateLabel(selectedState)}?`, 'Konfirmasi Mutasi');
     if (!confirmed) return;
 
     const res = await apiPost(`/api/employees/${id}/lifecycle`, {
@@ -711,7 +711,7 @@ async function mutateEmployeeLifecycle(id) {
 }
 
 async function deleteEmployee(id, name) {
-    if (!confirm(`Hapus data New Hire ${name}?`)) return;
+    if (!(await showConfirm(`Hapus data New Hire ${name}?`, 'Konfirmasi Hapus'))) return;
     const res = await apiPost(`/api/employees/${id}`, {}, 'DELETE');
     if (res && res.success === true) {
         showAlert(res.message || 'Data New Hire berhasil dihapus');

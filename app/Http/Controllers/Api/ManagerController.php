@@ -1760,6 +1760,7 @@ class ManagerController extends Controller
         $activityRequests = [];
 
         foreach ($employees as $employee) {
+            /** @var Employee $employee */
             $currentStage = $this->getCurrentApprovalStage($employee);
             $isStageOwner = $this->isManagerStageOwner($employee, $currentStage);
 
@@ -1800,15 +1801,15 @@ class ManagerController extends Controller
                     $activityRequests[] = [
                         'type' => 'activity',
                         'employee_id' => $employee->id,
-                        'employee_name' => $item->plan?->employee?->name,
-                        'employee_number' => $item->plan?->employee?->employee_number,
-                        'company' => $item->plan?->employee?->company,
+                        'employee_name' => $employee->name,
+                        'employee_number' => $employee->employee_number,
+                        'company' => $employee->company,
                         'reference_id' => $item->id,
                         'title' => $item->activity_title,
                         'phase' => 'Fase ' . ($item->plan?->phase_number ?? 1),
                         'submitted_at' => optional($item->submitted_at)->toDateTimeString(),
                         'stage' => 'activity',
-                        'approval_mode' => $this->getEmployeeManagerMode($item->plan?->employee),
+                        'approval_mode' => $this->getEmployeeManagerMode($employee),
                     ];
                 }
             }
@@ -1838,6 +1839,7 @@ class ManagerController extends Controller
         $monitoringRequests = [];
 
         foreach ($employees as $employee) {
+            /** @var Employee $employee */
             $currentStage = $this->getCurrentApprovalStage($employee);
             $isStageOwner = $this->isManagerStageOwner($employee, $currentStage);
 
@@ -1882,15 +1884,15 @@ class ManagerController extends Controller
                         $monitoringRequests[] = [
                             'type' => 'activity',
                             'employee_id' => $employee->id,
-                            'employee_name' => $item->plan?->employee?->name,
-                            'employee_number' => $item->plan?->employee?->employee_number,
-                            'company' => $item->plan?->employee?->company,
+                            'employee_name' => $employee->name,
+                            'employee_number' => $employee->employee_number,
+                            'company' => $employee->company,
                             'reference_id' => $item->id,
                             'title' => $item->activity_title,
                             'phase' => 'Fase ' . ($item->plan?->phase_number ?? 1),
                             'submitted_at' => optional($item->submitted_at)->toDateTimeString(),
                             'stage' => 'activity',
-                            'approval_mode' => $this->getEmployeeManagerMode($item->plan?->employee),
+                            'approval_mode' => $this->getEmployeeManagerMode($employee),
                             'owner_type' => $ownerType,
                         ];
                     }

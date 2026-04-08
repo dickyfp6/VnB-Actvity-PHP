@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -98,5 +99,9 @@ class DatabaseSeeder extends Seeder
             VnbFrameworkSeeder::class,
             DummyDashboardDataSeeder::class,
         ]);
+
+        // 4. Auto-populate deliverables for all plan items
+        $this->command->info('🔄 Auto-populating deliverables...');
+        Artisan::call('vnb:populate-deliverables');
     }
 }
