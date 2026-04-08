@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\AuthWebController;
+use App\Http\Controllers\PcxDashboardController;
 
 Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
@@ -16,6 +17,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
     Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
+
+    // ==================== DASHBOARD ROUTES ====================
+    // PCX & Intercomm Dashboard
+    Route::get('/dashboard/pcx', [PcxDashboardController::class, 'index'])->name('dashboard.pcx');
+    
+    // Manager Dashboard (akan ditambahkan nanti)
+    // Route::get('/dashboard/manager', [ManagerDashboardController::class, 'index'])->name('dashboard.manager');
+    
+    // New Hire Dashboard (akan ditambahkan nanti)
+    // Route::get('/dashboard/new-hire', [NewHireDashboardController::class, 'index'])->name('dashboard.new-hire');
+
+    // ==================== END DASHBOARD ROUTES ====================
 
     // UC001 - Manage Intercomm
     Route::get('/intercomm', [PageController::class, 'intercomm'])->name('intercomm');

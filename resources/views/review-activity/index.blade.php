@@ -4,19 +4,19 @@
 <div class="px-4">
   <h1 class="text-2xl font-bold text-gray-800 mb-6">Review Aktivitas New Hire</h1>
 
-  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
+  <div class="table-container">
+    <table class="table-modern">
+      <thead>
         <tr>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">New Hire</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Behaviour</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Phase</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Activity</th>
-          <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal</th>
-          <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+          <th>New Hire</th>
+          <th>Behaviour</th>
+          <th>Phase</th>
+          <th>Activity</th>
+          <th>Tanggal</th>
+          <th class="text-right">Aksi</th>
         </tr>
       </thead>
-      <tbody id="review-body" class="divide-y divide-gray-200 text-sm text-gray-700">
+      <tbody id="review-body">
         <tr><td colspan="6" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
       </tbody>
     </table>

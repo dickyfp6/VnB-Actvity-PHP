@@ -38,37 +38,37 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="table-container">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50">
+            <table class="table-modern">
+                <thead>
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">No</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">NIP</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Nama New Hire</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal Masuk</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal Induction</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Email</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Whatsapp</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Periode Awal</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Periode Akhir</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Career Stage</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Fase</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Progress</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Manager Fungsional</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Manager Operasional</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Perusahaan</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Divisi</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Departemen</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Jabatan</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Penempatan</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Golongan</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status Pegawai</th>
-                        <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status Lifecycle</th>
-                        <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+                        <th>No</th>
+                        <th>NIP</th>
+                        <th>Nama New Hire</th>
+                        <th>Tanggal Masuk</th>
+                        <th>Tanggal Induction</th>
+                        <th>Email</th>
+                        <th>Whatsapp</th>
+                        <th>Periode Awal</th>
+                        <th>Periode Akhir</th>
+                        <th>Career Stage</th>
+                        <th>Fase</th>
+                        <th>Progress</th>
+                        <th>Manager Fungsional</th>
+                        <th>Manager Operasional</th>
+                        <th>Perusahaan</th>
+                        <th>Divisi</th>
+                        <th>Departemen</th>
+                        <th>Jabatan</th>
+                        <th>Penempatan</th>
+                        <th>Golongan</th>
+                        <th>Status Pegawai</th>
+                        <th>Status Lifecycle</th>
+                        <th class="text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody id="employee-body" class="divide-y divide-gray-200 text-gray-700">
+                <tbody id="employee-body">
                     <tr><td colspan="23" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>

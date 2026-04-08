@@ -1,7 +1,7 @@
 
 <?php $__env->startSection('title','V&B Framework'); ?>
 <?php $__env->startSection('content'); ?>
-<div class="py-6">
+<div class="py-2">
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">V&B Framework</h1>
@@ -25,19 +25,19 @@
   </div>
 
   <!-- Framework Table -->
-  <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead style="background-color: #f9fafb;">
+  <div class="table-container overflow-x-auto">
+    <table class="table-modern">
+      <thead>
         <tr>
-          <th class="px-6 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Behaviour</th>
-          <th class="px-6 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Phase</th>
-          <th class="px-6 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Integration 1</th>
-          <th class="px-6 py-4 text-left font-semibold text-gray-700 whitespace-nowrap">Integration 2</th>
+          <th>Behaviour</th>
+          <th>Phase</th>
+          <th>Integration 1</th>
+          <th>Integration 2</th>
         </tr>
       </thead>
-      <tbody id="framework-body" class="divide-y divide-gray-200">
+      <tbody id="framework-body">
         <tr>
-          <td colspan="4" class="px-6 py-8 text-center text-gray-400">
+          <td colspan="4" class="text-center py-8 text-gray-400">
             Memuat data...
           </td>
         </tr>

@@ -24,22 +24,22 @@
     </div>
   </div>
 
-  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+  <div class="table-container">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm" style="min-width: 980px;">
-        <thead class="bg-gray-50">
+      <table class="table-modern">
+        <thead>
           <tr>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Jenis</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">New Hire</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">NIP</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Perusahaan</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Judul</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Phase</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Waktu Submit</th>
-            <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+            <th>Jenis</th>
+            <th>New Hire</th>
+            <th>NIP</th>
+            <th>Perusahaan</th>
+            <th>Judul</th>
+            <th>Phase</th>
+            <th>Waktu Submit</th>
+            <th class="text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody id="request-body" class="divide-y divide-gray-200 text-gray-700">
+        <tbody id="request-body">
           <tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>

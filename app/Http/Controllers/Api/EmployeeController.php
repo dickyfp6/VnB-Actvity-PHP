@@ -76,6 +76,16 @@ class EmployeeController extends Controller
             ->orderBy('id')
             ->get();
 
+        // Ensure relationships are loaded, fallback if null
+        $employees->each(function ($emp) {
+            if (!$emp->department && $emp->department_id) {
+                $emp->department = MasterDepartment::find($emp->department_id);
+            }
+            if (!$emp->position && $emp->position_id) {
+                $emp->position = MasterPosition::find($emp->position_id);
+            }
+        });
+
         $sameNameCounts = $employees
             ->map(fn (Employee $employee) => Str::lower(trim((string) $employee->name)))
             ->filter()
@@ -132,11 +142,11 @@ class EmployeeController extends Controller
                 'manager_operational_id' => $employee->manager_operational_id,
                 'company' => $employee->company,
                 'division_id' => $employee->division_id,
-                'division' => $employee->division?->name,
+                'division' => $employee->division?->name ?? '-',
                 'department_id' => $employee->department_id,
-                'department' => $employee->department?->name,
+                'department' => $employee->department?->name ?? ($employee->department_id ? "Dept #{$employee->department_id}" : '-'),
                 'position_id' => $employee->position_id,
-                'position' => $employee->position?->name,
+                'position' => $employee->position?->name ?? ($employee->position_id ? "Pos #{$employee->position_id}" : '-'),
                 'placement' => $employee->placement,
                 'level' => $employee->level,
                 'employee_status' => $employee->employee_status,

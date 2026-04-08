@@ -10,14 +10,28 @@
 @endphp
 
 @section('content')
-<div class="space-y-6 px-4">
-    <h1 class="text-2xl font-bold text-gray-900">Profil Akun</h1>
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="card-glass rounded-xl p-6 md:p-8">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <i class="fas fa-user text-white text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Profil Akun</h1>
+                <p class="text-gray-600 text-sm mt-1">Informasi personal dan akun Anda</p>
+            </div>
+        </div>
+    </div>
 
-    <!-- Data Pribadi New Hire atau Manager -->
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Pribadi</h2>
+    <!-- Data Pribadi Card -->
+    <div class="card-glass rounded-xl p-6 md:p-8 hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center gap-3 mb-6">
+            <i class="fas fa-address-card text-green-600 text-xl"></i>
+            <h2 class="text-lg font-semibold text-gray-900">Data Pribadi</h2>
+        </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
             @if($role === 'manager' && $manager)
                 <!-- Manager Profile Data -->
                 <div>

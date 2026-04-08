@@ -9,24 +9,24 @@
     </button>
   </div>
 
-  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+  <div class="table-container">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200" style="min-width: 1320px;">
-        <thead class="bg-gray-50 whitespace-nowrap">
+      <table class="table-modern">
+        <thead>
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Manager</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIP</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Perusahaan</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Divisi</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah New Hire</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress New Hire</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status Akun</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+            <th>Nama Manager</th>
+            <th>Email</th>
+            <th>NIP</th>
+            <th>Perusahaan</th>
+            <th>Divisi</th>
+            <th>Jumlah New Hire</th>
+            <th>Progress New Hire</th>
+            <th>Status</th>
+            <th>Status Akun</th>
+            <th class="text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody id="table-body" class="divide-y divide-gray-200 text-sm text-gray-700">
+        <tbody id="table-body">
           <tr><td colspan="10" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>

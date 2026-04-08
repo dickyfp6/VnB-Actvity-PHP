@@ -96,6 +96,7 @@ class DatabaseSeeder extends Seeder
             EmployeeAndManagerSeeder::class,
             VnbPeriodSeeder::class,
             VnbFrameworkSeeder::class,
+            DummyDashboardDataSeeder::class,
         ]);
     }
 }
