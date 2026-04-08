@@ -694,6 +694,36 @@
         </div>
     </footer>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] hidden flex items-center justify-center animate-fade-in">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-slide-in">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-yellow-100">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                    </div>
+                    <h3 id="confirmTitle" class="text-lg font-bold text-gray-900">Konfirmasi</h3>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="px-6 py-5">
+                <p id="confirmMessage" class="text-gray-700 text-sm leading-relaxed"></p>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+                <button id="confirmCancel" class="px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium text-sm hover:bg-gray-100 transition-all duration-200 cursor-pointer">
+                    Batal
+                </button>
+                <button id="confirmOK" class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-yellow-500 to-amber-500 text-white font-medium text-sm hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer">
+                    <i class="fas fa-check mr-2"></i>Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
     // Global CSRF helper for fetch calls
     window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -736,6 +766,59 @@
         div.textContent = msg;
         document.body.appendChild(div);
         setTimeout(() => div.remove(), 3500);
+    }
+
+    // Styled Confirmation Modal
+    function showConfirm(message, title = 'Konfirmasi') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmTitle');
+            const messageEl = document.getElementById('confirmMessage');
+            const okBtn = document.getElementById('confirmOK');
+            const cancelBtn = document.getElementById('confirmCancel');
+
+            // Set content
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+
+            // Show modal
+            modal.classList.remove('hidden');
+
+            // Handle OK button
+            const handleOK = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            // Handle Cancel button
+            const handleCancel = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            // Handle Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    handleCancel();
+                }
+            };
+
+            // Cleanup function
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                okBtn.removeEventListener('click', handleOK);
+                cancelBtn.removeEventListener('click', handleCancel);
+                document.removeEventListener('keydown', handleEscape);
+            };
+
+            // Add event listeners
+            okBtn.addEventListener('click', handleOK);
+            cancelBtn.addEventListener('click', handleCancel);
+            document.addEventListener('keydown', handleEscape);
+
+            // Focus OK button for keyboard accessibility
+            okBtn.focus();
+        });
     }
 
     // Sidebar Collapse/Expand Logic

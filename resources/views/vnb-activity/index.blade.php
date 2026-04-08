@@ -337,7 +337,7 @@ async function saveDraft(id) {
 }
 
 async function submitActivity(id) {
-  if (!confirm('Submit aktivitas ini untuk review manager?')) return;
+  if (!(await showConfirm('Submit aktivitas ini untuk review manager?', 'Konfirmasi Submit'))) return;
   const res = await apiPost(`/api/vnb-activities/${id}/submit`, payloadFor(id));
   if (res.message || res.id || res.data) {
     showAlert('Aktivitas disubmit');

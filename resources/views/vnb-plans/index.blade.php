@@ -824,7 +824,7 @@ async function submitPlan() {
         return;
     }
 
-    if (!confirm('Yakin ingin mengajukan rencana VnB? Setelah diajukan, Anda tidak dapat mengubahnya.')) {
+    if (!(await showConfirm('Yakin ingin mengajukan rencana VnB? Setelah diajukan, Anda tidak dapat mengubahnya.', 'Konfirmasi Pengajuan'))) {
         return;
     }
 

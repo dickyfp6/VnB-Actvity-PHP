@@ -170,7 +170,7 @@ document.getElementById('form-edit').addEventListener('submit', async function(e
 
 async function toggleStatus(id, action) {
   const label = action === 'deactivate' ? 'menonaktifkan' : 'mengaktifkan';
-  if (!confirm(`Yakin ingin ${label} akun ini?`)) return;
+  if (!(await showConfirm(`Yakin ingin ${label} akun ini?`, 'Konfirmasi'))) return;
   const res = await apiPost(`/api/intercomm/${id}/${action}`, {});
   if (res.message) { showAlert(res.message); loadData(); }
   else showAlert(res.error || 'Gagal', 'error');

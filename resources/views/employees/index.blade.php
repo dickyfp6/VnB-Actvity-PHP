@@ -243,16 +243,33 @@
 </div>
 
 <div id="credential-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-bold text-gray-800">Kredensial Akun New Hire</h2>
-            <button onclick="closeCredentialModal()" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+    <div class="bg-white rounded-xl p-6 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-key text-green-600"></i> Kredensial Akun New Hire
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">Simpan informasi ini dengan aman. Password hanya ditampilkan sekali untuk kebutuhan prototype.</p>
+            </div>
+            <button onclick="closeCredentialModal()" class="text-gray-400 hover:text-gray-600 text-xl">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <p class="text-sm text-gray-600 mb-3">Simpan kredensial ini sekarang. Password hanya ditampilkan sekali untuk kebutuhan prototype.</p>
-        <textarea id="credential-content" class="w-full border rounded-lg px-3 py-2 text-sm h-64" readonly></textarea>
-        <div class="flex justify-end gap-2 mt-4">
-            <button onclick="copyCredentialText()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">Copy</button>
-            <button onclick="closeCredentialModal()" class="px-4 py-2 text-white rounded-lg text-sm" style="background-color:#144600;">Tutup</button>
+
+        <div id="credential-cards-container" class="space-y-4 mb-6">
+            <!-- Cards akan di-generate oleh JS -->
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4 border-t">
+            <button onclick="copyAllCredentials()" class="px-4 py-2 border-2 border-green-600 text-green-600 font-semibold rounded-lg text-sm hover:bg-green-50">
+                <i class="fas fa-copy mr-2"></i>Copy Semua
+            </button>
+            <button onclick="downloadCredentialsPDF()" class="px-4 py-2 border-2 border-blue-600 text-blue-600 font-semibold rounded-lg text-sm hover:bg-blue-50">
+                <i class="fas fa-download mr-2"></i>Download PDF
+            </button>
+            <button onclick="closeCredentialModal()" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg text-sm hover:bg-green-700">
+                <i class="fas fa-check mr-2"></i>Tutup
+            </button>
         </div>
     </div>
 </div>
@@ -529,7 +546,7 @@ async function openDetailModal(id) {
 async function resetDetailCredential() {
     if (!currentDetailEmployeeId) return;
 
-    const confirmed = confirm('Generate ulang password sementara untuk New Hire ini?');
+    const confirmed = await showConfirm('Generate ulang password sementara untuk New Hire ini?', 'Reset Password');
     if (!confirmed) return;
 
     const res = await apiPost(`/api/employees/${currentDetailEmployeeId}/reset-credential`, {}, 'POST');
@@ -677,7 +694,7 @@ async function mutateEmployeeLifecycle(id) {
     }
 
     const reason = prompt('Catatan mutasi status (opsional):', '') || '';
-    const confirmed = confirm(`Ubah status ${row.name || '-'} menjadi ${getEmploymentStateLabel(selectedState)}?`);
+    const confirmed = await showConfirm(`Ubah status ${row.name || '-'} menjadi ${getEmploymentStateLabel(selectedState)}?`, 'Konfirmasi Mutasi');
     if (!confirmed) return;
 
     const res = await apiPost(`/api/employees/${id}/lifecycle`, {
@@ -694,7 +711,7 @@ async function mutateEmployeeLifecycle(id) {
 }
 
 async function deleteEmployee(id, name) {
-    if (!confirm(`Hapus data New Hire ${name}?`)) return;
+    if (!(await showConfirm(`Hapus data New Hire ${name}?`, 'Konfirmasi Hapus'))) return;
     const res = await apiPost(`/api/employees/${id}`, {}, 'DELETE');
     if (res && res.success === true) {
         showAlert(res.message || 'Data New Hire berhasil dihapus');
@@ -733,12 +750,116 @@ function buildCredentialText(credentials) {
     }).join('\n\n-----------------------------\n\n');
 }
 
-function openCredentialModal(credentials) {
-    const text = buildCredentialText(credentials);
-    if (!text) return;
+function renderCredentialCards(credentials) {
+    const rows = Array.isArray(credentials) ? credentials : [];
+    const container = document.getElementById('credential-cards-container');
+    
+    if (!rows.length) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada data kredensial</p>';
+        return;
+    }
 
-    const area = document.getElementById('credential-content');
-    area.value = text;
+    container.innerHTML = rows.map((item, index) => {
+        const emailSent = item?.delivery?.email_sent ? 'Terkirim' : 'Pending / tidak tersedia';
+        return `
+            <div class="bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-600 rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-lg font-bold text-gray-900">Akun ${index + 1}</h3>
+                    <button onclick="copyCardText('${btoa(JSON.stringify(item))}')" 
+                            class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-copy mr-1"></i>Copy Akun
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Nama</label>
+                        <p class="text-gray-900 font-medium">${item.name || '-'}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Email</label>
+                        <p class="text-blue-600 font-medium">${item.email || '-'}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Username / ID</label>
+                        <p class="text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded text-sm">${item.username || '-'}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Password Sementara</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="pwd-${index}" value="${item.password || '-'}" 
+                                   class="flex-1 font-mono bg-gray-100 px-2 py-1 rounded text-sm" readonly>
+                            <button onclick="togglePasswordVisibility(${index})" 
+                                    class="text-gray-600 hover:text-gray-900 transition px-2 py-1">
+                                <i id="pwd-icon-${index}" class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Status Email</label>
+                        <p class="text-sm">
+                            <i class="fas fa-${emailSent === 'Terkirim' ? 'check-circle text-green-600' : 'clock text-yellow-600'} mr-2"></i>
+                            <span class="font-medium">${emailSent}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function togglePasswordVisibility(index) {
+    const input = document.getElementById(`pwd-${index}`);
+    const icon = document.getElementById(`pwd-icon-${index}`);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function copyCardText(encoded) {
+    try {
+        const item = JSON.parse(atob(encoded));
+        const text = `Nama: ${item.name}\nUsername: ${item.username}\nPassword: ${item.password}\nEmail: ${item.email}`;
+        navigator.clipboard.writeText(text);
+        showAlert('Kredensial akun berhasil disalin');
+    } catch (error) {
+        console.error('Copy error:', error);
+    }
+}
+
+function copyAllCredentials() {
+    const container = document.getElementById('credential-cards-container');
+    const cards = container.querySelectorAll('.border-l-4');
+    
+    let allText = [];
+    cards.forEach((card, idx) => {
+        const inputs = card.querySelectorAll('input[readonly]');
+        if (inputs.length >= 2) {
+            const name = card.querySelector('p').textContent;
+            const username = inputs[0].value;
+            const password = inputs[1].value;
+            allText.push(`Akun ${idx + 1}:\nNama: ${name}\nUsername: ${username}\nPassword: ${password}`);
+        }
+    });
+
+    if (allText.length > 0) {
+        navigator.clipboard.writeText(allText.join('\n\n---\n\n'));
+        showAlert('Semua kredensial berhasil disalin');
+    }
+}
+
+function downloadCredentialsPDF() {
+    showAlert('Fitur download PDF akan segera tersedia 📄', 'info');
+}
+
+function openCredentialModal(credentials) {
+    renderCredentialCards(credentials);
     document.getElementById('credential-modal').classList.remove('hidden');
 }
 

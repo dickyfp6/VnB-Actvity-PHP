@@ -336,8 +336,8 @@ function renderEditMode() {
   });
 }
 
-function clearAllIntegrationFields() {
-  const confirmed = confirm('Apakah Anda yakin ingin menghapus seluruh integrasi pengukuran pada section ini?');
+async function clearAllIntegrationFields() {
+  const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus seluruh integrasi pengukuran pada section ini?', 'Hapus Integrasi');
   if (!confirmed) return;
 
   document.querySelectorAll('.integration-input').forEach((el) => {
@@ -356,8 +356,8 @@ function addBehaviour() {
   }
 }
 
-function removeBehaviour(idx) {
-  if (confirm('Hapus behaviour ini?')) {
+async function removeBehaviour(idx) {
+  if (await showConfirm('Hapus behaviour ini?', 'Hapus Behaviour')) {
     editBehaviours.splice(idx, 1);
     renderEditMode();
   }
@@ -373,8 +373,8 @@ function addPhase() {
   renderEditMode();
 }
 
-function removePhase(idx) {
-  if (confirm('Hapus phase ini?')) {
+async function removePhase(idx) {
+  if (await showConfirm('Hapus phase ini?', 'Hapus Phase')) {
     editPhases.splice(idx, 1);
     editPhaseLabels.splice(idx, 1);
     renderEditMode();
@@ -404,7 +404,7 @@ document.getElementById('clone-form').addEventListener('submit', async function(
     return;
   }
   
-  if (!confirm('Clone data dari ' + stageLabels[source] + ' ke ' + stageLabels[target] + '?')) {
+  if (!(await showConfirm('Clone data dari ' + stageLabels[source] + ' ke ' + stageLabels[target] + '?', 'Konfirmasi Clone'))) {
     return;
   }
   

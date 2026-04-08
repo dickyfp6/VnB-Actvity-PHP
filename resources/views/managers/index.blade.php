@@ -287,7 +287,7 @@ document.getElementById('modal-form').addEventListener('submit', async function(
 
 async function deleteManager(id) {
   const name = managers.find(x => String(x.id) === String(id))?.name || '';
-  if (!confirm(`Hapus manager ${name}?`)) return;
+  if (!(await showConfirm(`Hapus manager ${name}?`, 'Konfirmasi Hapus'))) return;
   const res = await apiPost(`/api/managers/${id}`, {}, 'DELETE');
   if (res && res.success === true) {
     showAlert(res.message || 'Data Manager berhasil dihapus');
@@ -375,7 +375,7 @@ async function openDetailModal(id) {
 
 async function resetDetailCredential() {
   if (!currentDetailManagerId) return;
-  const ok = confirm('Reset password manager ini? Password akan kembali ke format firstname + 2 digit terakhir NIP.');
+  const ok = await showConfirm('Reset password manager ini? Password akan kembali ke format firstname + 2 digit terakhir NIP.', 'Reset Password Manager');
   if (!ok) return;
 
   const res = await apiPost(`/api/managers/${currentDetailManagerId}/reset-credential`, {}, 'POST');

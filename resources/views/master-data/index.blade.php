@@ -181,7 +181,7 @@ document.getElementById('modal-form').addEventListener('submit', async function(
 });
 
 async function deleteRow(id, name) {
-  if (!confirm(`Hapus "${name}"?`)) return;
+  if (!(await showConfirm(`Hapus "${name}"?`, 'Konfirmasi Hapus'))) return;
   const res = await apiPost(`/api/master/${currentTab}/${id}`, {}, 'DELETE');
   if (res && res.success === true) {
     showAlert(res.message || 'Data dihapus');
