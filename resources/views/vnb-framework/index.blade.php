@@ -16,12 +16,12 @@
   </div>
 
   <!-- Career Stage Tabs -->
-  <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-    <button class="stage-btn px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_self_non_staff" style="background-color: #f0f0f0; color: #37AA05;">Manage Self (Non-Staff)</button>
-    <button class="stage-btn px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_self_staff" style="background-color: #f0f0f0; color: #37AA05;">Manage Self (Staff)</button>
-    <button class="stage-btn px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_others" style="background-color: #f0f0f0; color: #37AA05;">Manage Others</button>
-    <button class="stage-btn px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_managers" style="background-color: #f0f0f0; color: #37AA05;">Manage Managers</button>
-    <button class="stage-btn px-6 py-3 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_function" style="background-color: #f0f0f0; color: #37AA05;">Manage Function</button>
+  <div class="flex gap-4 mb-6 overflow-x-auto pb-2 border-b border-gray-200">
+    <button id="tab-manage_self_non_staff" class="stage-btn px-2 py-3 font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_self_non_staff" style="color: #999999; border-bottom: none;">Manage Self (Non-Staff)</button>
+    <button id="tab-manage_self_staff" class="stage-btn px-2 py-3 font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_self_staff" style="color: #999999; border-bottom: none;">Manage Self (Staff)</button>
+    <button id="tab-manage_others" class="stage-btn px-2 py-3 font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_others" style="color: #999999; border-bottom: none;">Manage Others</button>
+    <button id="tab-manage_managers" class="stage-btn px-2 py-3 font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_managers" style="color: #999999; border-bottom: none;">Manage Managers</button>
+    <button id="tab-manage_function" class="stage-btn px-2 py-3 font-medium transition-all whitespace-nowrap text-sm md:text-base" data-stage="manage_function" style="color: #999999; border-bottom: none;">Manage Function</button>
   </div>
 
   <!-- Framework Table -->
@@ -172,10 +172,18 @@ async function toggleEditMode() {
 }
 
 function activateStageButtons() {
-  document.querySelectorAll('.stage-btn').forEach(btn => {
-    const active = btn.dataset.stage === currentStage;
-    btn.style.backgroundColor = active ? '#144600' : '#f0f0f0';
-    btn.style.color = active ? 'white' : '#37AA05';
+  const stages = ['manage_self_non_staff', 'manage_self_staff', 'manage_others', 'manage_managers', 'manage_function'];
+  stages.forEach(stage => {
+    const btn = document.getElementById(`tab-${stage}`);
+    if (btn) {
+      if (stage === currentStage) {
+        btn.style.color = '#144600';
+        btn.style.borderBottom = '2px solid #144600';
+      } else {
+        btn.style.color = '#999999';
+        btn.style.borderBottom = 'none';
+      }
+    }
   });
 }
 

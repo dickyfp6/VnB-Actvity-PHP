@@ -4,7 +4,7 @@
 <div class="px-4 space-y-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Detail New Hire</h1>
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-center">
       <a id="planning-history-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hidden">Planning Approved & History</a>
       <a href="/manager/new-hires" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali</a>
     </div>
@@ -28,30 +28,22 @@
   </div>
 
   <div class="bg-white rounded-xl shadow-sm p-4">
-    <div id="phase-tabs" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-      <button id="tab-planning" type="button" onclick="setSelectedTab('planning')" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-left cursor-pointer">
-        <div class="flex items-center gap-2">
-          <span class="font-semibold">Planning</span>
-          <span id="badge-planning" class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-        </div>
+    <div id="phase-tabs" class="flex gap-4 border-b border-gray-200 mb-3">
+      <button id="tab-planning" type="button" onclick="setSelectedTab('planning')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">
+        <span class="font-semibold">Planning</span>
+        <span id="badge-planning" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
       </button>
-      <button id="tab-phase-1" type="button" onclick="setSelectedTab('phase_1')" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-left cursor-pointer">
-        <div class="flex items-center gap-2">
-          <span class="font-semibold">Fase 1</span>
-          <span id="badge-phase-1" class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-        </div>
+      <button id="tab-phase-1" type="button" onclick="setSelectedTab('phase_1')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
+        <span class="font-semibold">Fase 1</span>
+        <span id="badge-phase-1" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
       </button>
-      <button id="tab-phase-2" type="button" onclick="setSelectedTab('phase_2')" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-left cursor-pointer">
-        <div class="flex items-center gap-2">
-          <span class="font-semibold">Fase 2</span>
-          <span id="badge-phase-2" class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-        </div>
+      <button id="tab-phase-2" type="button" onclick="setSelectedTab('phase_2')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
+        <span class="font-semibold">Fase 2</span>
+        <span id="badge-phase-2" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
       </button>
-      <button id="tab-phase-3" type="button" onclick="setSelectedTab('phase_3')" class="border border-gray-200 rounded-lg px-3 py-2 text-sm text-left cursor-pointer">
-        <div class="flex items-center gap-2">
-          <span class="font-semibold">Fase 3</span>
-          <span id="badge-phase-3" class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-        </div>
+      <button id="tab-phase-3" type="button" onclick="setSelectedTab('phase_3')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
+        <span class="font-semibold">Fase 3</span>
+        <span id="badge-phase-3" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
       </button>
     </div>
     <div id="phase-status-list" class="grid grid-cols-1 gap-2 text-sm text-gray-700"></div>
@@ -59,9 +51,20 @@
 
   <!-- Global planning approval box removed as per request for point-per-point revision -->
   <div id="planning-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
-    <div class="p-4 border-b border-gray-100">
-      <h2 class="text-base font-semibold text-gray-800">Planning New Hire (Fase Planning)</h2>
-      <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
+    <div class="p-4 border-b border-gray-100 flex items-start justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-gray-800">Planning New Hire (Fase Planning)</h2>
+        <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
+      </div>
+      <div class="relative group">
+        <button id="batch-submit-btn-header" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 cursor-not-allowed opacity-50 whitespace-nowrap" style="background-color: #9CA3AF;" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+          Kirim Persetujuan & Revisi
+        </button>
+        <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50" id="batch-submit-tooltip">
+          Selesaikan review semua item terlebih dahulu
+        </div>
+      </div>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 text-sm h-full" style="min-width: 1000px; table-layout: fixed;">
@@ -86,10 +89,6 @@
         <p class="text-base font-bold text-gray-900">Review Menunggu Konfirmasi</p>
         <p class="text-xs text-gray-600 mt-1">Pilihan Anda sudah dicatat sementara. Klik kirim untuk menyimpan semua.</p>
       </div>
-      <button id="batch-submit-btn" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 cursor-pointer" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#0a2c00'" onmouseout="this.style.backgroundColor='#144600'">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-        Kirim Persetujuan & Revisi
-      </button>
     </div>
   </div>
 
@@ -228,9 +227,52 @@ function normalizeCurrentStage(detail) {
 
 function setSelectedTab(tabKey) {
   selectedTab = tabKey;
+  
+  // Update tab styling
+  const tabs = ['planning', 'phase_1', 'phase_2', 'phase_3'];
+  tabs.forEach(tab => {
+    const btnId = `tab-${tab.replace('_', '-')}`;
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      if (tab === tabKey) {
+        btn.style.color = '#144600';
+        btn.style.borderBottom = '2px solid #144600';
+      } else {
+        btn.style.color = '#999999';
+        btn.style.borderBottom = 'none';
+      }
+    }
+  });
+  
   if (detailData) {
     renderPhaseOverview(detailData);
     renderPhaseContent(detailData);
+  }
+}
+
+function updateSubmitButtonState(detail) {
+  const headerBtn = document.getElementById('batch-submit-btn-header');
+  const tooltip = document.getElementById('batch-submit-tooltip');
+  if (!headerBtn) return;
+  
+  // Check if there are any items waiting for approval
+  const items = detail.items || [];
+  const hasWaitingItems = items.some(item => item.submission_status === 'waiting_approval');
+  
+  if (hasWaitingItems) {
+    // Disable button
+    headerBtn.disabled = true;
+    headerBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    headerBtn.classList.remove('cursor-pointer', 'hover:shadow-lg');
+    headerBtn.style.backgroundColor = '#9CA3AF';
+    if (tooltip) tooltip.classList.remove('hidden');
+  } else {
+    // Enable button
+    headerBtn.disabled = false;
+    headerBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    headerBtn.classList.add('cursor-pointer', 'hover:shadow-lg');
+    headerBtn.style.backgroundColor = '#144600';
+    if (tooltip) tooltip.classList.add('hidden');
   }
 }
 
@@ -265,22 +307,8 @@ function renderPhaseOverview(detail) {
   setBadge('badge-phase-2', waitingByPhase.phase_2 || 0);
   setBadge('badge-phase-3', waitingByPhase.phase_3 || 0);
 
-  const tabIds = ['tab-planning', 'tab-phase-1', 'tab-phase-2', 'tab-phase-3'];
-  tabIds.forEach(id => {
-    const tab = document.getElementById(id);
-    if (!tab) return;
-    tab.classList.remove('border-green-800', 'text-white');
-    tab.style.backgroundColor = '';
-    tab.classList.add('border-gray-200', 'text-gray-700');
-  });
-
-  const activeKey = selectedTab || currentStage;
-  const activeTab = document.getElementById(`tab-${activeKey.replace('_', '-')}`);
-  if (activeTab) {
-    activeTab.classList.remove('border-gray-200', 'text-gray-700');
-    activeTab.classList.add('border-green-800', 'text-white');
-    activeTab.style.backgroundColor = '#144600';
-  }
+  // Check if all items are reviewed
+  updateSubmitButtonState(detail);
 
   const statusList = document.getElementById('phase-status-list');
   if (!statusList) return;
@@ -607,15 +635,18 @@ async function submitBatchReview() {
     notes: g.notes.join('\\n\\n') || null
   }));
 
-  const btn = document.getElementById('batch-submit-btn');
+  const btn = document.getElementById('batch-submit-btn-header');
   const orgHtml = btn.innerHTML;
   btn.innerHTML = 'Sedang Memproses...';
   btn.disabled = true;
+  btn.classList.add('opacity-50', 'cursor-not-allowed');
 
   const res = await apiPost(`/api/manager/plans/${planId}/batch-review`, { reviews });
   
   btn.innerHTML = orgHtml;
   btn.disabled = false;
+  btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  btn.classList.add('cursor-pointer');
 
   if (res && res.success) {
     pendingDecisions = {};

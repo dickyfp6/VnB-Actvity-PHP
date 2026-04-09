@@ -15,11 +15,11 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm p-4">
-        <div class="flex items-center gap-2 mb-3">
-            <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-3 py-2 rounded-lg text-sm text-white" style="background-color:#144600;">New Hire Active</button>
-            <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50">History New Hire</button>
+        <div class="flex gap-4 border-b border-gray-200 pb-3">
+            <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">New Hire Active</button>
+            <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History New Hire</button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3">
             <input id="f-search" type="text" placeholder="Cari NIP/Nama/Email" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onkeyup="applyFilters()">
             <select id="f-status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onchange="applyFilters()">
                 <option value="">Semua Status Pegawai</option>
@@ -396,13 +396,15 @@ function updateLifecycleButtons() {
     if (!activeBtn || !historyBtn) return;
 
     if (currentLifecycle === 'active') {
-        activeBtn.className = 'px-3 py-2 rounded-lg text-sm text-white';
-        activeBtn.style.backgroundColor = '#144600';
-        historyBtn.className = 'px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50';
+        activeBtn.style.color = '#144600';
+        activeBtn.style.borderBottom = '2px solid #144600';
+        historyBtn.style.color = '#999999';
+        historyBtn.style.borderBottom = 'none';
     } else {
-        historyBtn.className = 'px-3 py-2 rounded-lg text-sm text-white';
-        historyBtn.style.backgroundColor = '#144600';
-        activeBtn.className = 'px-3 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50';
+        historyBtn.style.color = '#144600';
+        historyBtn.style.borderBottom = '2px solid #144600';
+        activeBtn.style.color = '#999999';
+        activeBtn.style.borderBottom = 'none';
     }
 }
 
