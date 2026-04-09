@@ -98,6 +98,7 @@ class DatabaseSeeder extends Seeder
             VnbPeriodSeeder::class,
             VnbFrameworkSeeder::class,
             DummyDashboardDataSeeder::class,
+            SampleVnbPlansSeeder::class,  // Create sample plans for testing
         ]);
 
         // 4. Auto-populate deliverables for all plan items

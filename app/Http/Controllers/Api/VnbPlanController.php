@@ -537,7 +537,7 @@ class VnbPlanController extends Controller
         ]);
 
         $revision = VnbPlanRevision::query()
-            ->where('plan_id', $plan->id)
+            ->where('vnb_plan_id', $plan->id)
             ->where('status', 'pending')
             ->orderByDesc('version_number')
             ->first();
@@ -610,7 +610,7 @@ class VnbPlanController extends Controller
     private function createPlanRevisionSubmission(VnbPlan $plan): VnbPlanRevision
     {
         $latestVersion = (int) VnbPlanRevision::query()
-            ->where('plan_id', $plan->id)
+            ->where('vnb_plan_id', $plan->id)
             ->max('version_number');
 
         $snapshot = [
@@ -635,7 +635,7 @@ class VnbPlanController extends Controller
         ];
 
         return VnbPlanRevision::create([
-            'plan_id' => $plan->id,
+            'vnb_plan_id' => $plan->id,
             'version_number' => $latestVersion + 1,
             'status' => 'pending',
             'submitted_by' => auth()->id(),

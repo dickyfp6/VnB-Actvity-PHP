@@ -14,7 +14,11 @@ $employees = Employee::with('position')->get();
 
 $stageCount = [];
 foreach ($employees as $emp) {
-    $stage = $emp->getCareerStage();
+    if ($emp instanceof Employee) {
+        $stage = $emp->getCareerStage();
+    } else {
+        continue;
+    }
     if (!isset($stageCount[$stage])) {
         $stageCount[$stage] = [];
     }

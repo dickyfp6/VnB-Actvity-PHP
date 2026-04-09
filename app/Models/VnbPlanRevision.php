@@ -24,13 +24,20 @@ class VnbPlanRevision extends Model
 
     protected $fillable = [
         'vnb_plan_id',
+        'plan_id',
+        'version_number',
         'revision_number',
         'requested_by',
+        'submitted_by',
         'revision_notes',
         'status',
+        'decision',
+        'review_notes',
         'requested_at',
         'submitted_at',
+        'reviewed_at',
         'applied_at',
+        'snapshot',
     ];
 
     protected $casts = [
