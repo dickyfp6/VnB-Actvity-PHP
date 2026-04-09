@@ -136,8 +136,16 @@
             flex-shrink: 0;
         }
 
-        .sidebar.collapsed .toggle-icon {
-            transform: rotate(180deg);
+        .sidebar.collapsed #manager-approval-badge-dot {
+            display: block !important;
+        }
+
+        #manager-approval-badge-dot {
+            display: none;
+        }
+        
+        .sidebar.collapsed #manager-approval-badge-dot.hidden {
+            display: block !important;
         }
 
         #expandIcon {
@@ -173,24 +181,25 @@
             position: relative;
             overflow: hidden;
             transition: all 0.2s ease;
+            border: 1px solid transparent;
         }
 
         .nav-link::before {
             content: '';
             position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: var(--color-primary-light);
+            inset: 0;
+            background: linear-gradient(90deg, rgba(95, 196, 46, 0.2), transparent);
             opacity: 0;
+            border-radius: 0.75rem;
             transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: -1;
         }
 
         .nav-link:hover {
-            background: rgba(95, 196, 46, 0.15);
+            background: rgba(95, 196, 46, 0.12);
             color: white;
-            padding-left: 1.25rem;
+            border-color: rgba(95, 196, 46, 0.3);
         }
 
         .nav-link:hover::before {
@@ -204,8 +213,10 @@
         }
 
         .nav-link.active {
-            background: rgba(95, 196, 46, 0.25) !important;
+            background: rgba(95, 196, 46, 0.2) !important;
             color: white !important;
+            border-color: rgba(95, 196, 46, 0.4) !important;
+            font-weight: 600 !important;
         }
 
         .nav-link.active::before {
@@ -625,9 +636,12 @@
                 <span>New Hire</span>
             </a>
             <a href="/manager/approval-requests" class="nav-link <?php echo e(request()->is('manager/approval-requests*') ? 'active' : ''); ?>" title="Approval Request">
-                <i class="fas fa-file-check w-5 flex-shrink-0"></i>
+                <div style="position: relative; display: inline-block;">
+                    <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
+                    <span id="manager-approval-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: -4px; right: -4px; z-index: 10;"></span>
+                </div>
                 <span>Approval Request</span>
-                <span id="manager-approval-badge" class="ml-auto px-2 py-0.5 rounded-full text-xs bg-red-600 text-white hidden">0</span>
+                <span id="manager-approval-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: white; color: white; min-width: unset; font-size: 10px;">0</span>
             </a>
             <a href="/my-account/profile" class="nav-link <?php echo e(request()->is('my-account/profile*') ? 'active' : ''); ?>" title="Akun Saya">
                 <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
@@ -652,7 +666,7 @@
 
             <?php if(in_array($role, ['admin'])): ?>
             <a href="/review-activity" class="nav-link <?php echo e(request()->is('review-activity*') ? 'active' : ''); ?>" title="Review">
-                <i class="fas fa-file-check w-5 flex-shrink-0"></i>
+                <i class="fas fa-eye w-5 flex-shrink-0"></i>
                 <span>Review</span>
             </a>
             <?php endif; ?>
@@ -827,11 +841,38 @@
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
 
-    // Initialize sidebar state from localStorage
-    const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-    if (isSidebarCollapsed && window.innerWidth >= 1024) {
-        sidebar.classList.add('collapsed');
-        mainContent.classList.add('sidebar-collapsed');
+    // Function to handle badge dot visibility based on sidebar state
+    function updateBadgeDotVisibility() {
+        const badgeDot = document.getElementById('manager-approval-badge-dot');
+        if (!badgeDot) {
+            console.warn('Badge dot element not found');
+            return;
+        }
+        
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) {
+            console.warn('Sidebar element not found');
+            return;
+        }
+        
+        const isSidebarCollapsed = sidebar.classList.contains('collapsed');
+        const badgeElement = document.getElementById('manager-approval-badge');
+        const hasRequests = badgeElement && !badgeElement.classList.contains('hidden');
+        
+        console.log('===Badge Dot Debug===');
+        console.log('Sidebar collapsed:', isSidebarCollapsed);
+        console.log('Has requests:', hasRequests);
+        console.log('Badge element:', badgeElement);
+        console.log('Badge text:', badgeElement?.textContent);
+        
+        // Show dot only if sidebar collapsed AND has requests
+        if (isSidebarCollapsed && hasRequests) {
+            badgeDot.style.display = 'block';
+            console.log('Badge dot SHOWN');
+        } else {
+            badgeDot.style.display = 'none';
+            console.log('Badge dot HIDDEN');
+        }
     }
 
     // Toggle sidebar on logo click
@@ -841,6 +882,7 @@
             sidebar.classList.toggle('collapsed');
             mainContent.classList.toggle('sidebar-collapsed');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            updateBadgeDotVisibility();
         }
     });
 
@@ -921,24 +963,64 @@
 
     async function hydrateManagerApprovalBadge() {
         const badge = document.getElementById('manager-approval-badge');
-        if (!badge) return;
-
-        const res = await apiGet('/api/manager/approval-summary');
-        if (!(res && res.success === true && res.data)) {
-            badge.classList.add('hidden');
+        const badgeDot = document.getElementById('manager-approval-badge-dot');
+        
+        if (!badge) {
+            console.warn('manager-approval-badge element not found');
             return;
         }
 
-        const total = Number(res.data.total_count || 0);
-        if (total > 0) {
-            badge.textContent = total > 99 ? '99+' : String(total);
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
+        try {
+            const res = await apiGet('/api/manager/approval-requests');
+            console.log('Approval requests response:', res);
+            
+            if (!(res && res.success === true && res.data)) {
+                console.warn('Approval requests failed or no data:', res);
+                badge.classList.add('hidden');
+                if (badgeDot) badgeDot.classList.add('hidden');
+                return;
+            }
+
+            const myApprovals = res.data?.my_approvals || [];
+            const monitoring = res.data?.monitoring || [];
+            const hasAnyRequests = myApprovals.length > 0 || monitoring.length > 0;
+            
+            console.log('My approvals:', myApprovals.length, 'Monitoring:', monitoring.length);
+            
+            if (hasAnyRequests) {
+                // Always show: approvals count (or 0 if only monitoring)
+                const count = myApprovals.length;
+                badge.textContent = count > 99 ? '99+' : String(count);
+                
+                // Dynamic background color: white if 0, red if >0
+                if (count === 0) {
+                    badge.style.backgroundColor = 'white';
+                    badge.style.color = 'white';
+                } else {
+                    badge.style.backgroundColor = '#dc2626';
+                    badge.style.color = 'white';
+                }
+                badge.classList.remove('hidden');
+                
+                // Update badge dot visibility
+                updateBadgeDotVisibility();
+            } else {
+                badge.classList.add('hidden');
+                if (badgeDot) badgeDot.classList.add('hidden');
+            }
+        } catch (e) {
+            console.error('Error hydrating manager approval badge:', e);
         }
     }
 
+    // Initial hydration
     hydrateManagerApprovalBadge();
+    
+    // Update badge dot visibility on init
+    updateBadgeDotVisibility();
+    
+    // Polling interval - update badge every 5 seconds
+    setInterval(hydrateManagerApprovalBadge, 5000);
     </script>
     <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>

@@ -13,9 +13,11 @@
   <div class="flex gap-2 border-b border-gray-200">
     <button id="tab-my-approvals" onclick="switchTab('my_approvals')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">
       <i class="fas fa-check-circle mr-1"></i> Perlu Approval Saya
+      <span id="manager-approval-page-badge" class="inline-flex items-center justify-center ml-1 w-4 h-4 text-xs font-bold text-white rounded-full" style="background-color: white; display: none; font-size: 9px;">0</span>
     </button>
     <button id="tab-monitoring" onclick="switchTab('monitoring')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">
       <i class="fas fa-eye mr-1"></i> Pantau (Monitoring)
+      <span id="manager-monitoring-badge" class="inline-flex items-center justify-center ml-1 w-4 h-4 text-xs font-bold text-white rounded-full" style="background-color: white; display: none; font-size: 9px;">0</span>
     </button>
   </div>
 
@@ -122,13 +124,32 @@ async function loadRequests() {
   monitoringRows = res.data?.monitoring || [];
   
   // Calculate summary counts from my_approvals only (badge should count only owned)
-  const planningCount = myApprovalsRows.filter(r => r.stage === 'planning').length;
-  const activityCount = myApprovalsRows.filter(r => r.stage === 'activity').length;
+  const planningCount = myApprovalsRows.filter(r => r.type === 'planning').length;
+  const activityCount = myApprovalsRows.filter(r => r.type === 'activity').length;
   const totalCount = myApprovalsRows.length;
   
   document.getElementById('planning-count').textContent = planningCount;
   document.getElementById('activity-count').textContent = activityCount;
   document.getElementById('total-count').textContent = totalCount;
+
+  // Update badges with dynamic color logic
+  const badge = document.getElementById('manager-approval-page-badge');
+  if (badge) {
+    badge.textContent = totalCount;
+    badge.style.display = totalCount > 0 || monitoringRows.length > 0 ? 'inline-flex' : 'none';
+    // Color: white badge if 0, red badge if >0
+    badge.style.backgroundColor = totalCount > 0 ? '#dc2626' : 'white';
+    badge.style.color = 'white';
+  }
+  
+  const monitoringBadge = document.getElementById('manager-monitoring-badge');
+  if (monitoringBadge) {
+    monitoringBadge.textContent = monitoringRows.length;
+    monitoringBadge.style.display = monitoringRows.length > 0 ? 'inline-flex' : 'none';
+    // Color: white badge if 0, red badge if >0
+    monitoringBadge.style.backgroundColor = monitoringRows.length > 0 ? '#dc2626' : 'white';
+    monitoringBadge.style.color = 'white';
+  }
 
   renderMyApprovals();
   renderMonitoring();
@@ -144,8 +165,8 @@ function renderMyApprovals() {
   tbody.innerHTML = myApprovalsRows.map(row => `
     <tr class="hover:bg-gray-50">
       <td class="px-4 py-3">
-        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.stage === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
-          ${row.stage === 'planning' ? 'Planning' : 'Activity'}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.type === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
+          ${row.type === 'planning' ? 'Planning' : 'Activity'}
         </span>
       </td>
       <td class="px-4 py-3">${row.employee_name || '-'}</td>
@@ -173,8 +194,8 @@ function renderMonitoring() {
   tbody.innerHTML = monitoringRows.map(row => `
     <tr class="hover:bg-gray-50 opacity-75">
       <td class="px-4 py-3">
-        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.stage === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
-          ${row.stage === 'planning' ? 'Planning' : 'Activity'}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.type === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
+          ${row.type === 'planning' ? 'Planning' : 'Activity'}
         </span>
       </td>
       <td class="px-4 py-3">${row.employee_name || '-'}</td>
