@@ -544,7 +544,7 @@ class VnbPlanController extends Controller
         $revision = VnbPlanRevision::query()
             ->where('vnb_plan_id', $plan->id)
             ->where('status', 'pending')
-            ->orderByDesc('version_number')
+            ->orderByDesc('revision_number')
             ->first();
 
         if (!$revision) {
@@ -561,7 +561,7 @@ class VnbPlanController extends Controller
             ]);
 
             $revision->update([
-                'status' => 'approved',
+                'status' => 'applied',
                 'decision' => 'approve',
                 'reviewed_by' => auth()->id(),
                 'reviewed_at' => now(),
@@ -574,7 +574,7 @@ class VnbPlanController extends Controller
             ]);
 
             $revision->update([
-                'status' => 'rejected',
+                'status' => 'pending',
                 'decision' => 'reject',
                 'reviewed_by' => auth()->id(),
                 'reviewed_at' => now(),
@@ -614,9 +614,9 @@ class VnbPlanController extends Controller
 
     private function createPlanRevisionSubmission(VnbPlan $plan): VnbPlanRevision
     {
-        $latestVersion = (int) VnbPlanRevision::query()
+        $latestRevision = (int) VnbPlanRevision::query()
             ->where('vnb_plan_id', $plan->id)
-            ->max('version_number');
+            ->max('revision_number') ?? 0;
 
         $snapshot = [
             'plan' => [
@@ -641,7 +641,10 @@ class VnbPlanController extends Controller
 
         return VnbPlanRevision::create([
             'vnb_plan_id' => $plan->id,
-            'version_number' => $latestVersion + 1,
+            'revision_number' => $latestRevision + 1,
+            'requested_by' => $plan->employee_id,
+            'revision_notes' => 'Auto-generated snapshot for approval workflow',
+            'requested_at' => now(),
             'status' => 'pending',
             'submitted_by' => auth()->id(),
             'submitted_at' => now(),
@@ -895,7 +898,7 @@ class VnbPlanController extends Controller
             // Create revision record dengan status approved (approved_as_is)
             $revision = $this->createPlanRevisionSubmission($plan->fresh()->load('items'));
             $revision->update([
-                'status' => 'approved',
+                'status' => 'applied',
                 'revision_type' => 'approved_as_is',
                 'decision' => 'approve',
                 'reviewed_by' => auth()->id(),
@@ -1019,9 +1022,9 @@ class VnbPlanController extends Controller
 
             // Update revision dengan status approved_with_revision
             $revision->update([
-                'status' => 'approved_with_revision',
+                'status' => 'applied',
                 'revision_type' => 'manager_revised',
-                'decision' => 'approved_with_revision',
+                'decision' => 'approve',
                 'reviewed_by' => auth()->id(),
                 'reviewed_at' => now(),
             ]);

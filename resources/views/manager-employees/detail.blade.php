@@ -51,24 +51,37 @@
 
   <!-- Global planning approval box removed as per request for point-per-point revision -->
   <div id="planning-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
-    <div class="p-4 border-b border-gray-100 flex items-start justify-between">
+    <div class="p-4 flex items-start justify-between">
       <div>
         <h2 class="text-base font-semibold text-gray-800">Planning Employee (Fase Planning)</h2>
         <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
       </div>
-      <div class="relative group">
-        <button id="batch-submit-btn-header" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 cursor-not-allowed opacity-50 whitespace-nowrap" style="background-color: #9CA3AF;" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-          Kirim Persetujuan & Revisi
-        </button>
-        <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50" id="batch-submit-tooltip">
-          Selesaikan review semua item terlebih dahulu
+      <div class="flex gap-2">
+        <!-- Button: Setujui Semua (Approve All) - GREEN -->
+        <div class="relative group">
+          <button id="approve-all-btn" onclick="submitApproveAll()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 whitespace-nowrap" style="background-color: #16a34a;" onmouseover="this.style.backgroundColor='#15803d'" onmouseout="this.style.backgroundColor='#16a34a'">
+            <i class="fas fa-check"></i>
+            Setujui Semua
+          </button>
+          <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50">
+            Setujui semua rencana aktivitas
+          </div>
+        </div>
+        <!-- Button: Simpan - NAVY BLUE -->
+        <div class="relative group">
+          <button id="batch-submit-btn-header" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 whitespace-nowrap" style="background-color: #9ca3af; opacity: 0.5;" disabled>
+            <i class="fas fa-save"></i>
+            Simpan
+          </button>
+          <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50" id="batch-submit-tooltip">
+            Berikan keputusan (Setujui atau Revisi) untuk semua item terlebih dahulu
+          </div>
         </div>
       </div>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 text-sm h-full" style="min-width: 1000px; table-layout: fixed;">
-        <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm">
+        <thead class="bg-gray-50 sticky top-0 z-10">
           <tr>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Behaviour</th>
             <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 6%;">Fase</th>
@@ -121,6 +134,34 @@
     <div id="phase-note-text" class="text-sm text-gray-700">-</div>
   </div>
 
+  <!-- Approve All Confirmation Modal -->
+  <div id="approve-all-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full" style="background-color: #fef2f2;">
+          <i class="fas fa-check text-2xl" style="color: #dc2626;"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-gray-900">Setujui Semua Rencana Aktivitas?</h3>
+          <p class="text-sm text-gray-500 mt-1">Anda yakin akan menyetujui SEMUA rencana aktivitas?</p>
+        </div>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+        <p class="text-sm text-amber-800">
+          <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
+          Setelah disetujui, tidak bisa diubah kecuali ada revisi baru dari manager.
+        </p>
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeApproveAllModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium">Batal</button>
+        <button onclick="confirmApproveAll()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium flex items-center gap-2">
+          <i class="fas fa-check"></i>
+          Setujui
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Revision Modal -->
   <div id="revision-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
@@ -169,11 +210,25 @@ function clearPendingDecisionsLocal() {
 
 function toggleBatchButtonBar() {
   const bar = document.getElementById('batch-action-bar');
-  if (!bar) return;
-  if (Object.keys(pendingDecisions).length > 0) {
+  const submitBtn = document.getElementById('batch-submit-btn-header');
+  if (!bar || !submitBtn) return;
+  
+  const hasPendingDecisions = Object.keys(pendingDecisions).length > 0;
+  
+  if (hasPendingDecisions) {
     bar.classList.remove('hidden');
+    // Enable Simpan button
+    submitBtn.disabled = false;
+    submitBtn.style.backgroundColor = '#1e3a8a';
+    submitBtn.style.opacity = '1';
+    submitBtn.style.cursor = 'pointer';
   } else {
     bar.classList.add('hidden');
+    // Disable Simpan button
+    submitBtn.disabled = true;
+    submitBtn.style.backgroundColor = '#9ca3af';
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
   }
 }
 
@@ -476,6 +531,46 @@ function renderDetail() {
 
   const waitingCount = detailData.approval_requests?.activity_waiting_count || 0;
   document.getElementById('activity-waiting').textContent = `Pending approval: ${waitingCount}`;
+
+  // NEW: Check manager authorization for Approve All button
+  updateApproveAllButtonState();
+}
+
+// NEW: Update Approve All button state based on manager role
+function updateApproveAllButtonState() {
+  const approveAllBtn = document.getElementById('approve-all-btn');
+  const submitBtn = document.getElementById('batch-submit-btn-header');
+  if (!approveAllBtn || !submitBtn) return;
+
+  const managerRole = detailData?.current_manager_role; // 'functional' | 'operational' | 'both' | null
+
+  if (managerRole === 'operational') {
+    // Disable buttons for operational manager
+    approveAllBtn.disabled = true;
+    approveAllBtn.style.opacity = '0.5';
+    approveAllBtn.style.backgroundColor = '#9ca3af';
+    approveAllBtn.style.cursor = 'not-allowed';
+    approveAllBtn.style.pointerEvents = 'none';
+    approveAllBtn.title = 'Hanya Manager Fungsional yang bisa menyetujui planning. Anda adalah Manager Operasional.';
+    
+    submitBtn.disabled = true;
+    submitBtn.style.backgroundColor = '#9ca3af';
+    submitBtn.style.opacity = '0.5';
+    submitBtn.style.cursor = 'not-allowed';
+    submitBtn.title = 'Hanya Manager Fungsional yang bisa menyetujui planning. Anda adalah Manager Operasional.';
+  } else {
+    // Enable buttons for functional or dual manager
+    approveAllBtn.disabled = false;
+    approveAllBtn.style.opacity = '1';
+    approveAllBtn.style.backgroundColor = '#16a34a';
+    approveAllBtn.style.cursor = 'pointer';
+    approveAllBtn.style.pointerEvents = 'auto';
+    approveAllBtn.title = '';
+    
+    // Simpan button state will be managed by toggleBatchButtonBar()
+    submitBtn.style.cursor = 'pointer';
+    submitBtn.title = '';
+  }
 }
 
 function renderPlanningTable(items) {
@@ -760,6 +855,46 @@ async function reviseActivity(planItemId) {
     loadDetail();
   } else {
     showAlert(res?.message || res?.error || 'Gagal kirim revisi aktivitas', 'error');
+  }
+}
+
+// NEW: Approve All Planning Items Immediately
+function submitApproveAll() {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('Plan ID tidak ditemukan', 'error');
+    return;
+  }
+  document.getElementById('approve-all-modal').classList.remove('hidden');
+}
+
+function closeApproveAllModal() {
+  document.getElementById('approve-all-modal').classList.add('hidden');
+}
+
+async function confirmApproveAll() {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('Plan ID tidak ditemukan', 'error');
+    return;
+  }
+
+  closeApproveAllModal();
+
+  try {
+    const res = await apiPost(`/api/vnb-plans/${planId}/approve-all`, {});
+    
+    if (res && res.success) {
+      showAlert('Semua rencana aktivitas berhasil disetujui!', 'success');
+      setTimeout(() => {
+        loadDetail();
+      }, 1000);
+    } else {
+      showAlert(res?.message || 'Gagal menyetujui semua rencana aktivitas', 'error');
+    }
+  } catch (err) {
+    console.error('Error submitting approve all:', err);
+    showAlert('Error: ' + err.message, 'error');
   }
 }
 

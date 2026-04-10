@@ -459,9 +459,25 @@ class ManagerController extends Controller
         $progress = $items->count() ? round((float) $items->avg('completion_percentage'), 1) : 0;
         $activityWaitingCount = $items->where('submission_status', 'waiting_approval')->count();
 
+        // Determine current manager's role for this employee
+        $currentManagerRole = null;
+        if (!$isAdmin && $manager) {
+            $isManagerFunctional = $manager->id === $employee->manager_functional_id;
+            $isManagerOperational = $manager->id === $employee->manager_operational_id;
+            
+            if ($isManagerFunctional && $isManagerOperational) {
+                $currentManagerRole = 'both';
+            } elseif ($isManagerFunctional) {
+                $currentManagerRole = 'functional';
+            } elseif ($isManagerOperational) {
+                $currentManagerRole = 'operational';
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
+                'current_manager_role' => $currentManagerRole, // NEW: for frontend authorization
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,

@@ -51,7 +51,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/manager/employees/{employeeId}', [PageController::class, 'managerEmployeeDetail'])->name('manager.employee.detail');
     Route::get('/manager/employees/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.employee.planning-history');
     Route::get('/manager/approval-requests', [PageController::class, 'managerApprovalRequests'])->name('manager.approval-requests');
-    Route::get('/manager/approval/{planId}', [PageController::class, 'managerApprovalDetail'])->name('manager.approval.detail');
 
     // UC009 - Master Database
     Route::get('/master-data', [PageController::class, 'masterData'])->name('master-data');

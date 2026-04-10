@@ -46,6 +46,7 @@ class VnbPlanRevision extends Model
         'requested_at' => 'datetime',
         'submitted_at' => 'datetime',
         'applied_at' => 'datetime',
+        'snapshot' => 'array',
     ];
 
     // Relationships
