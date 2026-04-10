@@ -135,31 +135,31 @@ class RolePermissionSeeder extends Seeder
         $users = [
             [
                 'name' => 'Admin User',
-                'email' => 'admin@vnb.local',
+                'email' => 'admin@vnb.id',
                 'password' => 'password',
                 'role' => 'admin',
             ],
             [
                 'name' => 'Manager User',
-                'email' => 'manager@vnb.local',
+                'email' => 'manager@vnb.id',
                 'password' => 'password',
                 'role' => 'manager',
             ],
             [
                 'name' => 'Employee User',
-                'email' => 'employee@vnb.local',
+                'email' => 'employee@vnb.id',
                 'password' => 'password',
                 'role' => 'employee',
             ],
             [
                 'name' => 'PCX Manager',
-                'email' => 'pcx@vnb.local',
+                'email' => 'pcx@vnb.id',
                 'password' => 'password',
                 'role' => 'pcx_manager',
             ],
             [
                 'name' => 'Intercomm User',
-                'email' => 'intercomm@vnb.local',
+                'email' => 'intercomm@vnb.id',
                 'password' => 'password',
                 'role' => 'intercomm',
             ],

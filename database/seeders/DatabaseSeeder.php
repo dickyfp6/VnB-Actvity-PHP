@@ -24,31 +24,31 @@ class DatabaseSeeder extends Seeder
         $users = [
             [
                 'name' => 'Admin User',
-                'email' => 'admin@vnb.local',
+                'email' => 'admin@vnb.id',
                 'phone' => null,
                 'roles' => ['admin']
             ],
             [
                 'name' => 'PCX Manager',
-                'email' => 'pcx@vnb.local',
+                'email' => 'pcx@vnb.id',
                 'phone' => null,
                 'roles' => ['pcx_manager']
             ],
             [
                 'name' => 'Intercomm User',
-                'email' => 'intercomm@vnb.local',
+                'email' => 'intercomm@vnb.id',
                 'phone' => null,
                 'roles' => ['intercomm']
             ],
             [
                 'name' => 'Manager',
-                'email' => 'manager@vnb.local',
+                'email' => 'manager@vnb.id',
                 'phone' => null,
                 'roles' => ['manager']
             ],
             [
                 'name' => 'Employee',
-                'email' => 'employee@vnb.local',
+                'email' => 'employee@vnb.id',
                 'phone' => '082123456789',
                 'roles' => ['employee']
             ],
@@ -60,13 +60,13 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'name' => 'Ahnaf Fathan',
-                'email' => 'fathan@vnb.local',
+                'email' => 'fathan@vnb.id',
                 'phone' => '081234567890',
                 'roles' => ['employee']
             ],
             [
                 'name' => 'Regina Dwi',
-                'email' => 'rere@vnb.local',
+                'email' => 'rere@vnb.id',
                 'phone' => '082123456788',
                 'roles' => ['employee']
             ],

@@ -28,7 +28,7 @@ class EmployeeAndManagerSeeder extends Seeder
         // Managers ter-link ke users dengan role 'manager'
         
         // Get actual user IDs from database
-        $managerUser = User::where('email', 'manager@vnb.local')->first();
+        $managerUser = User::where('email', 'manager@vnb.id')->first();
         $dickyUser = User::where('email', 'dicky@vnb.id')->first();
         $viqiUser = User::where('email', 'viqi@vnb.id')->firstOrCreate(
             ['email' => 'viqi@vnb.id'],
@@ -47,7 +47,7 @@ class EmployeeAndManagerSeeder extends Seeder
         $managers = [
             [
                 'name' => 'Manager',
-                'email' => 'manager@vnb.local',
+                'email' => 'manager@vnb.id',
                 'employee_number' => '5026221022',
                 'company' => 'PT Gawih Djaja',
                 'division' => 'Finance & Business Support',
