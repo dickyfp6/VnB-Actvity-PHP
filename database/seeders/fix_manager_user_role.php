@@ -28,10 +28,10 @@ echo "User ID: {$user->id}\n";
 echo "Current Roles: " . implode(', ', $user->roles->pluck('name')->toArray()) . "\n\n";
 
 try {
-    // Remove 'new_hire' role if present
-    if ($user->hasRole('new_hire')) {
-        echo "Removing 'new_hire' role...\n";
-        $user->removeRole('new_hire');
+    // Remove 'employee' role if present
+    if ($user->hasRole('employee')) {
+        echo "Removing 'employee' role...\n";
+        $user->removeRole('employee');
     }
     
     // Ensure 'manager' role is assigned
@@ -46,7 +46,7 @@ try {
     
     // Test if the reset credential would work now
     echo "Attempting to verify the reset credential flow would work...\n";
-    if ($user && ($user->employee_id || $user->hasRole('new_hire'))) {
+    if ($user && ($user->employee_id || $user->hasRole('employee'))) {
         echo "❌ Still blocked!\n";
     } else {
         echo "✅ Reset credential validation should now pass!\n";

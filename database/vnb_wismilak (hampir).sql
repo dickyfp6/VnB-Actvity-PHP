@@ -107,7 +107,7 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`id`, `employee_number`, `name`, `date_joined`, `induction_date`, `company`, `division_id`, `department_id`, `position_id`, `placement`, `level`, `employee_status`, `email`, `whatsapp`, `manager_functional_id`, `manager_operational_id`, `vnb_period_start`, `vnb_period_end`, `vnb_status`, `employment_state`, `status_changed_at`, `status_change_reason`, `status_changed_by`, `notes`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, '5026221011', 'New Hire', '2026-04-01', '2026-04-07', 'PT Gawih Djaja', 5, 4, 2, 'Bengkulu', 'Staff/Supervisor', 'OS', 'newhire@vnb.local', '082123456789', 1, NULL, NULL, NULL, 'active', 'active', NULL, NULL, NULL, NULL, '2026-04-07 16:00:59', '2026-04-07 16:00:59', NULL),
+(1, '5026221011', 'Employee', '2026-04-01', '2026-04-07', 'PT Gawih Djaja', 5, 4, 2, 'Bengkulu', 'Staff/Supervisor', 'OS', 'employee@vnb.local', '082123456789', 1, NULL, NULL, NULL, 'active', 'active', NULL, NULL, NULL, NULL, '2026-04-07 16:00:59', '2026-04-07 16:00:59', NULL),
 (2, '5026221078', 'Ahnaf Fathan', '2026-04-01', '2026-04-07', 'PT Gelora Djaja', 6, 12, 5, 'Bandung', 'Staff/Supervisor', 'PKWTT', 'ahnaf@vnb.id', '081234567890', 2, NULL, NULL, NULL, 'active', 'active', NULL, NULL, NULL, NULL, '2026-04-07 16:00:59', '2026-04-07 16:00:59', NULL),
 (3, '5026221063', 'Regina Dwi', '2026-04-01', '2026-04-07', 'PT Wismilak Inti Makmur, Tbk', 6, 5, 3, 'Banjarmasin', 'Manager', 'PKWTT', 'rere@vnb.id', '082123456788', 1, 2, NULL, NULL, 'active', 'active', NULL, NULL, NULL, NULL, '2026-04-07 16:00:59', '2026-04-07 16:00:59', NULL),
 (4, '5026221073', 'Silfia Mei', '2026-04-07', '2026-04-08', 'PT Wismilak Inti Makmur, Tbk', 7, 8, 7, 'Bengkulu', 'Non-Staff', 'PKWTT', 'silfi@vnb.id', '8999880980', 1, 2, '2026-04-08', '2027-04-07', 'not_started', 'active', NULL, NULL, NULL, NULL, '2026-04-07 16:31:46', '2026-04-07 16:33:53', NULL);
@@ -688,7 +688,7 @@ CREATE TABLE `roles` (
 
 INSERT INTO `roles` (`id`, `name`, `guard_name`, `created_at`, `updated_at`) VALUES
 (1, 'admin', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28'),
-(2, 'new_hire', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28'),
+(2, 'employee', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28'),
 (3, 'manager', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28'),
 (4, 'pcx_manager', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28'),
 (5, 'intercomm', 'web', '2026-04-07 02:36:28', '2026-04-07 02:36:28');
@@ -797,7 +797,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `te
 (8, 'PCX Manager', 'pcx@vnb.local', '2026-04-07 09:04:02', '$2y$12$kUs9CvCf2UudHUB8cLdNu.uQ8yKyrJRoa7oqtdVx3bSNpdw7bDJEK', NULL, NULL, NULL, NULL, 'active', NULL, NULL, '2026-04-07 09:03:01', '2026-04-07 09:04:02'),
 (9, 'Intercomm User', 'intercomm@vnb.local', '2026-04-07 09:04:02', '$2y$12$WVDMO.ikD7iLIw0mT8uPJei.ZFwhiruglv6KQs.DKH.brcPh0i0aK', NULL, NULL, NULL, NULL, 'active', NULL, NULL, '2026-04-07 09:03:01', '2026-04-07 09:04:02'),
 (11, 'Manager', 'manager@vnb.local', NULL, '$2y$12$dB5wLaWoLZs/dKPuTsgirenumQlaX6iHx11MJe0ZSnYg.fv9alip.', 'eyJpdiI6Ikg3bkNRWTl6a2hGMGQwYWViT3lLTWc9PSIsInZhbHVlIjoiMEFSTVNENXBMbXZtZVY1TmtMelMyQT09IiwibWFjIjoiZmE4YzBlZDJhZTJlZGEyZTQ4ZWNjMmUwZTc2ZmVhN2ZjYTljOTVhNDFmNjM4N2QxMjdmNWM2MjU5Yjk3ODhjNiIsInRhZyI6IiJ9', '2026-04-07 09:39:49', NULL, NULL, 'active', NULL, NULL, '2026-04-07 09:39:49', '2026-04-07 15:26:06'),
-(12, 'New Hire', 'newhire@vnb.local', NULL, '$2y$12$nNsVbvuPopVciFABSrI6POTqwGoG5Cn4I5pVdUM3T/4z1gn9FNeU2', 'eyJpdiI6IklLZjFBbC9TL3VMUnp4TkVkWCttdHc9PSIsInZhbHVlIjoibmx0STE3Nzl5dkYzQXd2bWpidDlRZz09IiwibWFjIjoiZGE2NzUxMWMwZmNjOWU2MDQ0NjY0Nzc0YjJmODg5OTJmNTQ3YzZjNDJmOTc5N2ZiN2EzNGMzMDcxMjYzNjdkYiIsInRhZyI6IiJ9', '2026-04-07 09:40:31', '082123456789', NULL, 'active', 1, NULL, '2026-04-07 09:40:31', '2026-04-07 09:56:38'),
+(12, 'Employee', 'employee@vnb.local', NULL, '$2y$12$nNsVbvuPopVciFABSrI6POTqwGoG5Cn4I5pVdUM3T/4z1gn9FNeU2', 'eyJpdiI6IklLZjFBbC9TL3VMUnp4TkVkWCttdHc9PSIsInZhbHVlIjoibmx0STE3Nzl5dkYzQXd2bWpidDlRZz09IiwibWFjIjoiZGE2NzUxMWMwZmNjOWU2MDQ0NjY0Nzc0YjJmODg5OTJmNTQ3YzZjNDJmOTc5N2ZiN2EzNGMzMDcxMjYzNjdkYiIsInRhZyI6IiJ9', '2026-04-07 09:40:31', '082123456789', NULL, 'active', 1, NULL, '2026-04-07 09:40:31', '2026-04-07 09:56:38'),
 (13, 'Dicky Febri Primadhani', 'dicky@vnb.id', NULL, '$2y$12$XospnSVzGAK5Mv7VsHXeJexT78CH6aGWifNL4Rq7CEqhtVvFjTUIm', 'eyJpdiI6IjVmWG1hL3lRWVY0NWY5YkdxMWNQTkE9PSIsInZhbHVlIjoiRDB5N2pKL2RybzlUWGpSakxmd1FhUT09IiwibWFjIjoiOGQ2NDNkNmVjZWQxNzIyODMyMTZhNjhhNDczZWVhM2ZjOTQ3ZDhkZDFhZWJjYzk5ZmFiMjBmZTgwMDczODZlMCIsInRhZyI6IiJ9', '2026-04-07 09:46:35', NULL, NULL, 'active', NULL, NULL, '2026-04-07 09:46:35', '2026-04-07 09:46:35'),
 (14, 'Ahnaf Fathan', 'fathan@vnb.id', NULL, '$2y$12$Zdp7TWDotEMT2Pc9TfQPXeuYTjbD8KsCiQfQy8ysu8tmrUMBqZriC', 'eyJpdiI6IlViWHBDeEp4NllzTHdLbHhpb1ZLdFE9PSIsInZhbHVlIjoiQ3lLa2FSSHBQU1NRYTFuMW9pM3JFdz09IiwibWFjIjoiNzE0Y2IyYWMwYmYxYWIzNzhiOTg2MWMzNWViNmE4NDU5OGNmNTQ1MmU4OWMyYThlZDllYTc2OTVlNDdlZDU3MyIsInRhZyI6IiJ9', '2026-04-07 09:49:34', '081234567890', NULL, 'active', 2, NULL, '2026-04-07 09:49:34', '2026-04-07 09:49:34'),
 (15, 'Regina Dwi', 'rere@vnb.id', NULL, '$2y$12$wBfJRW4ceHS0ELn9H6h7Xuw6uBxSg0.NDqqn5oYc1PX6VFlgCFw7O', 'eyJpdiI6Ing3elloMDlJMWt1bS9OS2Q3N3dZTEE9PSIsInZhbHVlIjoiOGNVNzZoR1k4akczQ2ZjUVRUZlhqdz09IiwibWFjIjoiNWQzNmRkMTA1YzBiMTk0MGJkODVlNzFiODQ1Y2QxMGFiZWQ1NjA2ZDIzNmU1M2I2ZmE3ZmVkMjY0OGUxYjdiNiIsInRhZyI6IiJ9', '2026-04-07 09:49:55', '082123456788', NULL, 'active', 3, NULL, '2026-04-07 09:49:55', '2026-04-07 09:49:55'),
@@ -1019,7 +1019,7 @@ CREATE TABLE `vnb_plans` (
 --
 
 INSERT INTO `vnb_plans` (`id`, `employee_id`, `period_id`, `phase_number`, `title`, `description`, `planning_mode`, `status`, `revision_count`, `revision_notes`, `submitted_at`, `approved_at`, `approved_by`, `rejection_reason`, `discussion_notes`, `created_at`, `updated_at`) VALUES
-(1, 1, 4, 1, 'Rencana VnB - New Hire', 'Auto-generated dari framework manage_self_staff', 'adjust_all', 'waiting_manager_approval', 0, NULL, '2026-04-07 23:48:10', NULL, NULL, NULL, NULL, '2026-04-07 09:56:14', '2026-04-07 16:48:10'),
+(1, 1, 4, 1, 'Rencana VnB - Employee', 'Auto-generated dari framework manage_self_staff', 'adjust_all', 'waiting_manager_approval', 0, NULL, '2026-04-07 23:48:10', NULL, NULL, NULL, NULL, '2026-04-07 09:56:14', '2026-04-07 16:48:10'),
 (2, 3, 10, 1, 'Rencana VnB - Regina Dwi', 'Auto-generated dari framework manage_managers', 'adjust_all', 'draft', 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-07 15:37:23', '2026-04-07 15:37:23'),
 (3, 2, 7, 1, 'Rencana VnB - Ahnaf Fathan', 'Auto-generated dari framework manage_self_staff', 'adjust_all', 'draft', 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-07 15:38:17', '2026-04-07 15:38:17'),
 (4, 4, 16, 1, 'Rencana VnB - Silfia Mei', 'Auto-generated dari framework manage_self_staff', 'adjust_all', 'draft', 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-07 16:35:52', '2026-04-07 16:35:52');
@@ -1042,7 +1042,7 @@ CREATE TABLE `vnb_plan_items` (
   `integration_2` text DEFAULT NULL COMMENT 'Integrasi pengukuran 2',
   `implementation_date` date DEFAULT NULL,
   `deliverables` text NOT NULL,
-  `activity_description` text DEFAULT NULL COMMENT 'UC006: execution description filled by New Hire',
+  `activity_description` text DEFAULT NULL COMMENT 'UC006: execution description filled by Employee',
   `activity_date` date DEFAULT NULL COMMENT 'UC006: actual date the activity was done',
   `submission_status` enum('draft','waiting_approval','revision_required','completed','overdue') NOT NULL DEFAULT 'draft',
   `revision_notes` text DEFAULT NULL,

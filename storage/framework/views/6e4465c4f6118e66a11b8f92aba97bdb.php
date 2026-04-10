@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','Manage Employee')
-@section('content')
+
+<?php $__env->startSection('title','Manage Employee'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-800">Manage Employee</h1>
@@ -274,7 +274,7 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let allEmployees = [];
 let filteredEmployees = [];
@@ -1522,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadEmployees();
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
 <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[85vh] overflow-y-auto">
@@ -1536,4 +1536,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div id="detail-body" class="divide-y divide-gray-100"></div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/employees/index.blade.php ENDPATH**/ ?>

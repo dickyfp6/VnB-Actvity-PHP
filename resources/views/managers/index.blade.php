@@ -19,8 +19,8 @@
             <th>NIP</th>
             <th>Perusahaan</th>
             <th>Divisi</th>
-            <th>Jumlah New Hire</th>
-            <th>Progress New Hire</th>
+            <th>Jumlah Employee</th>
+            <th>Progress Employee</th>
             <th>Status</th>
             <th>Status Akun</th>
             <th class="text-right">Aksi</th>
@@ -100,18 +100,18 @@
   </div>
 </div>
 
-{{-- Modal New Hire List --}}
+{{-- Modal Employee List --}}
 <div id="modal-hires" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-3xl shadow-xl">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold text-gray-800">Daftar New Hire</h2>
+      <h2 class="text-lg font-bold text-gray-800">Daftar Employee</h2>
       <button onclick="closeHiresModal()" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200 text-sm">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">New Hire</th>
+            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Employee</th>
             <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Perusahaan</th>
             <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Divisi</th>
             <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Manager Fungsional</th>
@@ -182,8 +182,8 @@ function renderManagers() {
   }
 
   tbody.innerHTML = managers.map(m => {
-    const total = m.new_hire_count || 0;
-    const progress = m.progress_new_hire || 0;
+    const total = m.employee_count || 0;
+    const progress = m.progress_employee || 0;
     const hasAccount = m.has_account === true;
 
     return `
@@ -194,7 +194,7 @@ function renderManagers() {
       <td class="px-6 py-3 whitespace-nowrap">${m.company || '-'}</td>
       <td class="px-6 py-3 whitespace-nowrap">${m.division || '-'}</td>
       <td class="px-6 py-3 whitespace-nowrap">
-        <button onclick="showNewHires(${m.id})" class="text-sm underline transition" style="color: #144600; cursor: pointer;" onmouseover="this.style.color='#37AA05'" onmouseout="this.style.color='#144600'">
+        <button onclick="showEmployees(${m.id})" class="text-sm underline transition" style="color: #144600; cursor: pointer;" onmouseover="this.style.color='#37AA05'" onmouseout="this.style.color='#144600'">
           ${total}
         </button>
       </td>
@@ -297,21 +297,21 @@ async function deleteManager(id) {
   }
 }
 
-async function showNewHires(id) {
+async function showEmployees(id) {
   document.getElementById('modal-hires').classList.remove('hidden');
   document.getElementById('hires-body').innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Memuat...</td></tr>';
-  const res = await apiGet(`/api/managers/${id}/new-hires`);
+  const res = await apiGet(`/api/managers/${id}/employees`);
   const data = res.data || res || [];
 
   if (!data.length) {
-    document.getElementById('hires-body').innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Belum ada new hire terkait</td></tr>';
+    document.getElementById('hires-body').innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-400">Belum ada employee terkait</td></tr>';
     return;
   }
 
   document.getElementById('hires-body').innerHTML = data.map(n => {
     return `
     <tr>
-      <td class="px-4 py-2">${n.new_hire || '-'}</td>
+      <td class="px-4 py-2">${n.employee || '-'}</td>
       <td class="px-4 py-2">${n.company || '-'}</td>
       <td class="px-4 py-2">${n.division || '-'}</td>
       <td class="px-4 py-2">${n.manager_functional || '-'}</td>
@@ -348,8 +348,8 @@ async function openDetailModal(id) {
       <div><div class="text-xs text-gray-500">NIP</div><div class="font-medium">${m.employee_number || '-'}</div></div>
       <div><div class="text-xs text-gray-500">Perusahaan</div><div class="font-medium">${m.company || '-'}</div></div>
       <div><div class="text-xs text-gray-500">Divisi</div><div class="font-medium">${m.division || '-'}</div></div>
-      <div><div class="text-xs text-gray-500">Total New Hire</div><div class="font-medium">${m.new_hire_count || 0}</div></div>
-      <div><div class="text-xs text-gray-500">Progress New Hire</div><div class="font-medium">${m.progress_new_hire || 0}%</div></div>
+      <div><div class="text-xs text-gray-500">Total Employee</div><div class="font-medium">${m.employee_count || 0}</div></div>
+      <div><div class="text-xs text-gray-500">Progress Employee</div><div class="font-medium">${m.progress_employee || 0}%</div></div>
     </div>
 
     <div class="border border-gray-200 rounded-lg p-3 mt-2">
@@ -366,8 +366,8 @@ async function openDetailModal(id) {
       <button onclick="resetDetailCredential()" class="px-3 py-2 rounded-lg text-sm text-white transition" style="background-color: #1f2937; cursor: pointer;" onmouseover="this.style.backgroundColor='#111827'" onmouseout="this.style.backgroundColor='#1f2937'">
         Reset Password Manager
       </button>
-      <button onclick="showNewHires(${m.id})" class="px-3 py-2 rounded-lg text-sm text-white transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
-        Lihat Daftar New Hire Terkait
+      <button onclick="showEmployees(${m.id})" class="px-3 py-2 rounded-lg text-sm text-white transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
+        Lihat Daftar Employee Terkait
       </button>
     </div>
   `;

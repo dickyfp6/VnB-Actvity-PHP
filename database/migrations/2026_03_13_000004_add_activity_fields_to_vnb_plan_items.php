@@ -11,7 +11,7 @@ return new class extends Migration
         // Add activity submission fields to vnb_plan_items (UC006 & UC007)
         Schema::table('vnb_plan_items', function (Blueprint $table) {
             $table->text('activity_description')->nullable()->after('deliverables')
-                  ->comment('UC006: execution description filled by New Hire');
+                  ->comment('UC006: execution description filled by Employee');
             $table->date('activity_date')->nullable()->after('activity_description')
                   ->comment('UC006: actual date the activity was done');
             $table->enum('submission_status', [

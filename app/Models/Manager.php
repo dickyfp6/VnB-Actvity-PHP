@@ -28,12 +28,12 @@ class Manager extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function functionalNewHires(): HasMany
+    public function functionalEmployees(): HasMany
     {
         return $this->hasMany(Employee::class, 'manager_functional_id');
     }
 
-    public function operationalNewHires(): HasMany
+    public function operationalEmployees(): HasMany
     {
         return $this->hasMany(Employee::class, 'manager_operational_id');
     }

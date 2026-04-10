@@ -624,16 +624,16 @@
             @endif
 
             @if(in_array($role, ['admin','intercomm','pcx_manager']))
-            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="New Hire">
+            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Employee">
                 <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>New Hire</span>
+                <span>Employee</span>
             </a>
             @endif
 
             @if(in_array($role, ['manager']))
-            <a href="/manager/new-hires" class="nav-link {{ request()->is('manager/new-hires*') ? 'active' : '' }}" title="New Hire">
+            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Employee">
                 <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>New Hire</span>
+                <span>Employee</span>
             </a>
             <a href="/manager/approval-requests" class="nav-link {{ request()->is('manager/approval-requests*') ? 'active' : '' }}" title="Approval Request">
                 <div style="position: relative; display: inline-block;">
@@ -649,7 +649,7 @@
             </a>
             @endif
 
-            @if(in_array($role, ['admin','new_hire']))
+            @if(in_array($role, ['admin','employee']))
             <a href="/vnb-plans" class="nav-link {{ request()->is('vnb-plans*') ? 'active' : '' }}" title="Planning">
                 <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
                 <span>Planning</span>

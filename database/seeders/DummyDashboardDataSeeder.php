@@ -18,7 +18,7 @@ class DummyDashboardDataSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * Generates realistic dummy data for PCX/Manager dashboards (75 new hires)
+     * Generates realistic dummy data for PCX/Manager dashboards (75 employees)
      */
     public function run(): void
     {
@@ -37,7 +37,7 @@ class DummyDashboardDataSeeder extends Seeder
             return;
         }
 
-        $this->command->info('🔄 Generating 75 dummy new hire employees...');
+        $this->command->info('🔄 Generating 75 dummy employee employees...');
 
         $lastEmpId = Employee::max('id') ?? 0;
         
@@ -112,7 +112,7 @@ class DummyDashboardDataSeeder extends Seeder
         $this->populateCareerStages();
 
         $this->command->info('✅ Dummy dashboard data created successfully!');
-        $this->command->info('📊 75 new hire employees distributed across ' . $departments->count() . ' departments');
+        $this->command->info('📊 75 employee employees distributed across ' . $departments->count() . ' departments');
         $this->command->info('🏢 Manager structure:');
         $this->command->info('   - ALL employees: Functional manager (REQUIRED)');
         $this->command->info('   - ~60% employees: Also have Operational manager (different from functional)');

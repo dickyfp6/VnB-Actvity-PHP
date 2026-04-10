@@ -138,7 +138,7 @@ Total: 3 queries (1 SELECT + batch UPDATES + 1 bulk INSERT)
 
 ---
 
-### 3. `getOrCreateNewHirePlan()` - Creating Auto-Plan with 14 Items
+### 3. `getOrCreateEmployeePlan()` - Creating Auto-Plan with 14 Items
 
 #### ❌ BEFORE (15+ Queries)
 ```
@@ -265,7 +265,7 @@ Total: ~12 queries instead of 30+
 | Create plan | 10 | 51 | 2 | 25.5x |
 | Create plan | 50 | 201 | 2 | 100x |
 | Update 5 items | 10 | 20 | 3 | 6.7x |
-| Create new hire plan | 14 items | 22 | 5 | 4.4x |
+| Create employee plan | 14 items | 22 | 5 | 4.4x |
 | Submit revisions | 10 changes | 30 | 12 | 2.5x |
 | View plan | - | 7 | 5 | 1.4x |
 

@@ -70,11 +70,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is New Hire
+     * Check if user is Employee
      */
-    public function isNewHire(): bool
+    public function isEmployee(): bool
     {
-        return $this->hasRole('new_hire');
+        return $this->hasRole('employee');
     }
 
     /**

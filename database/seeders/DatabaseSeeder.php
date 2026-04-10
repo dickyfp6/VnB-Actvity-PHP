@@ -47,28 +47,28 @@ class DatabaseSeeder extends Seeder
                 'roles' => ['manager']
             ],
             [
-                'name' => 'New Hire',
-                'email' => 'newhire@vnb.local',
+                'name' => 'Employee',
+                'email' => 'employee@vnb.local',
                 'phone' => '082123456789',
-                'roles' => ['new_hire']
+                'roles' => ['employee']
             ],
             [
                 'name' => 'Dicky Febri Primadhani',
                 'email' => 'dicky@vnb.id',
                 'phone' => null,
-                'roles' => ['new_hire']
+                'roles' => ['employee']
             ],
             [
                 'name' => 'Ahnaf Fathan',
                 'email' => 'fathan@vnb.local',
                 'phone' => '081234567890',
-                'roles' => ['new_hire']
+                'roles' => ['employee']
             ],
             [
                 'name' => 'Regina Dwi',
                 'email' => 'rere@vnb.local',
                 'phone' => '082123456788',
-                'roles' => ['new_hire']
+                'roles' => ['employee']
             ],
         ];
 

@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 class ManagerController extends Controller
 {
     /**
-     * UC003: List managers with new hire counts
+     * UC003: List managers with employee counts
      */
     public function index(Request $request): JsonResponse
     {
@@ -86,10 +86,10 @@ class ManagerController extends Controller
                 'company' => $manager->company,
                 'division' => $manager->division,
                 'status' => $manager->status,
-                'new_hire_count' => $allEmployeeIds->count(),
-                'functional_new_hires_count' => $functionalEmployees->count(),
-                'operational_new_hires_count' => $operationalEmployees->count(),
-                'progress_new_hire' => $avgProgress,
+                'employee_count' => $allEmployeeIds->count(),
+                'functional_employees_count' => $functionalEmployees->count(),
+                'operational_employees_count' => $operationalEmployees->count(),
+                'progress_employee' => $avgProgress,
                 'has_account' => (bool) $manager->user_id,
             ];
         });
@@ -125,10 +125,10 @@ class ManagerController extends Controller
                 'company' => $manager->company,
                 'division' => $manager->division,
                 'status' => $manager->status,
-                'new_hire_count' => $employees->count(),
-                'functional_new_hires_count' => $functionalCount,
-                'operational_new_hires_count' => $operationalCount,
-                'progress_new_hire' => $avgProgress,
+                'employee_count' => $employees->count(),
+                'functional_employees_count' => $functionalCount,
+                'operational_employees_count' => $operationalCount,
+                'progress_employee' => $avgProgress,
                 'has_account' => (bool) $manager->user_id,
                 'account_credential_preview' => $this->buildManagerCredentialPreview($manager),
             ],
@@ -291,7 +291,7 @@ class ManagerController extends Controller
 
         $manager = Manager::findOrFail($id);
 
-        // Check if manager is assigned to any New Hire
+        // Check if manager is assigned to any Employee
         $inUse = Employee::where('manager_functional_id', $id)
             ->orWhere('manager_operational_id', $id)
             ->exists();
@@ -299,7 +299,7 @@ class ManagerController extends Controller
         if ($inUse) {
             return response()->json([
                 'success' => false,
-                'message' => 'Manager tidak dapat dihapus karena masih terdaftar sebagai Manager New Hire.',
+                'message' => 'Manager tidak dapat dihapus karena masih terdaftar sebagai Manager Employee.',
             ], 422);
         }
 
@@ -309,9 +309,9 @@ class ManagerController extends Controller
     }
 
     /**
-     * UC003 Scenario D: List New Hires under a Manager
+     * UC003 Scenario D: List Employees under a Manager
      */
-    public function newHires(int $id): JsonResponse
+    public function employees(int $id): JsonResponse
     {
         $this->authorizeManagerAccess();
 
@@ -322,7 +322,7 @@ class ManagerController extends Controller
         $managerNameMap = $this->buildManagerNameMap($employees);
         $latestPlanMap = $this->buildLatestPlanMap($employees);
 
-        $rows = $employees->map(fn (Employee $employee) => $this->formatNewHireRow(
+        $rows = $employees->map(fn (Employee $employee) => $this->formatEmployeeRow(
             $employee,
             $progressMap,
             $managerNameMap,
@@ -337,9 +337,9 @@ class ManagerController extends Controller
     }
 
     /**
-     * Manager Portal: List assigned new hires (active/history)
+     * Manager Portal: List assigned employees (active/history)
      */
-    public function myNewHires(Request $request): JsonResponse
+    public function myEmployees(Request $request): JsonResponse
     {
         $this->authorizeManagerPortalAccess();
 
@@ -422,9 +422,9 @@ class ManagerController extends Controller
     }
 
     /**
-     * Manager Portal: New hire detail for review/approval
+     * Manager Portal: Employee detail for review/approval
      */
-    public function myNewHireDetail(int $employeeId): JsonResponse
+    public function myEmployeeDetail(int $employeeId): JsonResponse
     {
         $this->authorizeManagerPortalAccess();
 
@@ -526,7 +526,7 @@ class ManagerController extends Controller
         ]);
     }
 
-    public function myNewHirePlanningHistory(int $employeeId): JsonResponse
+    public function myEmployeePlanningHistory(int $employeeId): JsonResponse
     {
         $this->authorizeManagerPortalAccess();
 
@@ -728,7 +728,7 @@ class ManagerController extends Controller
             ->map(fn ($plans) => $plans->first());
     }
 
-    private function formatNewHireRow(
+    private function formatEmployeeRow(
         Employee $employee,
         Collection $progressMap,
         Collection $managerNameMap,
@@ -746,7 +746,7 @@ class ManagerController extends Controller
 
         return [
             'id' => $employee->id,
-            'new_hire' => $employee->name,
+            'employee' => $employee->name,
             'company' => $employee->company,
             'division' => $employee->division?->name,
             'manager_functional' => $employee->manager_functional_id ? ($managerNameMap[$employee->manager_functional_id] ?? '-') : '-',
@@ -843,9 +843,9 @@ class ManagerController extends Controller
             $user = User::find($manager->user_id);
         }
 
-        if ($user && ($user->employee_id || $user->hasRole('new_hire'))) {
+        if ($user && ($user->employee_id || $user->hasRole('employee'))) {
             throw ValidationException::withMessages([
-                'manager' => ['Akun manager terhubung ke akun New Hire. Hubungi admin untuk perbaikan data user manager.'],
+                'manager' => ['Akun manager terhubung ke akun Employee. Hubungi admin untuk perbaikan data user manager.'],
             ]);
         }
 
@@ -855,10 +855,10 @@ class ManagerController extends Controller
                 ->first();
 
             if ($emailMatchedUser) {
-                // Reject if email is linked to a new hire
-                if ($emailMatchedUser->employee_id || $emailMatchedUser->hasRole('new_hire')) {
+                // Reject if email is linked to a employee
+                if ($emailMatchedUser->employee_id || $emailMatchedUser->hasRole('employee')) {
                     throw ValidationException::withMessages([
-                        'email' => ['Email manager sudah dipakai akun New Hire. Gunakan email manager yang berbeda.'],
+                        'email' => ['Email manager sudah dipakai akun Employee. Gunakan email manager yang berbeda.'],
                     ]);
                 }
 
@@ -983,14 +983,14 @@ class ManagerController extends Controller
 
         $plan = VnbPlan::with('employee', 'items')->findOrFail($planId);
 
-        // Check authorization - user is manager of this new hire
+        // Check authorization - user is manager of this employee
         $manager = $this->resolveCurrentManager();
         $isAuthorized = $manager && (
             $plan->employee->manager_functional_id == $manager->id ||
             $plan->employee->manager_operational_id == $manager->id
         );
 
-        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari employee ini');
 
         try {
             DB::beginTransaction();
@@ -1035,7 +1035,7 @@ class ManagerController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Permintaan revisi berhasil dikirim ke new hire',
+                'message' => 'Permintaan revisi berhasil dikirim ke employee',
                 'data' => [
                     'revision_id' => $revision->id,
                     'revision_number' => $revision->revision_number,
@@ -1174,10 +1174,10 @@ class ManagerController extends Controller
     }
 
     /**
-     * Get pending revisions untuk new hire (from manager)
-     * GET /api/manager/my-new-hire-revisions
+     * Get pending revisions untuk employee (from manager)
+     * GET /api/manager/my-employee-revisions
      */
-    public function myNewHireRevisions(): JsonResponse
+    public function myEmployeeRevisions(): JsonResponse
     {
         $user = auth()->user();
         abort_unless($user !== null, 401);
@@ -1212,10 +1212,10 @@ class ManagerController extends Controller
     }
 
     /**
-     * New Hire: Get all pending revisions (view untuk new hire)
-     * GET /api/new-hire/pending-revisions
+     * Employee: Get all pending revisions (view untuk employee)
+     * GET /api/employee/pending-revisions
      */
-    public function getNewHirePendingRevisions(): JsonResponse
+    public function getEmployeePendingRevisions(): JsonResponse
     {
         $user = auth()->user();
         abort_unless($user !== null, 401);
@@ -1373,7 +1373,7 @@ class ManagerController extends Controller
             $plan->employee->manager_operational_id == $manager->id
         );
 
-        abort_unless($isAuthorized, 403, 'Anda bukan manager dari new hire ini');
+        abort_unless($isAuthorized, 403, 'Anda bukan manager dari employee ini');
 
         try {
             DB::beginTransaction();

@@ -29,7 +29,7 @@ class DashboardController extends Controller
     private function resolveEmployeeScope($user, string $role): \Illuminate\Database\Eloquent\Builder
     {
         $query = Employee::query();
-        if ($role === 'new_hire') {
+        if ($role === 'employee') {
             $query->where('email', $user->email);
         } elseif ($role === 'manager') {
             $manager = Manager::where('email', $user->email)->first();

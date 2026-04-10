@@ -198,7 +198,7 @@ class EmployeeController extends Controller
             $employee = $this->createOrRestoreEmployee($data);
 
             $this->syncVnbPeriods($employee, $periodStart);
-            $generatedPassword = $this->provisionNewHireUserAccount($employee, true);
+            $generatedPassword = $this->provisionEmployeeUserAccount($employee, true);
             if ($generatedPassword !== null) {
                 $credentialPayload = [
                     'employee_id' => $employee->id,
@@ -214,7 +214,7 @@ class EmployeeController extends Controller
 
         $emailSent = false;
         if ($generatedPassword) {
-            $emailSent = $this->sendNewHireCredentialEmail($employee, $generatedPassword);
+            $emailSent = $this->sendEmployeeCredentialEmail($employee, $generatedPassword);
         }
 
         if ($credentialPayload) {
@@ -226,7 +226,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Data New Hire berhasil ditambahkan',
+            'message' => 'Data Employee berhasil ditambahkan',
             'data' => [
                 ...$employee->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods'])->toArray(),
                 'account_credential' => $credentialPayload,
@@ -268,11 +268,11 @@ class EmployeeController extends Controller
             ], 403);
         }
 
-        $rawPassword = $this->resetNewHireCredential($employee);
+        $rawPassword = $this->resetEmployeeCredential($employee);
 
         $emailSent = false;
         if ($rawPassword !== null) {
-            $emailSent = $this->sendNewHireCredentialEmail($employee, $rawPassword);
+            $emailSent = $this->sendEmployeeCredentialEmail($employee, $rawPassword);
         }
 
         $preview = $this->buildCredentialPreview($employee->fresh(['user']));
@@ -308,25 +308,25 @@ class EmployeeController extends Controller
             $employee->update($validated);
             $freshEmployee = $employee->fresh();
             $this->syncVnbPeriods($freshEmployee, $base);
-            $this->provisionNewHireUserAccount($freshEmployee, false);
-            $this->syncNewHireUserAccessStatus($freshEmployee);
+            $this->provisionEmployeeUserAccount($freshEmployee, false);
+            $this->syncEmployeeUserAccessStatus($freshEmployee);
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Data New Hire berhasil diperbarui',
+            'message' => 'Data Employee berhasil diperbarui',
             'data' => $employee->fresh()->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational'])
         ]);
     }
 
     public function destroy(Employee $employee): JsonResponse
     {
-        $this->deactivateNewHireUserByEmployeeId($employee->id);
+        $this->deactivateEmployeeUserByEmployeeId($employee->id);
         $employee->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Data New Hire berhasil dihapus',
+            'message' => 'Data Employee berhasil dihapus',
         ]);
     }
 
@@ -354,11 +354,11 @@ class EmployeeController extends Controller
         }
 
         $employee->update($payload);
-        $this->syncNewHireUserAccessStatus($employee->fresh());
+        $this->syncEmployeeUserAccessStatus($employee->fresh());
 
         return response()->json([
             'success' => true,
-            'message' => 'Status lifecycle New Hire berhasil diperbarui.',
+            'message' => 'Status lifecycle Employee berhasil diperbarui.',
             'data' => $employee->fresh(),
         ]);
     }
@@ -531,7 +531,7 @@ class EmployeeController extends Controller
             'NIP',
             'Tanggal Masuk',
             'Tanggal Induction',
-            'Nama New Hire',
+            'Nama Employee',
             'Email',
             'Whatsapp',
             'Manager Fungsional',
@@ -567,7 +567,7 @@ class EmployeeController extends Controller
 
         return response()->streamDownload(function () use ($xlsxBinary) {
             echo $xlsxBinary;
-        }, 'template_import_new_hire.xlsx', [
+        }, 'template_import_employee.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
@@ -626,7 +626,7 @@ class EmployeeController extends Controller
                 ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
                 ->exists();
             if ($exists) {
-                throw ValidationException::withMessages(['email' => ['Email sudah terdaftar di New Hire lain.']]);
+                throw ValidationException::withMessages(['email' => ['Email sudah terdaftar di Employee lain.']]);
             }
         }
 
@@ -639,7 +639,7 @@ class EmployeeController extends Controller
                 ->contains(fn ($item) => $this->normalizeWhatsappKey((string) $item->whatsapp) === $targetWhatsapp);
 
             if ($existsWhatsapp) {
-                throw ValidationException::withMessages(['whatsapp' => ['Nomor Whatsapp sudah terdaftar di New Hire lain.']]);
+                throw ValidationException::withMessages(['whatsapp' => ['Nomor Whatsapp sudah terdaftar di Employee lain.']]);
             }
         }
 
@@ -649,7 +649,7 @@ class EmployeeController extends Controller
                 ->whereRaw('LOWER(employee_number) = ?', [Str::lower($employeeNumber)])
                 ->exists();
             if ($existsEmployeeNumber) {
-                throw ValidationException::withMessages(['employee_number' => ['NIP sudah terdaftar di New Hire lain.']]);
+                throw ValidationException::withMessages(['employee_number' => ['NIP sudah terdaftar di Employee lain.']]);
             }
         }
 
@@ -735,7 +735,7 @@ class EmployeeController extends Controller
 
         if ($existing) {
             throw ValidationException::withMessages([
-                'email' => ['Email atau NIP sudah terdaftar di New Hire lain.'],
+                'email' => ['Email atau NIP sudah terdaftar di Employee lain.'],
             ]);
         }
 
@@ -843,7 +843,7 @@ class EmployeeController extends Controller
         return $firstName . $suffix;
     }
 
-    private function provisionNewHireUserAccount(Employee $employee, bool $allowCreate): ?string
+    private function provisionEmployeeUserAccount(Employee $employee, bool $allowCreate): ?string
     {
         $email = trim((string) $employee->email);
         if ($email === '') {
@@ -880,8 +880,8 @@ class EmployeeController extends Controller
                 'employee_id' => $employee->id,
             ]);
 
-            if (!$user->hasRole('new_hire')) {
-                $user->syncRoles(['new_hire']);
+            if (!$user->hasRole('employee')) {
+                $user->syncRoles(['employee']);
             }
 
             return null;
@@ -901,12 +901,12 @@ class EmployeeController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        $user->assignRole('new_hire');
+        $user->assignRole('employee');
 
         return $rawPassword;
     }
 
-    private function resetNewHireCredential(Employee $employee): ?string
+    private function resetEmployeeCredential(Employee $employee): ?string
     {
         $email = trim((string) $employee->email);
         if ($email === '') {
@@ -916,7 +916,7 @@ class EmployeeController extends Controller
         $user = User::query()->where('employee_id', $employee->id)->first();
 
         if (!$user) {
-            $this->provisionNewHireUserAccount($employee, true);
+            $this->provisionEmployeeUserAccount($employee, true);
             $user = User::query()->where('employee_id', $employee->id)->first();
         }
 
@@ -937,8 +937,8 @@ class EmployeeController extends Controller
             'temp_password_generated_at' => now(),
         ]);
 
-        if (!$user->hasRole('new_hire')) {
-            $user->syncRoles(['new_hire']);
+        if (!$user->hasRole('employee')) {
+            $user->syncRoles(['employee']);
         }
 
         return $rawPassword;
@@ -961,13 +961,13 @@ class EmployeeController extends Controller
             'has_account' => (bool) $user,
             'username' => $employee->employee_number,
             'email' => $employee->email,
-            'role' => 'new_hire',
+            'role' => 'employee',
             'temporary_password' => $tempPassword,
             'temporary_password_generated_at' => optional($user?->temp_password_generated_at)->toDateTimeString(),
         ];
     }
 
-    private function sendNewHireCredentialEmail(Employee $employee, string $rawPassword): bool
+    private function sendEmployeeCredentialEmail(Employee $employee, string $rawPassword): bool
     {
         $email = trim((string) $employee->email);
         if ($email === '') {
@@ -978,12 +978,12 @@ class EmployeeController extends Controller
             Mail::raw(
                 "Halo {$employee->name},\n\nAkun VnB Anda telah dibuat.\nNIP: {$employee->employee_number}\nEmail: {$employee->email}\nPassword: {$rawPassword}\n\nSilakan login lalu ubah password di menu akun Anda.",
                 function ($message) use ($email) {
-                    $message->to($email)->subject('Akun VnB New Hire Anda');
+                    $message->to($email)->subject('Akun VnB Employee Anda');
                 }
             );
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Gagal mengirim email akun New Hire', [
+            Log::warning('Gagal mengirim email akun Employee', [
                 'employee_id' => $employee->id,
                 'email' => $email,
                 'error' => $e->getMessage(),
@@ -993,7 +993,7 @@ class EmployeeController extends Controller
         }
     }
 
-    private function syncNewHireUserAccessStatus(Employee $employee): void
+    private function syncEmployeeUserAccessStatus(Employee $employee): void
     {
         $user = User::query()->where('employee_id', $employee->id)->first();
         if (!$user) {
@@ -1030,7 +1030,7 @@ class EmployeeController extends Controller
         }
     }
 
-    private function deactivateNewHireUserByEmployeeId(int $employeeId): void
+    private function deactivateEmployeeUserByEmployeeId(int $employeeId): void
     {
         $user = User::query()->where('employee_id', $employeeId)->first();
         if (!$user) {
@@ -1110,9 +1110,9 @@ class EmployeeController extends Controller
                     $employee = $this->createOrRestoreEmployee($validated);
                     $this->syncVnbPeriods($employee, $periodStart);
 
-                    $generatedPassword = $this->provisionNewHireUserAccount($employee, true);
+                    $generatedPassword = $this->provisionEmployeeUserAccount($employee, true);
                     if ($generatedPassword) {
-                        $emailSent = $this->sendNewHireCredentialEmail($employee, $generatedPassword);
+                        $emailSent = $this->sendEmployeeCredentialEmail($employee, $generatedPassword);
                         $credentialPayload = [
                             'employee_id' => $employee->id,
                             'name' => $employee->name,
@@ -1133,7 +1133,7 @@ class EmployeeController extends Controller
                 }
             } catch (\Throwable $e) {
                 $failed++;
-                Log::warning('Import New Hire row gagal', [
+                Log::warning('Import Employee row gagal', [
                     'row' => $index + 1,
                     'employee_number' => $row['employee_number'] ?? null,
                     'email' => $row['email'] ?? null,
@@ -1319,7 +1319,7 @@ class EmployeeController extends Controller
                 'employee_number' => 'NIP wajib diisi',
             'date_joined' => 'Tanggal Masuk wajib diisi',
             'induction_date' => 'Tanggal Induction wajib diisi',
-            'name' => 'Nama New Hire wajib diisi',
+            'name' => 'Nama Employee wajib diisi',
             'email' => 'Email wajib diisi',
             'whatsapp' => 'Whatsapp wajib diisi',
             'manager_functional_input' => 'Manager Fungsional wajib diisi',
@@ -1790,7 +1790,7 @@ class EmployeeController extends Controller
             'employee_number' => $get(['nip', 'employee_number', 'nomor pegawai']),
             'date_joined' => $get(['tanggal masuk', 'date_joined']),
             'induction_date' => $get(['tanggal induction', 'induction_date']),
-            'name' => $get(['nama new hire', 'name']),
+            'name' => $get(['nama employee', 'name']),
             'email' => $get(['email']),
             'whatsapp' => $get(['whatsapp', 'nomor whatsapp']),
             'manager_functional_input' => $get(['manager fungsional', 'manager_functional', 'manager_functional_id']),

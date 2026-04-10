@@ -40,7 +40,7 @@ return new class extends Migration
             $table->foreignId('vnb_plan_item_id')->constrained('vnb_plan_items')->onDelete('cascade')->comment('Activity yang direvisi');
             $table->json('old_values')->nullable()->comment('Values sebelum revisi: title, desc, dates, deliverables, metrics');
             $table->json('new_values')->nullable()->comment('Values sesudah revisi');
-            $table->foreignId('changed_by')->constrained('employees', 'id')->comment('New hire yang melakukan perubahan');
+            $table->foreignId('changed_by')->constrained('employees', 'id')->comment('Employee yang melakukan perubahan');
             $table->timestamps();
 
             $table->index(['vnb_plan_revision_id']);

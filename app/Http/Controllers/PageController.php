@@ -20,9 +20,9 @@ class PageController extends Controller
             // return Redirect::route('dashboard.manager');
         }
         
-        if ($user->hasRole('new_hire')) {
-            // Akan membuat new hire dashboard nanti
-            // return Redirect::route('dashboard.new-hire');
+        if ($user->hasRole('employee')) {
+            // Akan membuat employee dashboard nanti
+            // return Redirect::route('dashboard.employee');
         }
         
         // Default fallback
@@ -45,20 +45,20 @@ class PageController extends Controller
     public function vnbActivity() { return view('vnb-activity.index'); }
     public function reviewActivity() { return view('review-activity.index'); }
     public function masterData() { return view('master-data.index'); }
-    public function managerNewHires()
+    public function managerEmployees()
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Manager New Hire');
-        return view('manager-new-hires.index');
+        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Manager Employee');
+        return view('manager-employees.index');
     }
-    public function managerNewHireDetail(int $employeeId)
+    public function managerEmployeeDetail(int $employeeId)
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Detail New Hire Manager');
-        return view('manager-new-hires.detail', compact('employeeId'));
+        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Detail Employee Manager');
+        return view('manager-employees.detail', compact('employeeId'));
     }
     public function managerPlanningHistory(int $employeeId)
     {
         abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Planning History');
-        return view('manager-new-hires.planning-history', compact('employeeId'));
+        return view('manager-employees.planning-history', compact('employeeId'));
     }
     public function managerApprovalRequests()
     {

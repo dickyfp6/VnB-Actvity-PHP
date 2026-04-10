@@ -7,7 +7,7 @@
 | 1️⃣ | `store()` N+1 | VnbPlanController | 199-207 | 10 min | 25x faster |
 | 2️⃣ | `update()` N+1 | VnbPlanController | 224-225 | 15 min | 6x faster |
 | 3️⃣ | `saveDraft()` N+1 | VnbPlanController | 289-310 | 15 min | 6x faster |
-| 4️⃣ | `getOrCreateNewHirePlan()` N+1 | VnbPlanController | 132-141 | 20 min | 3x faster |
+| 4️⃣ | `getOrCreateEmployeePlan()` N+1 | VnbPlanController | 132-141 | 20 min | 3x faster |
 | 5️⃣ | `submitRevisionChanges()` N+1 | VnbPlanController | 539-551 | 15 min | 2x faster |
 | 6️⃣ | Database indexes | migration file | - | 10 min | 2-3x faster |
 | 7️⃣ | Eager loading optimization | VnbPlanController | 160-168 | 5 min | 1.4x faster |
@@ -254,7 +254,7 @@
 
 ---
 
-### Fix #4: `getOrCreateNewHirePlan()` Method
+### Fix #4: `getOrCreateEmployeePlan()` Method
 
 **File:** `app/Http/Controllers/Api/VnbPlanController.php`
 **Current State:** Lines 77-150
@@ -596,7 +596,7 @@ php artisan migrate
 use Illuminate\Support\Facades\Cache;
 ```
 
-**Update `getOrCreateNewHirePlan()` to use:**
+**Update `getOrCreateEmployeePlan()` to use:**
 ```php
         // Replace this line:
         // $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStage)->get()->groupBy('phase');
@@ -666,7 +666,7 @@ Track these metrics before and after implementation:
 - Fix saveDraft() method
 
 **Day 2 (Fixes 4-5: 35 minutes)**
-- Fix getOrCreateNewHirePlan() method
+- Fix getOrCreateEmployeePlan() method
 - Fix submitRevisionChanges() method
 
 **Day 3 (Fixes 6-8: 25 minutes)**

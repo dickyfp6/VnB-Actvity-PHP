@@ -83,16 +83,16 @@ class EmployeeAndManagerSeeder extends Seeder
             }
         }
 
-        // ========== EMPLOYEES (New Hires) ==========
-        // Employees ter-link ke users dengan role 'new_hire'
+        // ========== EMPLOYEES (Employees) ==========
+        // Employees ter-link ke users dengan role 'employee'
         // Get all managers for assignment
         $allManagers = Manager::all();
         
         $employees = [
             [
                 'employee_number' => '5026221011',
-                'name' => 'New Hire',
-                'email' => 'newhire@vnb.local',
+                'name' => 'Employee',
+                'email' => 'employee@vnb.local',
                 'whatsapp' => '082123456789',
                 'date_joined' => '2026-04-01',
                 'induction_date' => '2026-04-07',

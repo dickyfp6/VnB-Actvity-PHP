@@ -138,9 +138,9 @@ window.addEventListener('beforeunload', (e) => {
     }
 });
 
-async function loadNewHirePlan() {
+async function loadEmployeePlan() {
     try {
-        const res = await apiGet('/api/vnb-plans/new-hire');
+        const res = await apiGet('/api/vnb-plans/employee');
         if (!res.success) {
             showAlert(res.message || 'Gagal memuat plan', 'error');
             return;
@@ -839,7 +839,7 @@ async function submitPlan() {
 }
 
 // Load plan ketika page muncul
-loadNewHirePlan();
+loadEmployeePlan();
 </script>
 @endpush
 @endsection

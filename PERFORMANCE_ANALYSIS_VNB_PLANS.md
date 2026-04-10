@@ -114,7 +114,7 @@ public function store(Request $request): JsonResponse
 
 ---
 
-## Issue #2: N+1 Query Problem in `getOrCreateNewHirePlan()` Method
+## Issue #2: N+1 Query Problem in `getOrCreateEmployeePlan()` Method
 
 **Location:** [VnbPlanController.php](VnbPlanController.php#L132-L141)
 
@@ -150,13 +150,13 @@ foreach ($frameworkItems as $phaseNumber => $items) {
 **✅ RECOMMENDED FIX:**
 
 ```php
-public function getOrCreateNewHirePlan(): JsonResponse
+public function getOrCreateEmployeePlan(): JsonResponse
 {
     $user = auth()->user();
-    if (!$user->isNewHire() || !$user->employee_id) {
+    if (!$user->isEmployee() || !$user->employee_id) {
         return response()->json([
             'success' => false,
-            'message' => 'Hanya New Hire yang dapat mengakses fitur ini'
+            'message' => 'Hanya Employee yang dapat mengakses fitur ini'
         ], 403);
     }
 
@@ -164,7 +164,7 @@ public function getOrCreateNewHirePlan(): JsonResponse
     if (!$employee) {
         return response()->json([
             'success' => false,
-            'message' => 'Data New Hire tidak ditemukan'
+            'message' => 'Data Employee tidak ditemukan'
         ], 404);
     }
 
@@ -601,7 +601,7 @@ public function submitRevisionChanges(Request $request, int $planId, int $revisi
                     'revision_number' => $revision->revision_number,
                     'changes_count' => count($changes),
                 ])
-                ->log('New hire submitted revision changes');
+                ->log('Employee submitted revision changes');
         }
 
         DB::commit();
@@ -864,7 +864,7 @@ $frameworkItems = VnbFrameworkItem::where('career_stage', $careerStage)
 **Problem:**
 - Framework items are static reference data
 - Each plan creation queries framework items fresh
-- With 50+ new hires per day: 50+ identical queries to framework table
+- With 50+ employees per day: 50+ identical queries to framework table
 - Data rarely changes
 
 **✅ RECOMMENDED FIX:**
@@ -886,7 +886,7 @@ private function getFrameworkItemsByStage($careerStage)
     );
 }
 
-// Usage in getOrCreateNewHirePlan():
+// Usage in getOrCreateEmployeePlan():
 $frameworkItems = $this->getFrameworkItemsByStage($careerStage);
 
 // Also add cache invalidation when framework items are updated:
@@ -906,7 +906,7 @@ Cache::forget("vnb_framework_{$careerStage}");
 | Issue | Type | Current | Optimized | Speedup | Impact |
 |-------|------|---------|-----------|---------|--------|
 | store() N+1 | Query | 51 queries | 2 queries | 25.5x | 🔴 Critical |
-| getOrCreateNewHirePlan() N+1 | Query | 15+ queries | 4-5 queries | 3-4x | 🔴 Critical |
+| getOrCreateEmployeePlan() N+1 | Query | 15+ queries | 4-5 queries | 3-4x | 🔴 Critical |
 | update() N+1 | Query | 20+ queries | 3 queries | 6-7x | 🔴 Critical |
 | saveDraft() N+1 | Query | 20+ queries | 3 queries | 6-7x | 🔴 Critical |
 | submitRevisionChanges() N+1 | Query | 30+ queries | 15 queries | 2x | 🔴 Critical |
@@ -928,7 +928,7 @@ Overall Speedup: 7-8x faster
 
 ### Phase 1 (Critical - Do First)
 1. ✅ Apply batch insert fix to `store()` method
-2. ✅ Apply batch insert fix to `getOrCreateNewHirePlan()` method
+2. ✅ Apply batch insert fix to `getOrCreateEmployeePlan()` method
 3. ✅ Apply batch update fix to `update()` method
 4. ✅ Apply batch update fix to `saveDraft()` method
 

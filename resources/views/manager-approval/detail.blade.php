@@ -5,7 +5,7 @@
   <!-- Header dengan Breadcrumb -->
   <div class="flex items-center justify-between">
     <div>
-      <a href="/manager/new-hires" class="text-sm text-blue-600 hover:underline mb-2 inline-block">
+      <a href="/manager/employees" class="text-sm text-blue-600 hover:underline mb-2 inline-block">
         <i class="fas fa-arrow-left mr-1"></i> Kembali
       </a>
       <h1 class="text-2xl font-bold text-gray-800" id="plan-title">Plan Details</h1>
@@ -91,7 +91,7 @@
 <div id="revision-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
     <h3 class="text-lg font-bold text-gray-800 mb-4">Request Revisi Planning</h3>
-    <p class="text-gray-600 text-sm mb-4">Masukkan catatan revisi yang ingin diberikan kepada new hire. Catatan ini akan disimpan dan dapat dilacak dalam riwayat revisi.</p>
+    <p class="text-gray-600 text-sm mb-4">Masukkan catatan revisi yang ingin diberikan kepada employee. Catatan ini akan disimpan dan dapat dilacak dalam riwayat revisi.</p>
     
     <div class="mb-4">
       <label class="block text-sm font-medium text-gray-700 mb-2">Catatan Revisi</label>

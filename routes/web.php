@@ -25,8 +25,8 @@ Route::middleware('auth')->group(function () {
     // Manager Dashboard (akan ditambahkan nanti)
     // Route::get('/dashboard/manager', [ManagerDashboardController::class, 'index'])->name('dashboard.manager');
     
-    // New Hire Dashboard (akan ditambahkan nanti)
-    // Route::get('/dashboard/new-hire', [NewHireDashboardController::class, 'index'])->name('dashboard.new-hire');
+    // Employee Dashboard (akan ditambahkan nanti)
+    // Route::get('/dashboard/employee', [EmployeeDashboardController::class, 'index'])->name('dashboard.employee');
 
     // ==================== END DASHBOARD ROUTES ====================
 
@@ -46,9 +46,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/review-activity', [PageController::class, 'reviewActivity'])->name('review-activity');
 
     // Manager Portal
-    Route::get('/manager/new-hires', [PageController::class, 'managerNewHires'])->name('manager.new-hires');
-    Route::get('/manager/new-hires/{employeeId}', [PageController::class, 'managerNewHireDetail'])->name('manager.new-hire.detail');
-    Route::get('/manager/new-hires/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.new-hire.planning-history');
+    Route::get('/manager/employees', [PageController::class, 'managerEmployees'])->name('manager.employees');
+    Route::get('/manager/employees/{employeeId}', [PageController::class, 'managerEmployeeDetail'])->name('manager.employee.detail');
+    Route::get('/manager/employees/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.employee.planning-history');
     Route::get('/manager/approval-requests', [PageController::class, 'managerApprovalRequests'])->name('manager.approval-requests');
     Route::get('/manager/approval/{planId}', [PageController::class, 'managerApprovalDetail'])->name('manager.approval.detail');
 

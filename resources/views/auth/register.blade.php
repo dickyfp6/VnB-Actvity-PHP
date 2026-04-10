@@ -48,7 +48,7 @@
                     <select name="role" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'">
                         <option value="">-- Select Role --</option>
-                        <option value="new_hire" {{ old('role') === 'new_hire' ? 'selected' : '' }}>New Hire</option>
+                        <option value="employee" {{ old('role') === 'employee' ? 'selected' : '' }}>Employee</option>
                         <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
                         <option value="pcx_manager" {{ old('role') === 'pcx_manager' ? 'selected' : '' }}>PCX Manager</option>
                         <option value="intercomm" {{ old('role') === 'intercomm' ? 'selected' : '' }}>Intercomm</option>

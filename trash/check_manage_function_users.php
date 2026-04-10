@@ -1,5 +1,5 @@
 <?php
-// List sample new_hire users with their career stages
+// List sample employee users with their career stages
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
@@ -8,9 +8,9 @@ use App\Models\User;
 use App\Models\Employee;
 use App\Models\VnbFrameworkItem;
 
-// Get all new_hire users
-$users = User::where('role', 'new_hire')->get();
-echo "Users with new_hire role: " . $users->count() . "\n\n";
+// Get all employee users
+$users = User::where('role', 'employee')->get();
+echo "Users with employee role: " . $users->count() . "\n\n";
 
 // Check for manage_function users specifically
 echo "Looking for users with 'Manage Function' career stage...\n\n";
@@ -30,8 +30,8 @@ foreach ($users as $user) {
 }
 
 if (empty($manage_function_users)) {
-    echo "No new_hire users with 'Manage Function' career stage found.\n\n";
-    echo "Sample of available new_hire users:\n";
+    echo "No employee users with 'Manage Function' career stage found.\n\n";
+    echo "Sample of available employee users:\n";
     
     $users->take(5)->each(function($user, $i) {
         $employee = Employee::where('user_id', $user->id)->first();

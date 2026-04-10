@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * VnbPlanRevision - Tracking revisi planning dari manager ke new hire
+ * VnbPlanRevision - Tracking revisi planning dari manager ke employee
  * @property int $id
  * @property int $vnb_plan_id
  * @property int $revision_number

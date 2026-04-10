@@ -22,7 +22,7 @@ class VnbPeriodSeeder extends Seeder
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // Get all employees (New Hires)
+        // Get all employees (Employees)
         $employees = Employee::all();
 
         foreach ($employees as $employee) {

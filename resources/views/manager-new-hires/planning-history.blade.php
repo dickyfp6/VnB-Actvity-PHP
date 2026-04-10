@@ -4,7 +4,7 @@
 <div class="px-4 space-y-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Planning Approved & History</h1>
-    <a id="back-detail-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali ke Detail New Hire</a>
+    <a id="back-detail-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali ke Detail Employee</a>
   </div>
 
   <div class="bg-white rounded-xl shadow-sm p-4" id="employee-summary">
@@ -52,7 +52,7 @@ function badgeClass(status) {
 }
 
 async function loadPlanningHistory() {
-  const res = await apiGet(`/api/manager/new-hires/${employeeId}/planning-history`);
+  const res = await apiGet(`/api/manager/employees/${employeeId}/planning-history`);
   if (!(res && res.success === true && res.data)) {
     showAlert(res?.message || 'Gagal memuat planning history', 'error');
     return;
@@ -69,7 +69,7 @@ async function loadPlanningHistory() {
   `;
 
   const backDetail = document.getElementById('back-detail-link');
-  backDetail.href = `/manager/new-hires/${employee.id}`;
+  backDetail.href = `/manager/employees/${employee.id}`;
 
   const approvedBody = document.getElementById('approved-body');
   const approvedItems = data.approved_items || [];

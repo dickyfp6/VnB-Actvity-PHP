@@ -43,20 +43,20 @@ foreach ($allEmps as $emp) {
     echo "   - {$emp->name} (ID: {$emp->id}) - Role: {$role}\n";
 }
 
-// 3. New Hire employees specifically
-echo "\n\n🆕 NEW HIRE employees + plan items:\n";
-$newHires = DB::table('employees as e')
+// 3. Employee employees specifically
+echo "\n\n🆕 EMPLOYEE employees + plan items:\n";
+$employees = DB::table('employees as e')
     ->join('users as u', 'u.employee_id', '=', 'e.id')
     ->leftJoin('model_has_roles as mhr', 'u.id', '=', 'mhr.model_id')
     ->leftJoin('roles as r', 'mhr.role_id', '=', 'r.id')
-    ->where('r.name', 'new_hire')
+    ->where('r.name', 'employee')
     ->select('e.id', 'e.name', 'u.email')
     ->get();
 
-if ($newHires->count() === 0) {
-    echo "❌ NO New Hire users found!\n";
+if ($employees->count() === 0) {
+    echo "❌ NO Employee users found!\n";
 } else {
-    foreach ($newHires as $nh) {
+    foreach ($employees as $nh) {
         // Check if have plan items
         $items = DB::table('vnb_plan_items')->where('employee_id', $nh->id)->count();
         $status = $items > 0 ? "✓ HAVE {$items} items" : "❌ NO items";

@@ -44,7 +44,7 @@
         <thead>
           <tr>
             <th>Jenis</th>
-            <th>New Hire</th>
+            <th>Employee</th>
             <th>NIP</th>
             <th>Perusahaan</th>
             <th>Judul</th>
@@ -70,7 +70,7 @@
         <thead>
           <tr>
             <th>Jenis</th>
-            <th>New Hire</th>
+            <th>Employee</th>
             <th>NIP</th>
             <th>Perusahaan</th>
             <th>Judul</th>
@@ -176,7 +176,7 @@ function renderMyApprovals() {
       <td class="px-4 py-3">${row.phase || '-'}</td>
       <td class="px-4 py-3">${row.submitted_at || '-'}</td>
       <td class="px-4 py-3 text-right">
-        <a href="/manager/new-hires/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
+        <a href="/manager/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
           <i class="fas fa-arrow-right"></i> Lihat Detail
         </a>
       </td>
@@ -205,7 +205,7 @@ function renderMonitoring() {
       <td class="px-4 py-3">${row.phase || '-'}</td>
       <td class="px-4 py-3">${row.submitted_at || '-'}</td>
       <td class="px-4 py-3 text-right">
-        <a href="/manager/new-hires/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
+        <a href="/manager/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
           <i class="fas fa-eye"></i> Pantau
         </a>
       </td>

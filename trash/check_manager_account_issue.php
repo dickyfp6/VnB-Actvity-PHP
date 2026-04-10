@@ -46,8 +46,8 @@ if ($user->employee_id) {
     }
 }
 
-if ($user->hasRole('new_hire')) {
-    $issues[] = "✗ User has 'new_hire' role assigned";
+if ($user->hasRole('employee')) {
+    $issues[] = "✗ User has 'employee' role assigned";
 }
 
 if (empty($issues)) {

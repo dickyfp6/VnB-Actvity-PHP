@@ -1,5 +1,5 @@
 <?php
-// Simulate creating plan for an employee (like getOrCreateNewHirePlan)
+// Simulate creating plan for an employee (like getOrCreateEmployeePlan)
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();

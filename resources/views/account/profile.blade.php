@@ -66,8 +66,8 @@
                     <p class="text-gray-500 mb-1">Level</p>
                     <p class="font-medium text-gray-900">{{ $manager->level ?? '-' }}</p>
                 </div>
-            @elseif($role === 'new_hire' && $employee)
-                <!-- New Hire Profile Data -->
+            @elseif($role === 'employee' && $employee)
+                <!-- Employee Profile Data -->
                 <div>
                     <p class="text-gray-500 mb-1">Nomor Karyawan</p>
                     <p class="font-medium text-gray-900">{{ $employee->employee_number ?? '-' }}</p>

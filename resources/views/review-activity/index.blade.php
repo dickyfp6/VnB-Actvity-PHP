@@ -2,13 +2,13 @@
 @section('title','Review Aktivitas')
 @section('content')
 <div class="px-4">
-  <h1 class="text-2xl font-bold text-gray-800 mb-6">Review Aktivitas New Hire</h1>
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">Review Aktivitas Employee</h1>
 
   <div class="table-container">
     <table class="table-modern">
       <thead>
         <tr>
-          <th>New Hire</th>
+          <th>Employee</th>
           <th>Behaviour</th>
           <th>Phase</th>
           <th>Activity</th>
@@ -79,7 +79,7 @@ function openReviewModal(id) {
   if (!selected) return;
   document.getElementById('revision-notes').value = '';
   document.getElementById('detail-box').innerHTML = `
-    <p><span class="font-semibold">New Hire:</span> ${selected.employee_name || '-'}</p>
+    <p><span class="font-semibold">Employee:</span> ${selected.employee_name || '-'}</p>
     <p><span class="font-semibold">Behaviour:</span> ${selected.behaviour || '-'}</p>
     <p><span class="font-semibold">Phase:</span> ${selected.phase || '-'}</p>
     <p><span class="font-semibold">Rencana:</span> ${selected.plan_description || '-'}</p>
@@ -112,7 +112,7 @@ async function requestRevision() {
   }
   const res = await apiPost(`/api/vnb-activities/${selected.id}/request-revision`, { revision_notes: notes });
   if (res.message || res.id || res.data) {
-    showAlert('Revisi dikirim ke New Hire');
+    showAlert('Revisi dikirim ke Employee');
     closeReviewModal();
     loadPending();
   } else showAlert(res.error || 'Gagal request revision', 'error');

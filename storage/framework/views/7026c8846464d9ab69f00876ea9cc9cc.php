@@ -46,7 +46,7 @@
             <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-medium">Total New Hire Aktif</p>
+                        <p class="text-gray-600 text-sm font-medium">Total Employee Aktif</p>
                         <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo e($stats['total_active']); ?></p>
                     </div>
                     <div class="p-3 bg-blue-100 rounded-lg">
@@ -169,7 +169,7 @@
 
         <!-- Employee List Summary -->
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Daftar New Hire (<?php echo e(count($employees)); ?> employees)</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Daftar Employee (<?php echo e(count($employees)); ?> employees)</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>

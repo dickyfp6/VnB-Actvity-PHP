@@ -16,11 +16,11 @@ Implementasi workflow approval planning dengan fitur revision tracking dan versi
 - revision_notes: Catatan revisi dari manager
 - status: pending|in_progress|submitted|applied
   - pending: Draft revisi belum dikerjakan
-  - in_progress: New hire sedang mengerjakan revisi
-  - submitted: New hire sudah kirim perubahan revisi
+  - in_progress: Employee sedang mengerjakan revisi
+  - submitted: Employee sudah kirim perubahan revisi
   - applied: Manager approve revisi tersebut
 - requested_at: Timestamp saat manager request
-- submitted_at: Timestamp saat new hire submit
+- submitted_at: Timestamp saat employee submit
 - applied_at: Timestamp saat manager approve
 ```
 
@@ -38,7 +38,7 @@ Implementasi workflow approval planning dengan fitur revision tracking dan versi
     "behavior_metrics": "..."
   }
 - new_values: JSON - nilai setelah revisi (struktur sama)
-- changed_by: Employee ID (new hire yang melakukan perubahan)
+- changed_by: Employee ID (employee yang melakukan perubahan)
 - created_at: Timestamp
 ```
 
@@ -50,7 +50,7 @@ Implementasi workflow approval planning dengan fitur revision tracking dan versi
 
 - Tambahan statuses:
   - revision_requested: Manager sudah request revisi
-  - revision_draft: New hire sedang dalam draft revisi
+  - revision_draft: Employee sedang dalam draft revisi
 ```
 
 ## Workflow
@@ -79,26 +79,26 @@ Body: {
 - Update `vnb_plans` status menjadi `revision_requested`
 - Increment `revision_count`
 - Create activity log entry
-- Send notification ke new hire (optional)
+- Send notification ke employee (optional)
 
 **Result**: 
 - Plan status: `revision_requested`
 - Revision status: `pending` (draft)
-- New hire bisa lihat di `/vnb-plans/pending-revisions`
+- Employee bisa lihat di `/vnb-plans/pending-revisions`
 
 ---
 
-### FASE 2: New Hire Edit & Submit Revision
+### FASE 2: Employee Edit & Submit Revision
 
-**Trigger**: New hire lihat notifikasi atau akses `/vnb-plans/pending-revisions`
+**Trigger**: Employee lihat notifikasi atau akses `/vnb-plans/pending-revisions`
 
 **Flow**:
-1. New hire lihat list pending revisions
+1. Employee lihat list pending revisions
 2. Click "Edit Aktivitas" pada revisi yang ingin dikerjakan
 3. Modal editor terbuka dengan:
    - Daftar aktivitas yang need revision (berdasarkan revision details)
    - Form fields untuk setiap activity (title, description, dates, deliverables, metrics)
-4. New hire edit fields apa yang manager minta
+4. Employee edit fields apa yang manager minta
 5. Click "Simpan Perubahan"
 
 **API Call**:
@@ -185,7 +185,7 @@ Body:
 Response:
 {
   "success": true,
-  "message": "Permintaan revisi berhasil dikirim ke new hire",
+  "message": "Permintaan revisi berhasil dikirim ke employee",
   "data": {
     "revision_id": 1,
     "revision_number": 1,
@@ -249,7 +249,7 @@ Response:
                 "new": "Plan doc + Presentation"
               }
             },
-            "changed_by": "New Hire Name",
+            "changed_by": "Employee Name",
             "changed_at": "2024-04-01 09:30:00"
           }
         ]
@@ -261,11 +261,11 @@ Response:
 
 ---
 
-### New Hire Endpoints
+### Employee Endpoints
 
 #### 1. Get Pending Revisions
 ```
-GET /api/new-hire/pending-revisions
+GET /api/employee/pending-revisions
 Authorization: Bearer {token}
 
 Response:
@@ -343,7 +343,7 @@ Response:
 #### 1. Approval Requests List
 **Route**: `/manager/approval-requests`
 - Table dengan filter Jenis (Planning/Activity), status, employee
-- Column: Jenis, New Hire, NIP, Perusahaan, Judul, Phase, Waktu Submit
+- Column: Jenis, Employee, NIP, Perusahaan, Judul, Phase, Waktu Submit
 - Action: Click row → buka detail
 
 #### 2. Approval Detail
@@ -364,7 +364,7 @@ Response:
 
 ---
 
-### New Hire Views
+### Employee Views
 
 #### 1. Pending Revisions List
 **Route**: `/vnb-plans/pending-revisions`
@@ -395,7 +395,7 @@ Response:
 ### 1. Version Control
 - Setiap perubahan activity terdokumentasi dalam `vnb_plan_revision_details`
 - Menyimpan old_values dan new_values untuk audit trail
-- Accessible oleh manager dan new hire
+- Accessible oleh manager dan employee
 - Tampil dalam revision history modal
 
 ### 2. Status Tracking
@@ -404,13 +404,13 @@ Response:
 - Activity logs untuk setiap major action
 
 ### 3. Notifications (Optional Future)
-- Notif ke new hire saat manager request revisi
-- Notif ke manager saat new hire submit revisi
+- Notif ke employee saat manager request revisi
+- Notif ke manager saat employee submit revisi
 - Badge counter di sidebar
 
 ### 4. Authorization
-- Manager hanya bisa approve/revise planning untuk new hire yang di-manage
-- New hire hanya bisa edit revisions untuk planning milik mereka sendiri
+- Manager hanya bisa approve/revise planning untuk employee yang di-manage
+- Employee hanya bisa edit revisions untuk planning milik mereka sendiri
 
 ---
 
@@ -419,11 +419,11 @@ Response:
 - [x] Database migration (vnb_plan_revisions, revision_details)
 - [x] Models (VnbPlanRevision, VnbPlanRevisionDetail)
 - [x] Manager API endpoints (request-revision, approve, get-history)
-- [x] New hire API endpoints (pending-revisions, submit-revision)
+- [x] Employee API endpoints (pending-revisions, submit-revision)
 - [x] Manager approval detail view
 - [x] Manager revision history modal
-- [x] New hire pending revisions view
-- [x] New hire revision editor modal
+- [x] Employee pending revisions view
+- [x] Employee revision editor modal
 - [x] Navigation links
 - [ ] Email notifications (optional)
 - [ ] Dashboard badges for pending items (partial - added to sidebar)
@@ -435,16 +435,16 @@ Response:
 
 ### Scenario 1: Happy Path
 1. Manager request revisi dengan catatan
-2. New hire lihat revisi, edit activities
-3. New hire submit changes
+2. Employee lihat revisi, edit activities
+3. Employee submit changes
 4. Manager lihat version control history
 5. Manager approve
 
 ### Scenario 2: Multiple Revisions
 1. Manager request revisi #1
-2. New hire submit changes
+2. Employee submit changes
 3. Manager request revisi #2 (again)
-4. New hire submit changes #2
+4. Employee submit changes #2
 5. Manager approve
 
 ### Scenario 3: View History

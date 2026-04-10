@@ -38,7 +38,7 @@ CREATE TABLE `vnb_plan_items` (
   `integration_1` text DEFAULT NULL COMMENT 'Integrasi pengukuran 1',
   `integration_2` text DEFAULT NULL COMMENT 'Integrasi pengukuran 2',
   `deliverables` text NOT NULL,
-  `activity_description` text DEFAULT NULL COMMENT 'UC006: execution description filled by New Hire',
+  `activity_description` text DEFAULT NULL COMMENT 'UC006: execution description filled by Employee',
   `activity_date` date DEFAULT NULL COMMENT 'UC006: actual date the activity was done',
   `submission_status` enum('draft','waiting_approval','revision_required','completed','overdue') NOT NULL DEFAULT 'draft',
   `revision_notes` text DEFAULT NULL,

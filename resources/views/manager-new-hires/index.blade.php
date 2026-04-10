@@ -1,15 +1,15 @@
 @extends('layouts.app')
-@section('title','Manager - New Hire')
+@section('title','Manager - Employee')
 @section('content')
 <div class="px-4 space-y-4">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">New Hire</h1>
+    <h1 class="text-2xl font-bold text-gray-800">Employee</h1>
   </div>
 
   <div class="bg-white rounded-xl shadow-sm p-4">
     <div class="flex gap-4 border-b border-gray-200 pb-3">
-      <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">New Hire Active</button>
-      <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History New Hire</button>
+      <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">Employee Active</button>
+      <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History Employee</button>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3">
       <input id="f-search" type="text" placeholder="Cari NIP/Nama/Email" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onkeyup="applyFilters()">
@@ -34,7 +34,7 @@
           <tr>
             <th>No</th>
             <th>NIP</th>
-            <th>Nama New Hire</th>
+            <th>Nama Employee</th>
             <th>Tanggal Masuk</th>
             <th>Tanggal Induction</th>
             <th>Email</th>
@@ -95,7 +95,7 @@ async function loadRows() {
   tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
   const search = encodeURIComponent(document.getElementById('f-search').value || '');
-  const url = `/api/manager/new-hires?lifecycle=${encodeURIComponent(currentLifecycle)}&search=${search}`;
+  const url = `/api/manager/employees?lifecycle=${encodeURIComponent(currentLifecycle)}&search=${search}`;
   const res = await apiGet(url);
 
   if (!(res && res.success === true)) {
@@ -126,7 +126,7 @@ function applyFilters() {
 function renderRows() {
   const tbody = document.getElementById('rows-body');
   if (!filteredRows.length) {
-    tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Tidak ada data New Hire</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Tidak ada data Employee</td></tr>';
     return;
   }
 
@@ -137,7 +137,7 @@ function renderRows() {
       <td class="px-4 py-3 font-medium">
         <div class="flex items-center gap-2">
           <span>${row.name || '-'}</span>
-          <a href="/manager/new-hires/${row.id}" class="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat Detail">
+          <a href="/manager/employees/${row.id}" class="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat Detail">
             <i class="fas fa-external-link-alt text-xs"></i>
           </a>
         </div>

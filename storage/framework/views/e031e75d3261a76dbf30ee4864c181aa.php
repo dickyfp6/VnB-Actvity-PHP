@@ -1,12 +1,12 @@
 
-<?php $__env->startSection('title','Manager - Detail New Hire'); ?>
+<?php $__env->startSection('title','Manager - Detail Employee'); ?>
 <?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Detail New Hire</h1>
+    <h1 class="text-2xl font-bold text-gray-800">Detail Employee</h1>
     <div class="flex gap-2 items-center">
       <a id="planning-history-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hidden">Planning Approved & History</a>
-      <a href="/manager/new-hires" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali</a>
+      <a href="/manager/employees" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali</a>
     </div>
   </div>
 
@@ -53,7 +53,7 @@
   <div id="planning-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
     <div class="p-4 border-b border-gray-100 flex items-start justify-between">
       <div>
-        <h2 class="text-base font-semibold text-gray-800">Planning New Hire (Fase Planning)</h2>
+        <h2 class="text-base font-semibold text-gray-800">Planning Employee (Fase Planning)</h2>
         <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
       </div>
       <div class="relative group">
@@ -418,9 +418,9 @@ function renderActivityTable(items) {
 }
 
 async function loadDetail() {
-  const res = await apiGet(`/api/manager/new-hires/${employeeId}`);
+  const res = await apiGet(`/api/manager/employees/${employeeId}`);
   if (!(res && res.success === true && res.data)) {
-    showAlert(res?.message || 'Gagal memuat detail New Hire', 'error');
+    showAlert(res?.message || 'Gagal memuat detail Employee', 'error');
     return;
   }
 
@@ -471,7 +471,7 @@ function renderDetail() {
   const showPlanningHistory = normalizeCurrentStage(detailData) !== 'planning';
   planningHistoryLink.classList.toggle('hidden', !showPlanningHistory);
   if (showPlanningHistory) {
-    planningHistoryLink.href = `/manager/new-hires/${employeeId}/planning-history`;
+    planningHistoryLink.href = `/manager/employees/${employeeId}/planning-history`;
   }
 
   const waitingCount = detailData.approval_requests?.activity_waiting_count || 0;
@@ -768,4 +768,4 @@ loadDetail();
 <?php $__env->stopPush(); ?>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/manager-new-hires/detail.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/manager-employees/detail.blade.php ENDPATH**/ ?>

@@ -56,15 +56,15 @@ class VnbPlanController extends Controller
     }
 
     /**
-     * Get or create New Hire plan dengan template framework
+     * Get or create Employee plan dengan template framework
      */
-    public function getOrCreateNewHirePlan(): JsonResponse
+    public function getOrCreateEmployeePlan(): JsonResponse
     {
         $user = auth()->user();
-        if (!$user->isNewHire() || !$user->employee_id) {
+        if (!$user->isEmployee() || !$user->employee_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya New Hire yang dapat mengakses fitur ini'
+                'message' => 'Hanya Employee yang dapat mengakses fitur ini'
             ], 403);
         }
 
@@ -72,7 +72,7 @@ class VnbPlanController extends Controller
         if (!$employee) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data New Hire tidak ditemukan'
+                'message' => 'Data Employee tidak ditemukan'
             ], 404);
         }
 
@@ -528,7 +528,7 @@ class VnbPlanController extends Controller
                 && ((int) $employee->manager_functional_id === (int) $manager->id
                     || (int) $employee->manager_operational_id === (int) $manager->id);
 
-            abort_unless($isAssigned, 403, 'Anda tidak berwenang mereview plan New Hire ini.');
+            abort_unless($isAssigned, 403, 'Anda tidak berwenang mereview plan Employee ini.');
         }
 
         $validated = $request->validate([
@@ -645,7 +645,7 @@ class VnbPlanController extends Controller
     }
 
     /**
-     * New Hire: Submit revision changes dari manager revision
+     * Employee: Submit revision changes dari manager revision
      * POST /api/vnb-plans/{plan}/submit-revision/{revision}
      */
     public function submitRevisionChanges(Request $request, VnbPlan $plan, VnbPlanRevision $revision): JsonResponse
@@ -723,7 +723,7 @@ class VnbPlanController extends Controller
 
             // Update plan status back to waiting manager approval
             $plan->update([
-                'status' => 'revision_draft',  // New Hire sedang dalam draft revisi
+                'status' => 'revision_draft',  // Employee sedang dalam draft revisi
             ]);
 
             // Log activity (optional - requires spatie/laravel-activitylog)
@@ -735,7 +735,7 @@ class VnbPlanController extends Controller
                         'revision_number' => $revision->revision_number,
                         'changes_count' => count($changes),
                     ])
-                    ->log('New hire submitted revision changes');
+                    ->log('Employee submitted revision changes');
             }
 
             DB::commit();

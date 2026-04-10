@@ -28,7 +28,7 @@ echo "\n===== CRITICAL TABLES CHECK =====\n";
 
 // Check important tables
 $criticalTables = [
-    'roles' => 'User roles (admin, manager, new_hire, etc)',
+    'roles' => 'User roles (admin, manager, employee, etc)',
     'permissions' => 'System permissions',
     'role_has_permissions' => 'Role-permission mappings',
     'model_has_roles' => 'User-role assignments',

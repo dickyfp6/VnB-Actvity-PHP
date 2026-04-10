@@ -1,6 +1,6 @@
 {
-  "name": "wismilak/vnb-newhire-app",
-  "description": "VnB New Hire (Vehicle and Beyond) Onboarding Platform - Wismilak",
+  "name": "wismilak/vnb-employee-app",
+  "description": "VnB Employee (Vehicle and Beyond) Onboarding Platform - Wismilak",
   "type": "project",
   "license": "proprietary",
   "authors": [

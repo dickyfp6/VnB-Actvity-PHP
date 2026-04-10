@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $vnb_plan_item_id (Activity)
  * @property array $old_values (title, description, implementation_date, deliverables, behavior_metrics)
  * @property array $new_values
- * @property int $changed_by (New Hire yang melakukan perubahan)
+ * @property int $changed_by (Employee yang melakukan perubahan)
  * @property string|null $created_at
  */
 class VnbPlanRevisionDetail extends Model

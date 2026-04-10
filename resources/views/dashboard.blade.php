@@ -14,7 +14,7 @@
             <div class="card-glass rounded-xl p-6 hover:shadow-lg transition-all duration-300">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total New Hire</p>
+                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Employee</p>
                         <p id="stat-total" class="text-4xl font-bold text-gray-900 mt-2">0</p>
                     </div>
                     <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
@@ -190,7 +190,7 @@ async function checkPlanStatus() {
             return;
         }
         
-        const res = await apiGet('/api/vnb-plans/new-hire');
+        const res = await apiGet('/api/vnb-plans/employee');
         console.log('📊 Plan status response:', res);
         
         let planStatus = 'not_found';

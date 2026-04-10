@@ -14,17 +14,17 @@ use Carbon\Carbon;
 class VnbActivityController extends Controller
 {
     /**
-     * UC006: List activities for the current New Hire (active phase only)
+     * UC006: List activities for the current Employee (active phase only)
      */
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
 
-        // Find New Hire employee linked to this user by email
+        // Find Employee employee linked to this user by email
         $employee = Employee::where('email', $user->email)->first();
 
         if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Data New Hire tidak ditemukan'], 404);
+            return response()->json(['success' => false, 'message' => 'Data Employee tidak ditemukan'], 404);
         }
 
         // Get plan items for all approved plans
@@ -46,7 +46,7 @@ class VnbActivityController extends Controller
     }
 
     /**
-     * UC006: Submit / save activity report by New Hire
+     * UC006: Submit / save activity report by Employee
      */
     public function submit(Request $request, int $planItemId): JsonResponse
     {
@@ -117,13 +117,13 @@ class VnbActivityController extends Controller
                 ->get()
                 ->map(fn(VnbPlanItem $item): array => $this->formatActivityItem($item, withEmployee: true));
         } else {
-            // Only New Hires assigned to this manager
-            $newHireIds = Employee::where('manager_functional_id', $manager->id)
+            // Only Employees assigned to this manager
+            $employeeIds = Employee::where('manager_functional_id', $manager->id)
                 ->orWhere('manager_operational_id', $manager->id)
                 ->pluck('id');
 
             $items = VnbPlanItem::where('submission_status', 'waiting_approval')
-                ->whereHas('plan', fn($q) => $q->whereIn('employee_id', $newHireIds))
+                ->whereHas('plan', fn($q) => $q->whereIn('employee_id', $employeeIds))
                 ->with(['plan.employee.position'])
                 ->get()
                 ->map(fn(VnbPlanItem $item): array => $this->formatActivityItem($item, withEmployee: true));
@@ -206,7 +206,7 @@ class VnbActivityController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Permintaan revisi berhasil dikirim ke New Hire.',
+            'message' => 'Permintaan revisi berhasil dikirim ke Employee.',
             'data'    => $this->formatActivityItem($item->fresh()),
         ]);
     }

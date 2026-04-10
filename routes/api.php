@@ -25,7 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    // UC004 - Manage New Hire
+    // UC004 - Manage Employee
     Route::get('employees/manager-options', [EmployeeController::class, 'managerOptions']);
     Route::get('employees/import/template', [EmployeeController::class, 'downloadImportTemplate']);
     Route::post('employees/import/paste', [EmployeeController::class, 'importFromPaste']);
@@ -38,7 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UC005 - VnB Planning
     Route::prefix('vnb-plans')->group(function () {
-        Route::get('new-hire', [VnbPlanController::class, 'getOrCreateNewHirePlan']);
+        Route::get('employee', [VnbPlanController::class, 'getOrCreateEmployeePlan']);
         Route::get('{plan}', [VnbPlanController::class, 'show']);
         Route::post('/', [VnbPlanController::class, 'store']);
         Route::put('{plan}', [VnbPlanController::class, 'update']);
@@ -102,12 +102,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/managers/{id}', [ManagerController::class, 'update']);
     Route::delete('/managers/{id}', [ManagerController::class, 'destroy']);
     Route::post('/managers/{id}/reset-credential', [ManagerController::class, 'resetCredential']);
-    Route::get('/managers/{id}/new-hires', [ManagerController::class, 'newHires']);
+    Route::get('/managers/{id}/employees', [ManagerController::class, 'employees']);
 
     // Manager Portal
-    Route::get('/manager/new-hires', [ManagerController::class, 'myNewHires']);
-    Route::get('/manager/new-hires/{employeeId}', [ManagerController::class, 'myNewHireDetail']);
-    Route::get('/manager/new-hires/{employeeId}/planning-history', [ManagerController::class, 'myNewHirePlanningHistory']);
+    Route::get('/manager/employees', [ManagerController::class, 'myEmployees']);
+    Route::get('/manager/employees/{employeeId}', [ManagerController::class, 'myEmployeeDetail']);
+    Route::get('/manager/employees/{employeeId}/planning-history', [ManagerController::class, 'myEmployeePlanningHistory']);
     Route::get('/manager/approval-requests', [ManagerController::class, 'myApprovalRequests']);
     Route::get('/manager/approval-summary', [ManagerController::class, 'myApprovalSummary']);
     
@@ -119,13 +119,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/manager/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);
     Route::post('/manager/plans/{planId}/approve', [ManagerController::class, 'approvePlan']);
     Route::get('/manager/plans/{planId}/revisions/history', [ManagerController::class, 'getRevisionHistory']);
-    Route::get('/manager/my-new-hire-revisions', [ManagerController::class, 'myNewHireRevisions']);
+    Route::get('/manager/my-employee-revisions', [ManagerController::class, 'myEmployeeRevisions']);
     
     // Manager Approval Flow - Per-Row & Batch Approval
     Route::post('/manager/plans/{planId}/batch-review', [ManagerController::class, 'batchReviewPlanItems']);
     Route::post('/manager/plans/{planId}/items/{itemId}/approve', [ManagerController::class, 'approvePlanningItem']);
     Route::post('/manager/plans/{planId}/items/{itemId}/request-revision', [ManagerController::class, 'requestRevisionForItem']);
     
-    // New Hire Pending Revisions
-    Route::get('/new-hire/pending-revisions', [ManagerController::class, 'getNewHirePendingRevisions']);
+    // Employee Pending Revisions
+    Route::get('/employee/pending-revisions', [ManagerController::class, 'getEmployeePendingRevisions']);
 });

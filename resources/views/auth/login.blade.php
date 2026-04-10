@@ -154,9 +154,9 @@
             <div class="mt-8 pt-8 border-t border-white/20">
                 <p class="text-gray-700 text-xs font-semibold uppercase tracking-wider mb-3">Demo Accounts</p>
                 <div class="space-y-2">
-                    <button type="button" onclick="document.querySelector('input[name=email]').value='newhire@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
-                        <span class="block text-sm font-semibold text-green-900">New Hire</span>
-                        <span class="text-xs text-green-700">newhire@vnb.id</span>
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='employee@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
+                        <span class="block text-sm font-semibold text-green-900">Employee</span>
+                        <span class="text-xs text-green-700">employee@vnb.id</span>
                     </button>
                     <button type="button" onclick="document.querySelector('input[name=email]').value='manager@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
                         <span class="block text-sm font-semibold text-green-900">Manager</span>

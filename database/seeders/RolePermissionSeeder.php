@@ -20,7 +20,7 @@ class RolePermissionSeeder extends Seeder
         // Create roles
         $roles = [
             'admin',
-            'new_hire',
+            'employee',
             'manager',
             'pcx_manager',
             'intercomm',
@@ -76,8 +76,8 @@ class RolePermissionSeeder extends Seeder
         // Admin - all permissions
         Role::findByName('admin')->givePermissionTo(Permission::all());
 
-        // New Hire
-        $newHirePermissions = [
+        // Employee
+        $employeePermissions = [
             'create_planning',
             'edit_planning',
             'submit_planning',
@@ -86,7 +86,7 @@ class RolePermissionSeeder extends Seeder
             'view_evidence',
             'view_dashboard',
         ];
-        Role::findByName('new_hire')->givePermissionTo($newHirePermissions);
+        Role::findByName('employee')->givePermissionTo($employeePermissions);
 
         // Manager
         $managerPermissions = [
@@ -146,10 +146,10 @@ class RolePermissionSeeder extends Seeder
                 'role' => 'manager',
             ],
             [
-                'name' => 'New Hire User',
-                'email' => 'newhire@vnb.local',
+                'name' => 'Employee User',
+                'email' => 'employee@vnb.local',
                 'password' => 'password',
-                'role' => 'new_hire',
+                'role' => 'employee',
             ],
             [
                 'name' => 'PCX Manager',

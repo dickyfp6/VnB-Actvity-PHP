@@ -21,7 +21,7 @@ foreach ($plans as $plan) {
 }
 
 // Try to call the endpoint function directly to see if it works now
-echo "=== Testing getOrCreateNewHirePlan for sample employee ===\n\n";
+echo "=== Testing getOrCreateEmployeePlan for sample employee ===\n\n";
 
 $employee = \App\Models\Employee::doesntHave('vnbPlans')->first();
 if ($employee) {

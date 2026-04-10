@@ -148,7 +148,7 @@ async function checkPlanStatus() {
             return;
         }
         
-        const res = await apiGet('/api/vnb-plans/new-hire');
+        const res = await apiGet('/api/vnb-plans/employee');
         console.log('📊 Plan status response:', res);
         
         // Handle response

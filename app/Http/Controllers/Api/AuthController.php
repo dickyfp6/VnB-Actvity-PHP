@@ -81,7 +81,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $blockedReason = $this->resolveNewHireAccessBlockReason($user);
+        $blockedReason = $this->resolveEmployeeAccessBlockReason($user);
         if ($blockedReason !== null) {
             $this->deactivateUserAccount($user);
 
@@ -115,30 +115,30 @@ class AuthController extends Controller
         ]);
     }
 
-    private function resolveNewHireAccessBlockReason(User $user): ?string
+    private function resolveEmployeeAccessBlockReason(User $user): ?string
     {
-        if (!$user->isNewHire()) {
+        if (!$user->isEmployee()) {
             return null;
         }
 
         if (!$user->employee_id) {
-            return 'Akun New Hire tidak valid.';
+            return 'Akun Employee tidak valid.';
         }
 
         $employee = Employee::withTrashed()->find($user->employee_id);
         if (!$employee || $employee->trashed()) {
-            return 'Akun tidak dapat digunakan karena data New Hire sudah dihapus.';
+            return 'Akun tidak dapat digunakan karena data Employee sudah dihapus.';
         }
 
         $employeeStatus = Str::lower(trim((string) ($employee->employee_status ?? '')));
         $statusChangeReason = Str::lower(trim((string) ($employee->status_change_reason ?? '')));
         if (Str::contains($employeeStatus, 'mutasi') || Str::contains($statusChangeReason, 'mutasi')) {
-            return 'Akun tidak dapat digunakan karena New Hire sudah dimutasi.';
+            return 'Akun tidak dapat digunakan karena Employee sudah dimutasi.';
         }
 
         $employmentState = Str::lower(trim((string) ($employee->employment_state ?? 'active')));
         if (in_array($employmentState, ['resigned', 'terminated'], true)) {
-            return 'Akun tidak dapat digunakan karena status New Hire tidak aktif.';
+            return 'Akun tidak dapat digunakan karena status Employee tidak aktif.';
         }
 
         if ($employmentState === 'graduated') {
@@ -147,7 +147,7 @@ class AuthController extends Controller
                 ?? $employee->updated_at;
 
             if ($referenceTime instanceof Carbon && now()->greaterThan($referenceTime->copy()->addDays(30))) {
-                return 'Akun tidak dapat digunakan karena New Hire sudah lulus lebih dari 30 hari.';
+                return 'Akun tidak dapat digunakan karena Employee sudah lulus lebih dari 30 hari.';
             }
         }
 
