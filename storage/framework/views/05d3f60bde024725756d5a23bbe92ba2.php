@@ -1,15 +1,15 @@
-@extends('layouts.app')
 
-@section('title','Profil Akun - VnB Platform')
 
-@php
+<?php $__env->startSection('title','Profil Akun - VnB Platform'); ?>
+
+<?php
     /** @var \App\Models\User $user */
     /** @var \App\Models\Employee|null $employee */
     /** @var \App\Models\Manager|null $manager */
     /** @var string $role */
-@endphp
+?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6">
     <!-- Header -->
     <div class="card-glass rounded-xl p-6 md:p-8">
@@ -32,103 +32,103 @@
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-            @if($role === 'manager' && $manager)
+            <?php if($role === 'manager' && $manager): ?>
                 <!-- Manager Profile Data -->
                 <div>
                     <p class="text-gray-500 mb-1">Nama Lengkap</p>
-                    <p class="font-medium text-gray-900">{{ $manager->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Email</p>
-                    <p class="font-medium text-gray-900">{{ $manager->email ?? ($user?->email ?? '-') }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->email ?? ($user?->email ?? '-')); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">WhatsApp</p>
-                    <p class="font-medium text-gray-900">{{ $manager->whatsapp ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->whatsapp ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Perusahaan</p>
-                    <p class="font-medium text-gray-900">{{ $manager->company ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->company ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Divisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->division?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->division?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Departemen</p>
-                    <p class="font-medium text-gray-900">{{ $manager->department?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->department?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Posisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->position?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->position?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Level</p>
-                    <p class="font-medium text-gray-900">{{ $manager->level ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($manager->level ?? '-'); ?></p>
                 </div>
-            @elseif($role === 'employee' && $employee)
+            <?php elseif($role === 'employee' && $employee): ?>
                 <!-- Employee Profile Data -->
                 <div>
                     <p class="text-gray-500 mb-1">Nomor Karyawan</p>
-                    <p class="font-medium text-gray-900">{{ $employee->employee_number ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->employee_number ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Nama Lengkap</p>
-                    <p class="font-medium text-gray-900">{{ $employee->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Email</p>
-                    <p class="font-medium text-gray-900">{{ $employee->email ?? ($user?->email ?? '-') }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->email ?? ($user?->email ?? '-')); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">WhatsApp</p>
-                    <p class="font-medium text-gray-900">{{ $employee->whatsapp ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->whatsapp ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Perusahaan</p>
-                    <p class="font-medium text-gray-900">{{ $employee->company ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->company ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Divisi</p>
-                    <p class="font-medium text-gray-900">{{ $employee->division?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->division?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Departemen</p>
-                    <p class="font-medium text-gray-900">{{ $employee->department?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->department?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Posisi</p>
-                    <p class="font-medium text-gray-900">{{ $employee->position?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->position?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Level</p>
-                    <p class="font-medium text-gray-900">{{ $employee->level ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->level ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Placement</p>
-                    <p class="font-medium text-gray-900">{{ $employee->placement ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->placement ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Tanggal Bergabung</p>
-                    <p class="font-medium text-gray-900">{{ $employee->date_joined ? $employee->date_joined->format('d M Y') : '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->date_joined ? $employee->date_joined->format('d M Y') : '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Tanggal Induction</p>
-                    <p class="font-medium text-gray-900">{{ $employee->induction_date ? $employee->induction_date->format('d M Y') : '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->induction_date ? $employee->induction_date->format('d M Y') : '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Status Karyawan</p>
-                    <p class="font-medium text-gray-900">{{ $employee->employee_status ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->employee_status ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Status VnB</p>
-                    <p class="font-medium text-gray-900">{{ $employee->vnb_status ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->vnb_status ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Career Stage</p>
                     <p class="font-medium text-gray-900">
-                        @if($employee->career_stage)
-                            @php
+                        <?php if($employee->career_stage): ?>
+                            <?php
                                 $stages = [
                                     'manage_self_staff' => 'Manage Self (Staff)',
                                     'manage_self_non_staff' => 'Manage Self (Non-Staff)',
@@ -136,28 +136,29 @@
                                     'manage_managers' => 'Manage Managers',
                                 ];
                                 $stageName = $stages[$employee->career_stage] ?? ucfirst(str_replace('_', ' ', $employee->career_stage));
-                            @endphp
-                            {{ $stageName }}
-                        @else
+                            ?>
+                            <?php echo e($stageName); ?>
+
+                        <?php else: ?>
                             -
-                        @endif
+                        <?php endif; ?>
                     </p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Employment State</p>
-                    <p class="font-medium text-gray-900">{{ $employee->employment_state ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->employment_state ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Manager Functional</p>
-                    <p class="font-medium text-gray-900">{{ $employee->managerFunctional?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->managerFunctional?->name ?? '-'); ?></p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Manager Operational</p>
-                    <p class="font-medium text-gray-900">{{ $employee->managerOperational?->name ?? ($employee->manager_operational_id ? '-' : 'Tidak ada') }}</p>
+                    <p class="font-medium text-gray-900"><?php echo e($employee->managerOperational?->name ?? ($employee->manager_operational_id ? '-' : 'Tidak ada')); ?></p>
                 </div>
-            @else
+            <?php else: ?>
                 <p class="text-gray-500">Data profil tidak ditemukan.</p>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 
@@ -168,24 +169,24 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
             <div>
                 <p class="text-gray-500 mb-1">Email Login</p>
-                <p class="font-medium text-gray-900">{{ $user?->email ?? '-' }}</p>
+                <p class="font-medium text-gray-900"><?php echo e($user?->email ?? '-'); ?></p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Nama Pengguna</p>
-                <p class="font-medium text-gray-900">{{ $user?->name ?? '-' }}</p>
+                <p class="font-medium text-gray-900"><?php echo e($user?->name ?? '-'); ?></p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Nomor Telepon</p>
-                <p class="font-medium text-gray-900">{{ $user?->phone ?? '-' }}</p>
+                <p class="font-medium text-gray-900"><?php echo e($user?->phone ?? '-'); ?></p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Status Akun</p>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: #D0EC98; color: #144600;">{{ $user?->status === 'active' ? 'Aktif' : 'Nonaktif' }}</span>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: #D0EC98; color: #144600;"><?php echo e($user?->status === 'active' ? 'Aktif' : 'Nonaktif'); ?></span>
             </div>
         </div>
 
         <div class="py-4 border-t">
-            <a href="{{ route('my-account.change-password') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition">
+            <a href="<?php echo e(route('my-account.change-password')); ?>" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition">
                 <i class="fas fa-key"></i>
                 <span>Ganti Password</span>
                 <i class="fas fa-arrow-right ml-2"></i>
@@ -193,4 +194,6 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/account/profile.blade.php ENDPATH**/ ?>

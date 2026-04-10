@@ -1,8 +1,8 @@
-@extends('layouts.app')
 
-@section('title', 'Rencana VnB - VnB Platform')
 
-@section('content')
+<?php $__env->startSection('title', 'Rencana VnB - VnB Platform'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6">
     <!-- Header Section -->
     <div class="card-glass rounded-xl p-6 md:p-8">
@@ -118,7 +118,7 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let currentPlan = null;
 let hasUnsavedChanges = false;
@@ -885,6 +885,8 @@ async function submitPlan() {
 // Load plan ketika page muncul
 loadEmployeePlan();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-plans/index.blade.php ENDPATH**/ ?>
