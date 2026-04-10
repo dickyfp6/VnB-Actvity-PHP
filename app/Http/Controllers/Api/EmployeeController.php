@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 
@@ -880,8 +881,9 @@ class EmployeeController extends Controller
                 'employee_id' => $employee->id,
             ]);
 
-            if (!$user->hasRole('employee')) {
-                $user->syncRoles(['employee']);
+            $employeeRole = $this->resolveEmployeeRoleName();
+            if ($employeeRole !== null && !$user->getRoleNames()->contains($employeeRole)) {
+                $user->syncRoles([$employeeRole]);
             }
 
             return null;
@@ -901,7 +903,10 @@ class EmployeeController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        $user->assignRole('employee');
+        $employeeRole = $this->resolveEmployeeRoleName();
+        if ($employeeRole !== null) {
+            $user->assignRole($employeeRole);
+        }
 
         return $rawPassword;
     }
@@ -937,8 +942,9 @@ class EmployeeController extends Controller
             'temp_password_generated_at' => now(),
         ]);
 
-        if (!$user->hasRole('employee')) {
-            $user->syncRoles(['employee']);
+        $employeeRole = $this->resolveEmployeeRoleName();
+        if ($employeeRole !== null && !$user->getRoleNames()->contains($employeeRole)) {
+            $user->syncRoles([$employeeRole]);
         }
 
         return $rawPassword;
@@ -947,6 +953,7 @@ class EmployeeController extends Controller
     private function buildCredentialPreview(Employee $employee): array
     {
         $user = $employee->user;
+        $employeeRole = $this->resolveEmployeeRoleName() ?? 'employee';
         $tempPassword = null;
 
         if ($user && !empty($user->temp_password_encrypted)) {
@@ -961,10 +968,20 @@ class EmployeeController extends Controller
             'has_account' => (bool) $user,
             'username' => $employee->employee_number,
             'email' => $employee->email,
-            'role' => 'employee',
+            'role' => $employeeRole,
             'temporary_password' => $tempPassword,
             'temporary_password_generated_at' => optional($user?->temp_password_generated_at)->toDateTimeString(),
         ];
+    }
+
+    private function resolveEmployeeRoleName(): ?string
+    {
+        $employeeRole = Role::query()->firstOrCreate([
+            'name' => 'employee',
+            'guard_name' => 'web',
+        ]);
+
+        return $employeeRole->name;
     }
 
     private function sendEmployeeCredentialEmail(Employee $employee, string $rawPassword): bool

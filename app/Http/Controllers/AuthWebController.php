@@ -85,7 +85,7 @@ class AuthWebController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed',
-            'role' => 'required|in:new_hire,manager,pcx_manager,intercomm,admin',
+            'role' => 'required|in:employee,manager,pcx_manager,intercomm,admin',
         ]);
 
         $user = User::create([
