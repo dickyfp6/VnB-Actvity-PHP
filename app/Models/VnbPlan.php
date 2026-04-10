@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $period_id
  * @property int $phase_number
  * @property string $title
- * @property string $status
+ * @property string $status (draft, waiting_manager_approval, approved, approved_with_revision, rejected, in_progress)
  * @property string $description
  * @property string $planning_mode
  * @property \Illuminate\Support\Carbon|null $submitted_at

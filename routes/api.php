@@ -47,6 +47,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{plan}/manager-review', [VnbPlanController::class, 'managerApproveReject']);
         Route::post('{plan}/mark-in-progress', [VnbPlanController::class, 'markInProgress']);
         Route::post('{plan}/submit-revision/{revision}', [VnbPlanController::class, 'submitRevisionChanges']);
+        // NEW: Manager Approve All & Revise Items
+        Route::post('{plan}/approve-all', [VnbPlanController::class, 'managerApproveAll']);
+        Route::post('{plan}/save-revisions', [VnbPlanController::class, 'managerSaveRevisions']);
+        // NEW: Employee Plan Feedback
+        Route::get('{plan}/feedback', [VnbPlanController::class, 'getPlanFeedback']);
     });
 
     // UC006 - VnB Activity

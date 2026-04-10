@@ -70,6 +70,11 @@ class PageController extends Controller
         abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Approval Request Manager');
         return view('manager-approval.detail', compact('planId'));
     }
+    public function planFeedback(int $planId)
+    {
+        // Let API handle auth - just return view
+        return view('plan-feedback.index', compact('planId'));
+    }
     public function profile()
     {
         abort_unless(auth()->check(), 403, 'Anda harus login.');

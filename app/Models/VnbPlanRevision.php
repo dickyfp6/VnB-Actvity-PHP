@@ -11,9 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $vnb_plan_id
  * @property int $revision_number
- * @property int $requested_by (Manager)
+ * @property int $requested_by (Manager - deprecated, use revision_type instead)
  * @property string $revision_notes
- * @property string $status (pending, in_progress, submitted, applied)
+ * @property string $status (pending, approved, approved_with_revision, rejected)
+ * @property string|null $revision_type (manager_revised, approved_as_is) - track if manager edited items
  * @property \Illuminate\Support\Carbon|null $requested_at
  * @property \Illuminate\Support\Carbon|null $submitted_at
  * @property \Illuminate\Support\Carbon|null $applied_at
@@ -31,6 +32,7 @@ class VnbPlanRevision extends Model
         'submitted_by',
         'revision_notes',
         'status',
+        'revision_type',
         'decision',
         'review_notes',
         'requested_at',
@@ -78,7 +80,10 @@ class VnbPlanRevision extends Model
     public function getStatusLabel(): string
     {
         $labels = [
-            'pending' => 'Draft Revisi',
+            'pending' => 'Menunggu Review',
+            'approved' => 'Disetujui',
+            'approved_with_revision' => 'Disetujui dengan Revisi',
+            'rejected' => 'Ditolak',
             'in_progress' => 'Sedang Dikerjakan',
             'submitted' => 'Sudah Dikirim',
             'applied' => 'Diterapkan'

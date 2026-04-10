@@ -16,6 +16,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
+    Route::get('/plan-feedback/{planId}', [PageController::class, 'planFeedback'])->name('plan.feedback');
     Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
 
     // ==================== DASHBOARD ROUTES ====================

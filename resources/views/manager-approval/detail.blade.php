@@ -65,8 +65,11 @@
     <button onclick="openApproveModal()" id="btn-approve" class="flex-1 px-4 py-2 rounded-lg text-white font-medium transition" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
       <i class="fas fa-check mr-2"></i>Approve Planning
     </button>
-    <button onclick="openRevisionModal()" id="btn-revise" class="flex-1 px-4 py-2 rounded-lg text-white font-medium transition" style="background-color: #FF6B35;" onmouseover="this.style.backgroundColor='#FF8555'" onmouseout="this.style.backgroundColor='#FF6B35'">
-      <i class="fas fa-edit mr-2"></i>Request Revisi
+    <button onclick="submitApproveAll()" id="btn-approve-all" class="flex-1 px-4 py-2 rounded-lg text-white font-medium transition" style="background-color: #0891b2;" onmouseover="this.style.backgroundColor='#06b6d4'" onmouseout="this.style.backgroundColor='#0891b2'">
+      <i class="fas fa-check-double mr-2"></i>Approve All
+    </button>
+    <button onclick="toggleEditMode()" id="btn-revise" class="flex-1 px-4 py-2 rounded-lg text-white font-medium transition" style="background-color: #FF6B35;" onmouseover="this.style.backgroundColor='#FF8555'" onmouseout="this.style.backgroundColor='#FF6B35'">
+      <i class="fas fa-edit mr-2"></i>Revise Items
     </button>
   </div>
 </div>
@@ -87,29 +90,31 @@
   </div>
 </div>
 
-<!-- Revision Modal -->
+<!-- Revision Modal - REPLACED WITH Edit Items Modal -->
 <div id="revision-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">Request Revisi Planning</h3>
-    <p class="text-gray-600 text-sm mb-4">Masukkan catatan revisi yang ingin diberikan kepada employee. Catatan ini akan disimpan dan dapat dilacak dalam riwayat revisi.</p>
+  <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-6 max-h-screen overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold text-gray-800">Manager - Edit & Revise Plan Items</h3>
+      <button onclick="closeRevisionModal()" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
     
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">Catatan Revisi</label>
-      <textarea 
-        id="revision-notes" 
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-        rows="6"
-        placeholder="Contoh: Sesuaikan tanggal implementasi untuk activity marketing campaign. Deliverables perlu lebih detail dan measurable..."
-      ></textarea>
-      <p class="text-xs text-gray-500 mt-1">Minimal 3 karakter</p>
+    <p class="text-sm text-gray-600 mb-4">
+      <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+      Edit item details di bawah sesuai kebutuhan. Revisi ini akan langsung disimpan dan dikirim ke Employee untuk diketahui.
+    </p>
+
+    <div id="edit-items-container" class="space-y-4 mb-6">
+      <div class="text-center py-8 text-gray-400">Memuat items...</div>
     </div>
 
     <div class="flex gap-3">
       <button onclick="closeRevisionModal()" class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 font-medium hover:bg-gray-50">
-        Batal
+        Batal (Jangan Revise)
       </button>
-      <button onclick="submitRevision()" class="flex-1 px-4 py-2 rounded-lg text-white font-medium" style="background-color: #FF6B35;" onmouseover="this.style.backgroundColor='#FF8555'" onmouseout="this.style.backgroundColor='#FF6B35'">
-        Kirim Permintaan Revisi
+      <button onclick="submitManagerRevisions()" class="flex-1 px-4 py-2 rounded-lg text-white font-medium" style="background-color: #FF6B35;" onmouseover="this.style.backgroundColor='#FF8555'" onmouseout="this.style.backgroundColor='#FF6B35'">
+        <i class="fas fa-save mr-2"></i>Simpan & Kirim Revisi ke Employee
       </button>
     </div>
   </div>
@@ -354,7 +359,10 @@ function updateActionButtons() {
   }
 }
 
-// Modals
+// Modals & Edit Mode
+let editMode = false;
+let itemsBackup = null;
+
 function openApproveModal() {
   document.getElementById('approve-modal').classList.remove('hidden');
 }
@@ -371,6 +379,7 @@ async function submitApproval() {
     
     if (res && res.success) {
       showSuccess('Planning berhasil diapprove!');
+      closeApproveModal();
       setTimeout(() => {
         location.reload();
       }, 1500);
@@ -383,43 +392,156 @@ async function submitApproval() {
   }
 }
 
-function openRevisionModal() {
-  document.getElementById('revision-notes').value = '';
+function toggleEditMode() {
+  editMode = !editMode;
+  if (editMode) {
+    openEditModal();
+  } else {
+    closeRevisionModal();
+  }
+}
+
+function openEditModal() {
+  // Backup items sebelum edit
+  itemsBackup = JSON.parse(JSON.stringify(planData.items));
+  
+  // Render editable items
+  const container = document.getElementById('edit-items-container');
+  container.innerHTML = planData.items.map((item, idx) => `
+    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+      <h4 class="font-bold text-gray-800 mb-3">#${idx + 1} ${item.activity_title}</h4>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+          <textarea 
+            id="item-desc-${item.id}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows="3"
+            placeholder="Edit deskripsi aktivitas...">${item.description || ''}</textarea>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Implementasi</label>
+            <input 
+              type="date" 
+              id="item-date-${item.id}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value="${item.implementation_date || ''}" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Aktivitas</label>
+            <input 
+              type="date" 
+              id="item-activity-date-${item.id}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value="${item.activity_date || ''}" />
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deliverables</label>
+          <textarea 
+            id="item-deliverables-${item.id}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows="2"
+            placeholder="Edit deliverables...">${item.deliverables || ''}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  
   document.getElementById('revision-modal').classList.remove('hidden');
 }
 
-function closeRevisionModal() {
-  document.getElementById('revision-modal').classList.add('hidden');
+async function submitApproveAll() {
+  try {
+    showLoading('Approving all items...');
+    
+    const res = await apiPost(`/api/manager/plans/${planId}/approve-all`, {});
+    
+    if (res && res.success) {
+      showSuccess('Semua items berhasil diapprove!');
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } else {
+      showError(res?.message || 'Gagal approve all items');
+    }
+  } catch (err) {
+    console.error(err);
+    showError('Error approving all items');
+  }
 }
 
-async function submitRevision() {
-  const notes = document.getElementById('revision-notes').value.trim();
+async function submitManagerRevisions() {
+  // Collect edited values
+  const changes = [];
+  let hasChanges = false;
   
-  if (!notes || notes.length < 3) {
-    showError('Catatan revisi minimal 3 karakter');
+  for (const item of planData.items) {
+    const newDesc = document.getElementById(`item-desc-${item.id}`).value;
+    const newImplDate = document.getElementById(`item-date-${item.id}`).value;
+    const newActivityDate = document.getElementById(`item-activity-date-${item.id}`).value;
+    const newDeliverables = document.getElementById(`item-deliverables-${item.id}`).value;
+    
+    // Track if this item changed
+    if (newDesc !== item.description || 
+        newImplDate !== item.implementation_date || 
+        newActivityDate !== item.activity_date || 
+        newDeliverables !== item.deliverables) {
+      
+      changes.push({
+        item_id: item.id,
+        old_values: {
+          description: item.description,
+          implementation_date: item.implementation_date,
+          activity_date: item.activity_date,
+          deliverables: item.deliverables,
+        },
+        new_values: {
+          description: newDesc,
+          implementation_date: newImplDate,
+          activity_date: newActivityDate,
+          deliverables: newDeliverables,
+        }
+      });
+      
+      hasChanges = true;
+    }
+  }
+  
+  if (!hasChanges) {
+    showError('Tidak ada perubahan pada items');
     return;
   }
-
+  
   try {
-    showLoading('Mengirim permintaan revisi...');
+    showLoading('Menyimpan revisi...');
     
-    const res = await apiPost(`/api/manager/plans/${planId}/request-revision`, {
-      revision_notes: notes
+    const res = await apiPost(`/api/manager/plans/${planId}/save-revisions`, {
+      changes: changes
     });
     
     if (res && res.success) {
-      showSuccess('Permintaan revisi berhasil dikirim!');
+      showSuccess('Revisi berhasil disimpan dan dikirim ke Employee!');
       closeRevisionModal();
       setTimeout(() => {
         location.reload();
       }, 1500);
     } else {
-      showError(res?.message || 'Gagal mengirim revisi');
+      showError(res?.message || 'Gagal menyimpan revisi');
     }
   } catch (err) {
     console.error(err);
-    showError('Error submitting revision');
+    showError('Error saving revisions');
   }
+}
+
+function closeRevisionModal() {
+  document.getElementById('revision-modal').classList.add('hidden');
+  editMode = false;
 }
 
 function viewRevisionDetail(revisionId, revisionNumber) {

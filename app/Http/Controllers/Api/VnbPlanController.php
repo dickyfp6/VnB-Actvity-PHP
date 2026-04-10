@@ -529,6 +529,11 @@ class VnbPlanController extends Controller
                     || (int) $employee->manager_operational_id === (int) $manager->id);
 
             abort_unless($isAssigned, 403, 'Anda tidak berwenang mereview plan Employee ini.');
+
+            // ✅ NEW: Check if manager is the owner of planning stage
+            // Only functional manager can approve VnB plan
+            $isStageOwner = $this->isManagerStageOwner($employee, 'planning', $manager->id);
+            abort_unless($isStageOwner, 403, 'Hanya Manager Fungsional yang bisa approve planning. Anda adalah Manager Operasional.');
         }
 
         $validated = $request->validate([
@@ -755,5 +760,330 @@ class VnbPlanController extends Controller
                 'message' => 'Gagal menyimpan perubahan revisi: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * NEW: Get Plan Feedback for Employee (approved/revised status)
+     * GET /api/vnb-plans/{plan}/feedback
+     * Employee view hasil approval/revision dari manager
+     */
+    public function getPlanFeedback(VnbPlan $plan): JsonResponse
+    {
+        $user = auth()->user();
+        
+        // Check if user is the employee or admin
+        $employee = $user?->employee;
+        $isOwner = $employee && $employee->id === $plan->employee_id;
+        $isAdmin = (bool) $user?->hasRole('admin');
+
+        abort_unless($isOwner || $isAdmin, 403, 'Anda tidak berwenang melihat feedback plan ini');
+
+        // Only show feedback untuk status approved atau approved_with_revision
+        abort_unless(
+            in_array($plan->status, ['approved', 'approved_with_revision']),
+            403,
+            'Plan harus dalam status approved atau approved_with_revision'
+        );
+
+        // Get latest revision
+        $latestRevision = $plan->latestRevision();
+        
+        // Data revisi jika ada
+        $revisionDetails = [];
+        if ($latestRevision && $plan->status === 'approved_with_revision') {
+            $revisionDetails = $latestRevision->revisionDetails()
+                ->with('planItem', 'changedBy')
+                ->get()
+                ->map(function (VnbPlanRevisionDetail $detail) {
+                    return [
+                        'item_id' => $detail->vnb_plan_item_id,
+                        'activity_title' => $detail->planItem?->activity_title,
+                        'notes' => $detail->planItem?->revision_notes,
+                        'changes' => $detail->getChangedFields(),
+                        'manager_name' => $detail->changedBy?->name,
+                        'revised_at' => $detail->created_at,
+                    ];
+                })
+                ->toArray();
+        }
+
+        // Format items dengan flag if direvisi
+        $revisedItemIds = collect($revisionDetails)->pluck('item_id')->toArray();
+
+        $items = $plan->items->map(function (VnbPlanItem $item) use ($revisionDetails) {
+            $revisionDetail = collect($revisionDetails)->firstWhere('item_id', $item->id);
+            
+            return [
+                'id' => $item->id,
+                'activity_title' => $item->activity_title,
+                'description' => $item->description,
+                'implementation_date' => $item->implementation_date?->toDateString(),
+                'activity_date' => $item->activity_date?->toDateString(),
+                'deliverables' => $item->deliverables,
+                'status' => $item->status,
+                'was_revised' => (bool) $revisionDetail,
+                'revision_changes' => $revisionDetail?->getChangedFields(),
+            ];
+        })->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $plan->id,
+                'title' => $plan->title,
+                'description' => $plan->description,
+                'status' => $plan->status,
+                'paid_at' => now(), // When shown to employee
+                'approved_at' => $plan->approved_at?->toDateTimeString(),
+                'approved_by_name' => $plan->approvedBy?->name,
+                'items' => $items,
+                'revision_details' => $revisionDetails,
+                'total_items' => count($items),
+                'revised_items_count' => count($revisionDetails),
+            ]
+        ]);
+    }
+
+    /**
+     * NEW: Manager Approve All Items (button "Approve All")
+     * POST /api/vnb-plans/{plan}/approve-all
+     */
+    public function managerApproveAll(VnbPlan $plan): JsonResponse
+    {
+        $user = auth()->user();
+        $isAdmin = (bool) $user?->hasRole('admin');
+
+        if (!$isAdmin) {
+            abort_unless($user?->hasRole('manager'), 403, 'Hanya manager yang bisa approve plan.');
+
+            $manager = Manager::query()
+                ->where('user_id', $user->id)
+                ->orWhereRaw('LOWER(email) = ?', [strtolower(trim((string) $user->email))])
+                ->first();
+
+            abort_unless($manager !== null, 403, 'Data manager tidak ditemukan.');
+
+            $employee = $plan->employee;
+            $isAssigned = $employee
+                && ((int) $employee->manager_functional_id === (int) $manager->id
+                    || (int) $employee->manager_operational_id === (int) $manager->id);
+
+            abort_unless($isAssigned, 403, 'Anda tidak berwenang approve plan Employee ini.');
+
+            // ✅ NEW: Check if manager is the owner of planning stage
+            $isStageOwner = $this->isManagerStageOwner($employee, 'planning', $manager->id);
+            abort_unless($isStageOwner, 403, 'Hanya Manager Fungsional yang bisa approve planning. Anda adalah Manager Operasional.');
+        }
+
+        if (!in_array($plan->status, ['waiting_manager_approval'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Plan hanya bisa di-approve dari status waiting_manager_approval'
+            ], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Approve plan
+            $plan->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+            ]);
+
+            // Create revision record dengan status approved (approved_as_is)
+            $revision = $this->createPlanRevisionSubmission($plan->fresh()->load('items'));
+            $revision->update([
+                'status' => 'approved',
+                'revision_type' => 'approved_as_is',
+                'decision' => 'approve',
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua items plan berhasil diapprove!',
+                'data' => $plan->fresh(['items']),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal approve plan: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * NEW: Manager Save Revisions for Plan Items
+     * POST /api/vnb-plans/{plan}/save-revisions
+     * Manager merevisi items langsung - tidak perlu employee resubmit
+     */
+    public function managerSaveRevisions(Request $request, VnbPlan $plan): JsonResponse
+    {
+        $user = auth()->user();
+        $isAdmin = (bool) $user?->hasRole('admin');
+
+        if (!$isAdmin) {
+            abort_unless($user?->hasRole('manager'), 403, 'Hanya manager yang bisa revise plan.');
+
+            $manager = Manager::query()
+                ->where('user_id', $user->id)
+                ->orWhereRaw('LOWER(email) = ?', [strtolower(trim((string) $user->email))])
+                ->first();
+
+            abort_unless($manager !== null, 403, 'Data manager tidak ditemukan.');
+
+            $employee = $plan->employee;
+            $isAssigned = $employee
+                && ((int) $employee->manager_functional_id === (int) $manager->id
+                    || (int) $employee->manager_operational_id === (int) $manager->id);
+
+            abort_unless($isAssigned, 403, 'Anda tidak berwenang revise plan Employee ini.');
+
+            // ✅ NEW: Check if manager is the owner of planning stage
+            $isStageOwner = $this->isManagerStageOwner($employee, 'planning', $manager->id);
+            abort_unless($isStageOwner, 403, 'Hanya Manager Fungsional yang bisa revise planning. Anda adalah Manager Operasional.');
+        }
+
+        if (!in_array($plan->status, ['waiting_manager_approval'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Plan hanya bisa direvise dari status waiting_manager_approval'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'changes' => 'required|array',
+            'changes.*.item_id' => 'required|integer',
+            'changes.*.old_values' => 'required|array',
+            'changes.*.new_values' => 'required|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $changes = $validated['changes'];
+            $revision = $this->createPlanRevisionSubmission($plan->fresh()->load('items'));
+
+            // Update items dengan values baru dari manager
+            $revisionDetailsData = [];
+            $itemUpdateCount = 0;
+
+            foreach ($changes as $change) {
+                $itemId = $change['item_id'];
+                $oldValues = $change['old_values'];
+                $newValues = $change['new_values'];
+
+                // Validate item exists and belongs to this plan
+                $item = VnbPlanItem::where('id', $itemId)
+                    ->where('plan_id', $plan->id)
+                    ->first();
+
+                if (!$item) {
+                    abort(404, "Item $itemId tidak ditemukan atau tidak sesuai dengan plan");
+                }
+
+                // Update item dengan values baru
+                $item->update($newValues);
+                $itemUpdateCount++;
+
+                // Record revision detail
+                $revisionDetailsData[] = [
+                    'vnb_plan_revision_id' => $revision->id,
+                    'vnb_plan_item_id' => $itemId,
+                    'old_values' => json_encode($oldValues),
+                    'new_values' => json_encode($newValues),
+                    'changed_by' => auth()->id(), // Manager yang merevisi
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            // Batch insert revision details
+            if (!empty($revisionDetailsData)) {
+                DB::table('vnb_plan_revision_details')->insert($revisionDetailsData);
+            }
+
+            // Update plan status to approved_with_revision
+            $plan->update([
+                'status' => 'approved_with_revision',
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+                'revision_count' => ($plan->revision_count ?? 0) + 1,
+            ]);
+
+            // Update revision dengan status approved_with_revision
+            $revision->update([
+                'status' => 'approved_with_revision',
+                'revision_type' => 'manager_revised',
+                'decision' => 'approved_with_revision',
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Revisi $itemUpdateCount items berhasil disimpan dan dikirim ke Employee!",
+                'data' => [
+                    'revision_id' => $revision->id,
+                    'plan_status' => 'approved_with_revision',
+                    'items_revised' => $itemUpdateCount,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan revisi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper: Check if manager is the owner of approval stage
+     * Planning stage: owned by functional manager only
+     * Activity stage: owned by operational manager (or functional if operational doesn't exist)
+     *
+     * @param Employee $employee
+     * @param string $stage 'planning' | 'activity'
+     * @param int $managerId The manager ID to check ownership for
+     * @return bool
+     */
+    private function isManagerStageOwner(Employee $employee, string $stage, int $managerId): bool
+    {
+        $stageOwnerManagerId = $this->getStageOwnerManagerId($employee, $stage);
+        return $managerId === $stageOwnerManagerId;
+    }
+
+    /**
+     * Helper: Get the manager ID that owns a specific stage
+     * 
+     * @param Employee $employee
+     * @param string $stage 'planning' | 'activity'
+     * @return int|null The manager ID that owns this stage
+     */
+    private function getStageOwnerManagerId(Employee $employee, string $stage): ?int
+    {
+        if ($stage === 'planning') {
+            // Planning stage always owned by functional manager
+            return $employee->manager_functional_id;
+        }
+
+        if ($stage === 'activity') {
+            // Activity stage: operational manager if exists, else fallback to functional
+            if ($employee->manager_operational_id && $employee->manager_operational_id !== $employee->manager_functional_id) {
+                return $employee->manager_operational_id;
+            }
+            return $employee->manager_functional_id;
+        }
+
+        return null;
     }
 }
