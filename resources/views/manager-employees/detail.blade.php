@@ -1,103 +1,90 @@
 @extends('layouts.app')
 @section('title','Manager - Detail Employee')
 @section('content')
-<div class="px-4 space-y-4">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Detail Employee</h1>
-    <div class="flex gap-2 items-center">
-      <a id="planning-history-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hidden">Planning Approved & History</a>
-      <a href="/manager/employees" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali</a>
+<div class="space-y-6">
+  <!-- Header Section -->
+  <div class="card-glass rounded-xl p-6 md:p-8">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+      <div class="flex-1">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">VnB Plan Review</h1>
+        <p class="text-gray-600 mb-4">Review rencana pengembangan karyawan per fase</p>
+      </div>
+      <div class="flex gap-2 flex-shrink-0">
+        <a id="planning-history-link" href="#" class="btn-secondary flex items-center gap-2 hover:bg-gray-50 hidden">
+          <i class="fas fa-history"></i> History
+        </a>
+        <a href="/manager/employees" class="btn-secondary flex items-center gap-2 hover:bg-gray-50">
+          <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+      </div>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl shadow-sm p-4">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" id="profile-box">
+  <!-- Employee Profile Card -->
+  <div class="card-glass rounded-xl p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm" id="profile-box">
       <div class="text-gray-500">Memuat profil...</div>
     </div>
   </div>
 
-  <div class="bg-white rounded-xl shadow-sm p-4">
-    <div class="flex items-center justify-between mb-2">
-      <h2 class="text-sm font-semibold text-gray-700">Progress VnB</h2>
-      <span id="progress-label" class="text-sm font-semibold text-gray-700">0%</span>
-    </div>
-    <div class="w-full bg-gray-200 rounded-full h-3">
-      <div id="progress-bar" class="h-3 rounded-full" style="width:0%; background-color:#144600;"></div>
-    </div>
-    <div id="phase-label" class="text-xs text-gray-500 mt-2">Fase: -</div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow-sm p-4">
-    <div id="phase-tabs" class="flex gap-4 border-b border-gray-200 mb-3">
-      <button id="tab-planning" type="button" onclick="setSelectedTab('planning')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">
-        <span class="font-semibold">Planning</span>
-        <span id="badge-planning" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-      </button>
-      <button id="tab-phase-1" type="button" onclick="setSelectedTab('phase_1')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
-        <span class="font-semibold">Fase 1</span>
-        <span id="badge-phase-1" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-      </button>
-      <button id="tab-phase-2" type="button" onclick="setSelectedTab('phase_2')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
-        <span class="font-semibold">Fase 2</span>
-        <span id="badge-phase-2" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-      </button>
-      <button id="tab-phase-3" type="button" onclick="setSelectedTab('phase_3')" class="px-4 py-2 font-medium transition-colors" style="color: #999999; border-bottom: none;">
-        <span class="font-semibold">Fase 3</span>
-        <span id="badge-phase-3" class="ml-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700 hidden">0</span>
-      </button>
-    </div>
-    <div id="phase-status-list" class="grid grid-cols-1 gap-2 text-sm text-gray-700"></div>
-  </div>
-
-  <!-- Global planning approval box removed as per request for point-per-point revision -->
-  <div id="planning-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
-    <div class="p-4 flex items-start justify-between">
-      <div>
-        <h2 class="text-base font-semibold text-gray-800">Planning Employee (Fase Planning)</h2>
-        <p class="text-xs text-gray-500 mt-1">Saat fase Planning, manager mereview planning secara keseluruhan di sini.</p>
-      </div>
-      <div class="flex gap-2">
-        <!-- Button: Setujui Semua (Approve All) - GREEN -->
-        <div class="relative group">
-          <button id="approve-all-btn" onclick="submitApproveAll()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 whitespace-nowrap" style="background-color: #16a34a;" onmouseover="this.style.backgroundColor='#15803d'" onmouseout="this.style.backgroundColor='#16a34a'">
-            <i class="fas fa-check"></i>
-            Setujui Semua
-          </button>
-          <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50">
-            Setujui semua rencana aktivitas
-          </div>
+  <!-- Progress Section -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Progress Bar Card -->
+    <div class="card-glass rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900">Progress VnB</h3>
+          <p class="text-xs text-gray-500 mt-1">Kemajuan rencana aktivitas</p>
         </div>
-        <!-- Button: Simpan - NAVY BLUE -->
-        <div class="relative group">
-          <button id="batch-submit-btn-header" onclick="submitBatchReview()" class="px-6 py-2.5 text-white font-medium text-sm rounded-lg shadow-sm transition flex items-center gap-2 whitespace-nowrap" style="background-color: #9ca3af; opacity: 0.5;" disabled>
-            <i class="fas fa-save"></i>
-            Simpan
+        <span id="progress-label" class="text-2xl font-bold text-green-600">0%</span>
+      </div>
+      <div class="w-full bg-gray-200/50 h-3 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500" style="width:0%;"></div>
+      </div>
+      <div id="phase-label" class="text-xs text-gray-600 mt-3">Fase: -</div>
+    </div>
+
+    <!-- Planning Status Card -->
+    <div class="card-glass rounded-xl p-6">
+      <h3 class="text-sm font-semibold text-gray-900 mb-4">Planning Status</h3>
+      <div id="phase-status-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- Planning Section -->
+  <div id="planning-table-box" class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hidden">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-b border-gray-200/50">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">PLANNING APPROVAL</h2>
+          <p class="text-sm text-gray-600 mt-1">Persetujuan rencana pengembangan karyawan</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="approve-all-btn" onclick="submitApproveAll()" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+            <i class="fas fa-check"></i> Setujui Semua
           </button>
-          <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded px-3 py-2 whitespace-nowrap z-50" id="batch-submit-tooltip">
-            Berikan keputusan (Setujui atau Revisi) untuk semua item terlebih dahulu
-          </div>
+          <button id="batch-submit-btn-header" onclick="submitBatchReview()" class="px-4 py-2 text-white text-sm font-medium rounded-lg transition flex items-center gap-2" style="background-color: #9ca3af; opacity: 0.5; cursor: not-allowed;" disabled>
+            <i class="fas fa-save"></i> Simpan
+          </button>
         </div>
       </div>
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm h-full" style="min-width: 1000px; table-layout: fixed;">
-        <thead class="bg-gray-50 sticky top-0 z-10">
+      <table class="table-modern w-full">
+        <thead>
           <tr>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 12%;">Behaviour</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 6%;">Fase</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Integrasi Pengukuran</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500" style="width: 35%;">Rencana Aktivitas</th>
-            <th class="px-4 py-3 text-center text-xs uppercase text-gray-500" style="width: 12%;">Aksi</th>
+            <th class="w-1/6">Behaviour</th>
+            <th class="w-1/4">Integrasi Pengukuran</th>
+            <th class="w-1/3">Rencana Aktivitas</th>
+            <th class="w-1/6 text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody id="planning-body" class="divide-y divide-gray-200 text-gray-700">
-          <tr><td colspan="5" class="text-center py-8 text-gray-400">Memuat planning...</td></tr>
+        <tbody id="planning-body">
+          <tr><td colspan="4" class="text-center py-8 text-gray-400">Memuat planning...</td></tr>
         </tbody>
       </table>
     </div>
-
-    <!-- Batch Action Bar (Sticky Bottom) -->
-    <div id="batch-action-bar" class="hidden bg-white border-t border-gray-200 p-4 flex justify-between items-center sticky bottom-0 z-20 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] w-full">
+    <div id="batch-action-bar" class="hidden bg-gray-50 border-t border-gray-200 p-4 flex justify-between items-center">
       <div>
         <p class="text-base font-bold text-gray-900">Review Menunggu Konfirmasi</p>
         <p class="text-xs text-gray-600 mt-1">Pilihan Anda sudah dicatat sementara. Klik kirim untuk menyimpan semua.</p>
@@ -105,58 +92,97 @@
     </div>
   </div>
 
-  <div id="activity-table-box" class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-      <h2 class="text-base font-semibold text-gray-800">VnB Activity</h2>
-      <span id="activity-waiting" class="text-xs text-gray-500">Pending approval: 0</span>
+  <!-- Fase 1 Section -->
+  <div id="phase-1-section" class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hidden">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-b border-gray-200/50">
+      <h2 class="text-lg font-semibold text-gray-900">FASE 1</h2>
+      <p class="text-sm text-gray-600 mt-1">Bulan ke-1 hingga ke-3 | Orientasi & Onboarding</p>
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm" style="min-width: 1200px;">
-        <thead class="bg-gray-50">
+      <table class="table-modern w-full">
+        <thead>
           <tr>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Behaviour</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Rencana Aktivitas</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Aktivitas Aktual</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Tanggal</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Status</th>
-            <th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Progress</th>
-            <th class="px-4 py-3 text-right text-xs uppercase text-gray-500">Aksi</th>
+            <th class="w-1/6">Behaviour</th>
+            <th class="w-1/4">Integrasi Pengukuran</th>
+            <th class="w-1/3">Rencana Aktivitas</th>
+            <th class="w-1/6 text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody id="items-body" class="divide-y divide-gray-200 text-gray-700">
-          <tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat aktivitas...</td></tr>
+        <tbody id="phase-1-body">
+          <tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <div id="phase-note-box" class="bg-white rounded-xl shadow-sm p-4 hidden">
-    <div id="phase-note-text" class="text-sm text-gray-700">-</div>
+  <!-- Fase 2 Section -->
+  <div id="phase-2-section" class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hidden">
+    <div class="px-6 py-4 bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-b border-gray-200/50">
+      <h2 class="text-lg font-semibold text-gray-900">FASE 2</h2>
+      <p class="text-sm text-gray-600 mt-1">Bulan ke-4 hingga ke-6 | Pengembangan & Adaptasi</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table-modern w-full">
+        <thead>
+          <tr>
+            <th class="w-1/6">Behaviour</th>
+            <th class="w-1/4">Integrasi Pengukuran</th>
+            <th class="w-1/3">Rencana Aktivitas</th>
+            <th class="w-1/6 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="phase-2-body">
+          <tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Fase 3 Section -->
+  <div id="phase-3-section" class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hidden">
+    <div class="px-6 py-4 bg-gradient-to-r from-green-500/10 to-green-600/10 border-b border-gray-200/50">
+      <h2 class="text-lg font-semibold text-gray-900">FASE 3</h2>
+      <p class="text-sm text-gray-600 mt-1">Bulan ke-7 hingga ke-12 | Konsolidasi & Kemandirian</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table-modern w-full">
+        <thead>
+          <tr>
+            <th class="w-1/6">Behaviour</th>
+            <th class="w-1/4">Integrasi Pengukuran</th>
+            <th class="w-1/3">Rencana Aktivitas</th>
+            <th class="w-1/6 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="phase-3-body">
+          <tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Approve All Confirmation Modal -->
   <div id="approve-all-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
       <div class="flex items-start gap-3 mb-4">
-        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full" style="background-color: #fef2f2;">
-          <i class="fas fa-check text-2xl" style="color: #dc2626;"></i>
+        <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+          <i class="fas fa-check text-2xl text-blue-600"></i>
         </div>
         <div>
-          <h3 class="text-lg font-bold text-gray-900">Setujui Semua Rencana Aktivitas?</h3>
-          <p class="text-sm text-gray-500 mt-1">Anda yakin akan menyetujui SEMUA rencana aktivitas?</p>
+          <h3 class="text-lg font-bold text-gray-900">Setujui Semua Rencana?</h3>
+          <p class="text-sm text-gray-500 mt-1">Anda yakin akan menyetujui semua rencana aktivitas?</p>
         </div>
       </div>
-      <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
-        <p class="text-sm text-amber-800">
-          <i class="fas fa-exclamation-triangle text-amber-600 mr-2"></i>
-          Setelah disetujui, tidak bisa diubah kecuali ada revisi baru dari manager.
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+        <p class="text-sm text-blue-800">
+          <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+          Setelah disetujui, tidak bisa diubah kecuali ada revisi baru.
         </p>
       </div>
       <div class="flex gap-3 justify-end">
         <button onclick="closeApproveAllModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium">Batal</button>
-        <button onclick="confirmApproveAll()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium flex items-center gap-2">
-          <i class="fas fa-check"></i>
-          Setujui
+        <button onclick="confirmApproveAll()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium flex items-center gap-2">
+          <i class="fas fa-check"></i> Setujui
         </button>
       </div>
     </div>
@@ -165,22 +191,23 @@
   <!-- Revision Modal -->
   <div id="revision-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-lg w-full max-w-lg p-6">
-      <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Catatan Revisi</h3>
-      <div class="mb-4 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-100">
-        <div id="modal-behaviour-val" class="font-bold text-base mb-2 text-gray-900"></div>
-        <div class="font-semibold text-xs text-gray-500 uppercase mt-2">Integrasi Pengukuran</div>
-        <div id="modal-integrasi-val" class="ml-2 mb-2 whitespace-pre-wrap">-</div>
-        <div class="font-semibold text-xs text-gray-500 uppercase mt-2">Rencana Aktivitas</div>
+      <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-3">Catatan Revisi</h3>
+      <div class="mb-4 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <div id="modal-behaviour-val" class="font-bold text-base mb-3 text-gray-900"></div>
+        <div class="font-semibold text-xs text-gray-500 uppercase mb-2">Integrasi Pengukuran</div>
+        <div id="modal-integrasi-val" class="ml-2 mb-3 whitespace-pre-wrap">-</div>
+        <div class="font-semibold text-xs text-gray-500 uppercase mb-2">Rencana Aktivitas</div>
         <div id="modal-rencana-val" class="ml-2 whitespace-pre-wrap">-</div>
       </div>
       <div class="mb-4">
-        <textarea id="modal-revision-notes" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Masukkan catatan revisi di sini..."></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Catatan Revisi</label>
+        <textarea id="modal-revision-notes" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent" placeholder="Masukkan catatan revisi di sini..."></textarea>
       </div>
-      <div class="flex justify-between items-center mt-4">
-        <button id="modal-cancel-revision-btn" onclick="cancelRevisionFromModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg text-sm hover:bg-gray-300 font-medium hidden">Batalkan Revisi</button>
-        <div class="flex gap-2 w-full justify-end">
-          <button onclick="closeRevisionModal()" class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium">Cancel</button>
-          <button onclick="submitRevisionModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium">OK</button>
+      <div class="flex justify-between items-center mt-6">
+        <button id="modal-cancel-revision-btn" onclick="cancelRevisionFromModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium hidden">Batalkan</button>
+        <div class="flex gap-2 flex-1 justify-end">
+          <button onclick="closeRevisionModal()" class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 font-medium">Batal</button>
+          <button onclick="submitRevisionModal()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium">Kirim Revisi</button>
         </div>
       </div>
     </div>
@@ -281,28 +308,8 @@ function normalizeCurrentStage(detail) {
 }
 
 function setSelectedTab(tabKey) {
-  selectedTab = tabKey;
-  
-  // Update tab styling
-  const tabs = ['planning', 'phase_1', 'phase_2', 'phase_3'];
-  tabs.forEach(tab => {
-    const btnId = `tab-${tab.replace('_', '-')}`;
-    const btn = document.getElementById(btnId);
-    if (btn) {
-      if (tab === tabKey) {
-        btn.style.color = '#144600';
-        btn.style.borderBottom = '2px solid #144600';
-      } else {
-        btn.style.color = '#999999';
-        btn.style.borderBottom = 'none';
-      }
-    }
-  });
-  
-  if (detailData) {
-    renderPhaseOverview(detailData);
-    renderPhaseContent(detailData);
-  }
+  // Deprecated: Tab-based navigation removed. All phases now display simultaneously.
+  // This function is kept for backward compatibility.
 }
 
 function updateSubmitButtonState(detail) {
@@ -396,80 +403,84 @@ function renderPhaseOverview(detail) {
 }
 
 function renderPhaseContent(detail) {
+  // Hide all sections first
+  ['planning-table-box', 'phase-1-section', 'phase-2-section', 'phase-3-section'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+
   const currentStage = normalizeCurrentStage(detail);
-  const activePhase = selectedTab || currentStage;
   const planningWaiting = !!detail.approval_requests?.planning_waiting;
   const items = detail.items || [];
 
-  const planningTableBox = document.getElementById('planning-table-box');
-  const activityTableBox = document.getElementById('activity-table-box');
-  const phaseNoteBox = document.getElementById('phase-note-box');
-  const phaseNoteText = document.getElementById('phase-note-text');
-
-  planningTableBox.classList.add('hidden');
-  activityTableBox.classList.add('hidden');
-  phaseNoteBox.classList.add('hidden');
-
-  if (activePhase === 'planning') {
-    planningTableBox.classList.remove('hidden');
+  // Show planning table if in planning stage and waiting approval
+  if (currentStage === 'planning' && planningWaiting) {
+    document.getElementById('planning-table-box').classList.remove('hidden');
     renderPlanningTable(items);
-    return;
   }
 
-  const tabNum = Number((activePhase.match(/phase_(\d)/) || [])[1] || 1);
-  const currentNum = currentStage === 'planning'
-    ? 0
-    : Number((currentStage.match(/phase_(\d)/) || [])[1] || 1);
-
-  if (currentStage === 'planning') {
-    phaseNoteBox.classList.remove('hidden');
-    phaseNoteText.textContent = `Planning belum disetujui manager. Fase ${tabNum} belum dimulai.`;
-    return;
-  }
-
-  const filteredItems = items.filter(item => resolvePhaseNumberFromItem(item) === tabNum);
-
-  if (tabNum > currentNum) {
-    phaseNoteBox.classList.remove('hidden');
-    phaseNoteText.textContent = `Fase ${tabNum} belum dimulai.`;
-    return;
-  }
-
-  if (tabNum < currentNum) {
-    phaseNoteBox.classList.remove('hidden');
-    phaseNoteText.textContent = `Fase ${tabNum} sudah selesai. Anda tetap bisa melihat histori planning melalui tombol "Planning Approved & History".`;
-  }
-
-  activityTableBox.classList.remove('hidden');
-  renderActivityTable(filteredItems);
+  // Always show phase sections regardless of current stage
+  ['phase_1', 'phase_2', 'phase_3'].forEach((phaseKey, idx) => {
+    const phaseNum = idx + 1;
+    const phaseItems = items.filter(item => resolvePhaseNumberFromItem(item) === phaseNum);
+    
+    const sectionId = `phase-${phaseNum}-section`;
+    const bodyId = `phase-${phaseNum}-body`;
+    
+    if (phaseItems.length > 0) {
+      document.getElementById(sectionId).classList.remove('hidden');
+      renderPhaseActivityTable(bodyId, phaseItems);
+    }
+  });
 }
 
-function renderActivityTable(items) {
-  const tbody = document.getElementById('items-body');
+function renderPhaseActivityTable(bodyId, items) {
+  const tbody = document.getElementById(bodyId);
   if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Belum ada aktivitas untuk fase ini</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>';
     return;
   }
 
-  tbody.innerHTML = items.map(item => {
-    const waiting = item.submission_status === 'waiting_approval';
-    return `
-      <tr>
-        <td class="px-4 py-3">${item.activity_title || '-'}</td>
-        <td class="px-4 py-3">${item.deliverables || '-'}</td>
-        <td class="px-4 py-3">${item.activity_description || '-'}</td>
-        <td class="px-4 py-3">${item.activity_date || '-'}</td>
-        <td class="px-4 py-3">${toLabelStatus(item.submission_status)}</td>
-        <td class="px-4 py-3">${item.completion_percentage || 0}%</td>
-        <td class="px-4 py-3 text-right">
-          ${waiting ? `
-            <button onclick="approveActivity(${item.id})" class="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 mr-1">Accept</button>
-            <button onclick="reviseActivity(${item.id})" class="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">Revisi</button>
-          ` : '<span class="text-xs text-gray-400">-</span>'}
-        </td>
-      </tr>
-    `;
-  }).join('');
+  let html = '';
+  
+  items.forEach(item => {
+    const behaviorMatch = (item.activity_title || '').match(/^([^-]+)/);
+    const behavior = behaviorMatch ? behaviorMatch[1].trim() : (item.activity_title || '-');
+    
+    const integrations = (item.description || '-').split('|').map(s => s.trim()).filter(s => s);
+    if (integrations.length === 0) {
+      integrations.push('-');
+    }
+    
+    const rencanaList = (item.deliverables || '').split('\n---\n').map(s => s.trim());
+    
+    // Create a row for each integration
+    integrations.forEach((integration, idx) => {
+      const waiting = item.submission_status === 'waiting_approval';
+      let actionHtml = '';
+      
+      if (waiting) {
+        actionHtml = `
+          <button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-600 text-white hover:bg-green-700 transition mr-2 cursor-pointer shadow-sm" title="Approve">✓</button>
+          <button onclick="reviseActivityRow(${item.id}, ${idx}, '${encodeURIComponent(behavior).replace(/'/g, "%27")}', '${encodeURIComponent(integration).replace(/'/g, "%27")}', '${encodeURIComponent(rencanaList[idx] || '-').replace(/'/g, "%27")}')" class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-600 text-white hover:bg-red-700 transition cursor-pointer shadow-sm" title="Revise">✕</button>
+        `;
+      } else {
+        const statusLabel = toLabelStatus(item.submission_status);
+        actionHtml = `<span class="text-xs text-gray-500">${statusLabel}</span>`;
+      }
+      
+      html += `
+        <tr class="hover:bg-gray-50 transition-colors">
+          ${idx === 0 ? `<td class="px-4 py-3 font-medium">${behavior}</td>` : '<td class="px-4 py-3"></td>'}
+          <td class="px-4 py-3"><span class="text-xs text-gray-700 whitespace-pre-wrap">${integration}</span></td>
+          <td class="px-4 py-3 whitespace-pre-wrap">${rencanaList[idx] || '-'}</td>
+          <td class="px-4 py-3 text-right">${actionHtml}</td>
+        </tr>
+      `;
+    });
+  });
+
+  tbody.innerHTML = html;
 }
 
 async function loadDetail() {
@@ -516,9 +527,6 @@ function renderDetail() {
   // Restore UI states from pending decisions (button colors, labels, etc.)
   toggleBatchButtonBar();
 
-  if (!selectedTab) {
-    selectedTab = normalizeCurrentStage(detailData);
-  }
   renderPhaseOverview(detailData);
   renderPhaseContent(detailData);
 
@@ -643,12 +651,8 @@ function renderPlanningTable(items) {
   let html = '';
   
   Object.entries(groupedByBehavior).forEach(([behavior, itemsInGroup]) => {
-    let lastPhase = null;
-    
     itemsInGroup.forEach((item, idx) => {
       const showBehavior = idx === 0;
-      const showPhase = lastPhase !== item.extracted_phase;
-      lastPhase = item.extracted_phase;
       
       const rowKey = item.id + '_' + item.sub_idx;
       const decision = pendingDecisions[rowKey];
@@ -682,7 +686,6 @@ function renderPlanningTable(items) {
       html += `
     <tr class="${rowBgClass} hover:bg-gray-50 transition-colors">
       ${showBehavior ? `<td class="px-4 py-3 align-top font-medium" style="vertical-align: top;">${behavior}</td>` : '<td class="px-4 py-3"></td>'}
-      ${showPhase ? `<td class="px-4 py-3 align-top text-center" style="vertical-align: top;">${item.extracted_phase}</td>` : '<td class="px-4 py-3"></td>'}
       <td class="px-4 py-3 align-top"><span class="text-xs text-gray-700 whitespace-pre-wrap">${item.integration_text}</span></td>
       <td class="px-4 py-3 align-top whitespace-pre-wrap">${item.rencana_text || '-'}</td>
       <td class="px-4 py-3 align-top text-center">
@@ -762,6 +765,43 @@ async function approvePlanningRow(itemId, subIdx) {
       renderPlanningTable(detailData.items);
   }
   toggleBatchButtonBar();
+}
+
+async function approveActivityRow(itemId, subIdx) {
+  const rowKey = itemId + '_' + subIdx;
+  pendingDecisions[rowKey] = { item_id: itemId, action: 'approve' };
+  savePendingDecisionsLocal();
+  
+  // Re-render appropriate phase section
+  if (detailData && detailData.items) {
+    const item = detailData.items.find(i => i.id === itemId);
+    if (item) {
+      const phaseNum = resolvePhaseNumberFromItem(item);
+      const phaseItems = detailData.items.filter(i => resolvePhaseNumberFromItem(i) === phaseNum);
+      const bodyId = `phase-${phaseNum}-body`;
+      renderPhaseActivityTable(bodyId, phaseItems);
+    }
+  }
+  toggleBatchButtonBar();
+}
+
+async function reviseActivityRow(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaEnc) {
+  const planId = detailData?.plan?.id;
+  if (!planId) {
+    showAlert('ID planning tidak ditemukan', 'error');
+    return;
+  }
+  
+  currentRevisionItemId = itemId;
+  currentRevisionSubIdx = subIdx;
+  
+  document.getElementById('modal-behaviour-val').textContent = decodeURIComponent(behaviorEnc);
+  document.getElementById('modal-integrasi-val').textContent = '- ' + decodeURIComponent(integrasiEnc);
+  document.getElementById('modal-rencana-val').textContent = '- ' + decodeURIComponent(rencanaEnc);
+  
+  document.getElementById('modal-revision-notes').value = '';
+  document.getElementById('modal-cancel-revision-btn').classList.add('hidden');
+  document.getElementById('revision-modal').classList.remove('hidden');
 }
 
 let currentRevisionItemId = null;
