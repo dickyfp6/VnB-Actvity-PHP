@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\ActiveRoleContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -61,6 +62,7 @@ class AuthWebController extends Controller
 
         Auth::login($user, remember: $request->boolean('remember'));
         $request->session()->regenerate();
+        ActiveRoleContext::resolve($request, $user);
 
         return redirect()->route('dashboard');
     }
@@ -85,7 +87,7 @@ class AuthWebController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed',
-            'role' => 'required|in:employee,manager,pcx_manager,intercomm,admin',
+            'role' => 'required|in:employee,manager,pcx_manager,intercomm,direktur_utama',
         ]);
 
         $user = User::create([
@@ -96,11 +98,28 @@ class AuthWebController extends Controller
         ]);
 
         $user->assignRole($validated['role']);
+        $user->forceFill(['last_active_role' => $validated['role']])->save();
 
         Auth::login($user);
         $request->session()->regenerate();
+        ActiveRoleContext::resolve($request, $user);
 
         return redirect()->route('dashboard');
+    }
+
+    /**
+     * Switch active role for multi-role users.
+     */
+    public function switchRole(Request $request)
+    {
+        $validated = $request->validate([
+            'role' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        ActiveRoleContext::switch($request, $user, $validated['role']);
+
+        return back()->with('success', 'Role aktif berhasil diganti.');
     }
 
     /**
@@ -108,6 +127,14 @@ class AuthWebController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        if ($user) {
+            $activeRole = $request->session()->get(ActiveRoleContext::SESSION_KEY);
+            if (is_string($activeRole) && $activeRole !== '') {
+                $user->forceFill(['last_active_role' => $activeRole])->save();
+            }
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

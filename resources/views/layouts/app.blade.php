@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'VnB Platform - Wismilak')</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -24,41 +25,6 @@
             --color-accent: #d4af37;
         }
 
-        * {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--color-neutral-300);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--color-neutral-600);
-        }
-
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: var(--color-neutral-300) transparent;
-        }
-
         /* Sidebar - Modern Glassmorphism */
         .sidebar {
             position: fixed;
@@ -66,18 +32,20 @@
             top: 0;
             height: 100vh;
             background: linear-gradient(135deg, rgba(26, 92, 0, 0.95) 0%, rgba(17, 24, 39, 0.93) 100%);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(14px);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             z-index: 50;
-            overflow-y: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 260px;
+            width: 220px;
         }
 
         .sidebar.collapsed {
-            width: 80px;
+            width: 70px;
         }
 
         .sidebar-overlay {
@@ -161,17 +129,20 @@
 
         /* Navigation */
         .sidebar nav {
-            padding: 1.5rem 0;
+            padding: 0.75rem 0;
             display: flex;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: 0.15rem;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
 
         .nav-link {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1rem;
+            gap: 0.6rem;
+            padding: 0.65rem 0.875rem;
             margin: 0 0.5rem;
             border-radius: 0.75rem;
             text-decoration: none;
@@ -182,6 +153,18 @@
             overflow: hidden;
             transition: all 0.2s ease;
             border: 1px solid transparent;
+        }
+
+        .nav-section-title {
+            margin: 0.75rem 1rem 0.25rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            color: rgba(208, 236, 152, 0.9);
+        }
+
+        .sidebar.collapsed .nav-section-title {
+            display: none;
         }
 
         .nav-link::before {
@@ -237,7 +220,7 @@
 
         /* User Info */
         .user-info {
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -271,72 +254,123 @@
             display: none;
         }
 
-        /* Logout Button */
-        .logout-btn {
-            position: absolute;
-            bottom: 1rem;
-            left: 0.5rem;
-            right: 0.5rem;
+        .top-navbar {
             display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 35;
+        }
+
+        .top-profile-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.625rem;
+            border: 1px solid rgba(17, 24, 39, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--color-neutral-900);
+            border-radius: 999px;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+        }
+
+        .top-profile-btn .meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.1;
+        }
+
+        .top-profile-btn .meta .name {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--color-neutral-900);
+        }
+
+        .top-profile-btn .meta small {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--color-neutral-600);
+        }
+
+        .top-profile-btn .avatar {
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #37AA05 0%, #1f7a0b 100%);
+            color: white;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1rem;
-            background: linear-gradient(135deg, var(--color-accent) 0%, #c9a626 100%);
-            border: none;
-            border-radius: 0.75rem;
-            color: var(--color-neutral-900);
-            cursor: pointer;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
+        }
+
+        .top-profile-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.5rem);
+            min-width: 240px;
+            background: white;
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            border-radius: 0.9rem;
+            box-shadow: 0 20px 40px rgba(17, 24, 39, 0.14);
+            padding: 0.55rem;
+            z-index: 70;
+        }
+
+        .top-profile-menu-item {
+            display: flex;
+            width: 100%;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+            color: var(--color-neutral-800);
+            padding: 0.6rem 0.65rem;
+            border-radius: 0.6rem;
+            font-size: 0.82rem;
             font-weight: 600;
-            transition: all 0.2s ease;
-            width: calc(100% - 1rem);
-            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+            border: 0;
+            background: transparent;
+            cursor: pointer;
         }
 
-        .logout-btn:hover {
-            background: linear-gradient(135deg, #e6c200 0%, #d9a300 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+        .top-profile-menu-item:hover {
+            background: rgba(55, 170, 5, 0.09);
+            color: var(--color-primary-dark);
         }
 
-        .logout-btn:active {
-            transform: translateY(0);
-        }
-
-        .sidebar.collapsed .logout-btn {
-            padding: 0.875rem 0.5rem;
-        }
-
-        .logout-btn span {
-            transition: opacity 0.3s ease-in-out, width 0.3s ease-in-out;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed .logout-btn span {
-            opacity: 0;
-            width: 0;
-            display: none;
+        .top-role-select {
+            width: 100%;
+            border: 1px solid rgba(17, 24, 39, 0.15);
+            border-radius: 0.6rem;
+            padding: 0.45rem 0.5rem;
+            font-size: 0.78rem;
+            color: var(--color-neutral-800);
+            background: white;
         }
 
         /* Main Content */
         .main-content {
-            margin-left: 260px;
+            margin-left: 220px;
             transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .main-content.sidebar-collapsed {
-            margin-left: 80px;
+            margin-left: 70px;
         }
 
         @media (max-width: 1024px) {
             .sidebar {
-                width: 260px !important;
+                width: 220px !important;
             }
 
             .sidebar.collapsed {
-                width: 260px !important;
+                width: 220px !important;
             }
 
             .main-content {
@@ -431,7 +465,7 @@
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
             padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
+            border-radius: 999px; /* Pill shape for cuteness */
             border: none;
             cursor: pointer;
             font-weight: 600;
@@ -449,7 +483,7 @@
             background: rgba(55, 170, 5, 0.1);
             color: var(--color-primary);
             padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
+            border-radius: 999px;
             border: 1px solid rgba(55, 170, 5, 0.2);
             cursor: pointer;
             font-weight: 600;
@@ -497,7 +531,7 @@
         }
 
         .table-modern tbody tr:hover {
-            background: rgba(55, 170, 5, 0.08);
+            background: rgba(55, 170, 5, 0.08); /* Soft green hover */
         }
 
         .table-modern tbody tr:last-child {
@@ -558,7 +592,7 @@
 
         .table-action-btn {
             padding: 0.375rem 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: 999px;
             border: 1px solid rgba(55, 170, 5, 0.3);
             background: transparent;
             color: var(--color-primary);
@@ -575,8 +609,12 @@
     </style>
 
 </head>
-<body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col min-h-screen text-gray-900">
-    @php $role = Auth::user()->getRoleNames()->first(); @endphp
+<body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col min-h-screen text-gray-900 font-sans">
+    @php
+        $user = Auth::user();
+        $activeRole = \App\Support\ActiveRoleContext::current(request(), $user);
+        $availableRoles = \App\Support\ActiveRoleContext::availableRoles($user);
+    @endphp
     
     <!-- Sidebar Overlay -->
     <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
@@ -586,54 +624,40 @@
         <!-- Logo - Toggle Button -->
         <div class="sidebar-logo" id="sidebarToggle" title="Click to collapse/expand sidebar">
             <span class="logo-text">VnB Platform</span>
-            <i class="fas fa-chevron-left toggle-icon"></i>
-        </div>
-
-        <!-- User Info -->
-        <div class="user-info">
-            <p class="font-semibold text-sm">{{ Auth::user()->name }}</p>
-            <p class="text-xs capitalize" style="color: #D0EC98;">{{ str_replace('_',' ',$role) }}</p>
+            <i class="fas fa-bars toggle-icon"></i>
         </div>
 
         <!-- Navigation Links -->
         <nav>
+            <p class="nav-section-title">BERANDA</p>
             <a href="/" class="nav-link {{ request()->is('/') ? 'active' : '' }}" title="Dashboard">
                 <i class="fas fa-chart-line w-5 flex-shrink-0"></i>
                 <span>Dashboard</span>
             </a>
 
-            @if(in_array($role, ['admin','pcx_manager']))
-            <a href="/intercomm" class="nav-link {{ request()->is('intercomm*') ? 'active' : '' }}" title="Manage Intercomm">
-                <i class="fas fa-users-cog w-5 flex-shrink-0"></i>
-                <span>Manage Intercomm</span>
+            <p class="nav-section-title">STAR</p>
+            <a href="/star" class="nav-link {{ request()->is('star*') ? 'active' : '' }}" title="STAR">
+                <i class="fas fa-star w-5 flex-shrink-0"></i>
+                <span>STAR</span>
+            </a>
+
+            <p class="nav-section-title">VNB ACTIVITY</p>
+
+            @if($activeRole === 'employee')
+            <a href="/vnb-plans" class="nav-link {{ request()->is('vnb-plans*') ? 'active' : '' }}" title="Planning">
+                <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
+                <span>Planning</span>
+            </a>
+            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
+                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
+                <span>VnB Activity</span>
             </a>
             @endif
 
-            @if(in_array($role, ['admin','pcx_manager','intercomm']))
-            <a href="/vnb-framework" class="nav-link {{ request()->is('vnb-framework*') ? 'active' : '' }}" title="V&B Framework">
-                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
-                <span>V&B Framework</span>
-            </a>
-            @endif
-
-            @if(in_array($role, ['admin','intercomm','pcx_manager']))
-            <a href="/managers" class="nav-link {{ request()->is('managers*') ? 'active' : '' }}" title="Manager">
-                <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
-                <span>Manager</span>
-            </a>
-            @endif
-
-            @if(in_array($role, ['admin','intercomm','pcx_manager']))
-            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Employee">
+            @if($activeRole === 'manager')
+            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Kelola Employee">
                 <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>Employee</span>
-            </a>
-            @endif
-
-            @if(in_array($role, ['manager']))
-            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Employee">
-                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>Employee</span>
+                <span>Kelola Employee</span>
             </a>
             <a href="/manager/approval-requests" class="nav-link {{ request()->is('manager/approval-requests*') ? 'active' : '' }}" title="Approval Request">
                 <div style="position: relative; display: inline-block;">
@@ -643,54 +667,122 @@
                 <span>Approval Request</span>
                 <span id="manager-approval-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: white; color: white; min-width: unset; font-size: 10px;">0</span>
             </a>
-            <a href="/my-account/profile" class="nav-link {{ request()->is('my-account/profile*') ? 'active' : '' }}" title="Akun Saya">
-                <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
-                <span>Akun Saya</span>
-            </a>
-            @endif
-
-            @if(in_array($role, ['admin','employee']))
-            <a href="/vnb-plans" class="nav-link {{ request()->is('vnb-plans*') ? 'active' : '' }}" title="Planning">
-                <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
-                <span>Planning</span>
-            </a>
-            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="Aktivitas">
+            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
                 <i class="fas fa-tasks w-5 flex-shrink-0"></i>
-                <span>Aktivitas</span>
-            </a>
-            <a href="/my-account/profile" class="nav-link {{ request()->is('my-account/profile*') ? 'active' : '' }}" title="Akun Saya">
-                <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
-                <span>Akun Saya</span>
+                <span>VnB Activity</span>
             </a>
             @endif
 
-            @if(in_array($role, ['admin']))
-            <a href="/review-activity" class="nav-link {{ request()->is('review-activity*') ? 'active' : '' }}" title="Review">
-                <i class="fas fa-eye w-5 flex-shrink-0"></i>
-                <span>Review</span>
+            @if($activeRole === 'intercomm')
+            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Manage Employee">
+                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
+                <span>Manage Employee</span>
+            </a>
+            <a href="/managers" class="nav-link {{ request()->is('managers*') ? 'active' : '' }}" title="Manage Manager">
+                <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
+                <span>Manage Manager</span>
+            </a>
+            <a href="/vnb-framework" class="nav-link {{ request()->is('vnb-framework*') ? 'active' : '' }}" title="V&B Framework">
+                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
+                <span>V&B Framework</span>
+            </a>
+            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
+                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
+                <span>VnB Activity</span>
             </a>
             @endif
 
-            @if(in_array($role, ['admin','intercomm','pcx_manager']))
+            @if($activeRole === 'pcx_manager')
+            <a href="/intercomm" class="nav-link {{ request()->is('intercomm*') ? 'active' : '' }}" title="Manage Intercomm">
+                <i class="fas fa-users-cog w-5 flex-shrink-0"></i>
+                <span>Manage Intercomm</span>
+            </a>
+            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Manage Employee">
+                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
+                <span>Manage Employee</span>
+            </a>
+            <a href="/managers" class="nav-link {{ request()->is('managers*') ? 'active' : '' }}" title="Manage Manager">
+                <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
+                <span>Manage Manager</span>
+            </a>
+            <a href="/vnb-framework" class="nav-link {{ request()->is('vnb-framework*') ? 'active' : '' }}" title="V&B Framework">
+                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
+                <span>V&B Framework</span>
+            </a>
             <a href="/master-data" class="nav-link {{ request()->is('master-data*') ? 'active' : '' }}" title="Master Data">
                 <i class="fas fa-database w-5 flex-shrink-0"></i>
                 <span>Master Data</span>
             </a>
+            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
+                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
+                <span>VnB Activity</span>
+            </a>
+            @endif
+
+            @if($activeRole === 'direktur_utama')
+            <a href="/my-account/profile" class="nav-link {{ request()->is('my-account/profile*') ? 'active' : '' }}" title="Profil Saya">
+                <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
+                <span>Profil Saya</span>
+            </a>
             @endif
         </nav>
 
-        <!-- Logout Button -->
-        <form action="{{ route('logout') }}" method="POST" class="logout-form">
-            @csrf
-            <button type="submit" class="logout-btn" title="Logout">
-                <i class="fas fa-sign-out-alt w-5 flex-shrink-0"></i>
-                <span>Logout</span>
-            </button>
-        </form>
     </div>
 
     <!-- Main Content -->
-    <main id="mainContent" class="main-content px-6 py-8 sm:px-8 lg:px-12 flex-grow max-w-full">
+    <main id="mainContent" class="main-content px-4 py-6 sm:px-6 lg:px-8 flex-grow max-w-full">
+        <div class="top-navbar">
+            <div id="topProfileMenuWrapper" class="relative">
+                <button id="topProfileMenuBtn" class="top-profile-btn" type="button" aria-haspopup="menu" aria-expanded="false">
+                    <span class="avatar"><i class="fas fa-user"></i></span>
+                    <span class="meta hidden sm:inline">
+                        <span class="name">{{ Auth::user()->name }}</span>
+                        <small>{{ ucwords(str_replace('_', ' ', $activeRole ?? '-')) }}</small>
+                    </span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </button>
+
+                <div id="topProfileMenu" class="top-profile-menu hidden">
+                    <div class="px-2 pb-2 mb-2 border-b border-gray-100">
+                        <p class="text-xs font-bold text-gray-900">{{ Auth::user()->name }}</p>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Role aktif: {{ str_replace('_',' ',$activeRole ?? '-') }}</p>
+                        @if(count($availableRoles) > 1)
+                        <p class="text-[11px] text-emerald-700 mt-1 font-semibold">Akun ini bisa switch role</p>
+                        @else
+                        <p class="text-[11px] text-gray-400 mt-1 font-semibold">Akun ini hanya punya 1 role</p>
+                        @endif
+                    </div>
+
+                    <a href="/my-account/profile" class="top-profile-menu-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profil Saya</span>
+                    </a>
+
+                    @if(count($availableRoles) > 1)
+                    <form action="{{ route('switch-role') }}" method="POST" class="px-2 py-1">
+                        @csrf
+                        <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses</label>
+                        <select name="role" onchange="this.form.submit()" class="top-role-select">
+                            @foreach($availableRoles as $roleOption)
+                            <option value="{{ $roleOption }}" {{ $activeRole === $roleOption ? 'selected' : '' }}>
+                                As {{ ucwords(str_replace('_', ' ', $roleOption)) }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </form>
+                    @endif
+
+                    <form action="{{ route('logout') }}" method="POST" class="pt-1 mt-1 border-t border-gray-100">
+                        @csrf
+                        <button type="submit" class="top-profile-menu-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         @if(session('success'))
         <div class="mb-6 px-4 py-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 shadow-sm animate-slide-in">
             <div class="flex items-center gap-3">
@@ -840,6 +932,24 @@
     const sidebarOverlay = document.getElementById('sidebarOverlay');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
+    const topProfileMenuBtn = document.getElementById('topProfileMenuBtn');
+    const topProfileMenu = document.getElementById('topProfileMenu');
+    const topProfileMenuWrapper = document.getElementById('topProfileMenuWrapper');
+
+    if (topProfileMenuBtn && topProfileMenu && topProfileMenuWrapper) {
+        topProfileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            topProfileMenu.classList.toggle('hidden');
+            topProfileMenuBtn.setAttribute('aria-expanded', String(!topProfileMenu.classList.contains('hidden')));
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!topProfileMenuWrapper.contains(e.target)) {
+                topProfileMenu.classList.add('hidden');
+                topProfileMenuBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     // Function to handle badge dot visibility based on sidebar state
     function updateBadgeDotVisibility() {

@@ -52,7 +52,7 @@
                         <option value="manager" {{ old('role') === 'manager' ? 'selected' : '' }}>Manager</option>
                         <option value="pcx_manager" {{ old('role') === 'pcx_manager' ? 'selected' : '' }}>PCX Manager</option>
                         <option value="intercomm" {{ old('role') === 'intercomm' ? 'selected' : '' }}>Intercomm</option>
-                        <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="direktur_utama" {{ old('role') === 'direktur_utama' ? 'selected' : '' }}>Direktur Utama</option>
                     </select>
                     @error('role')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>

@@ -2,67 +2,111 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Redirect;
+use App\Models\VnbActivityAssignment;
+use App\Support\ActiveRoleContext;
+use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
-    public function dashboard() 
+    public function dashboard(Request $request)
     { 
-        $user = auth()->user();
-        
-        // Redirect based on user role
-        if ($user->hasRole('pcx_manager') || $user->hasRole('intercomm')) {
-            return Redirect::route('dashboard.pcx');
-        }
-        
-        if ($user->hasRole('manager')) {
-            // Akan membuat manager dashboard nanti
-            // return Redirect::route('dashboard.manager');
-        }
-        
-        if ($user->hasRole('employee')) {
-            // Akan membuat employee dashboard nanti
-            // return Redirect::route('dashboard.employee');
-        }
-        
-        // Default fallback
+        ActiveRoleContext::current($request, auth()->user());
+
         return view('dashboard');
     }
-    public function employees() { return view('employees.index'); }
-    public function vnbPlans() { return view('vnb-plans.index'); }
+
+    public function star(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        return view('star.index');
+    }
+
+    public function employees(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        return view('employees.index');
+    }
+
+    public function vnbPlans(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee']);
+        return view('vnb-plans.index');
+    }
+
     public function evidence() { return view('evidence.index'); }
-    public function intercomm() 
+
+    public function intercomm(Request $request)
     { 
-        abort_unless(auth()->user()->hasRole('pcx_manager'), 403, 'Hanya PCX Manager yang dapat mengelola Intercomm');
+        $this->ensureActiveRole($request, ['pcx_manager']);
         return view('intercomm.index'); 
     }
-    public function vnbFramework() { return view('vnb-framework.index'); }
-    public function managers() 
+
+    public function vnbFramework(Request $request)
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'intercomm', 'pcx_manager']), 403, 'Anda tidak memiliki akses ke Manage Manager');
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        return view('vnb-framework.index');
+    }
+
+    public function managers(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
         return view('managers.index');
     }
-    public function vnbActivity() { return view('vnb-activity.index'); }
-    public function reviewActivity() { return view('review-activity.index'); }
-    public function masterData() { return view('master-data.index'); }
-    public function managerEmployees()
+
+    public function vnbActivity(Request $request)
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Manager Employee');
+        $user = auth()->user();
+        $activeRole = ActiveRoleContext::current($request, $user);
+
+        abort_unless(in_array($activeRole, ['employee', 'intercomm', 'pcx_manager', 'manager'], true), 403, 'Anda tidak memiliki akses ke VnB Activity.');
+
+        if ($activeRole === 'employee') {
+            $isAssigned = VnbActivityAssignment::query()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$isAssigned) {
+                return view('vnb-activity.not-assigned');
+            }
+        }
+
+        return view('vnb-activity.index');
+    }
+
+    public function reviewActivity(Request $request)
+    {
+        $this->ensureActiveRole($request, ['manager', 'intercomm', 'pcx_manager']);
+        return view('review-activity.index');
+    }
+
+    public function masterData(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        return view('master-data.index');
+    }
+
+    public function managerEmployees(Request $request)
+    {
+        $this->ensureActiveRole($request, ['manager']);
         return view('manager-employees.index');
     }
-    public function managerEmployeeDetail(int $employeeId)
+
+    public function managerEmployeeDetail(Request $request, int $employeeId)
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Detail Employee Manager');
+        $this->ensureActiveRole($request, ['manager']);
         return view('manager-employees.detail', compact('employeeId'));
     }
-    public function managerPlanningHistory(int $employeeId)
+
+    public function managerPlanningHistory(Request $request, int $employeeId)
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Planning History');
+        $this->ensureActiveRole($request, ['manager']);
         return view('manager-employees.planning-history', compact('employeeId'));
     }
-    public function managerApprovalRequests()
+
+    public function managerApprovalRequests(Request $request)
     {
-        abort_unless(auth()->user()->hasAnyRole(['manager', 'admin']), 403, 'Anda tidak memiliki akses ke Approval Request Manager');
+        $this->ensureActiveRole($request, ['manager']);
         return view('manager-approval.index');
     }
     public function planFeedback(int $planId)
@@ -70,13 +114,13 @@ class PageController extends Controller
         // Let API handle auth - just return view
         return view('plan-feedback.index', compact('planId'));
     }
-    public function profile()
+    public function profile(Request $request)
     {
         abort_unless(auth()->check(), 403, 'Anda harus login.');
         $user = auth()->user();
         $employee = $user->employee;
         $manager = $user->manager; // untuk manager role
-        $role = $user->getRoleNames()->first();
+        $role = ActiveRoleContext::current($request, $user);
         return view('account.profile', compact('user', 'employee', 'manager', 'role'));
     }
 
@@ -84,5 +128,15 @@ class PageController extends Controller
     {
         abort_unless(auth()->check(), 403, 'Anda harus login.');
         return view('account.change-password');
+    }
+
+    private function ensureActiveRole(Request $request, array $allowedRoles): void
+    {
+        $user = auth()->user();
+        abort_unless(
+            ActiveRoleContext::hasActiveRole($request, $user, $allowedRoles),
+            403,
+            'Halaman ini tidak tersedia untuk role aktif Anda.'
+        );
     }
 }

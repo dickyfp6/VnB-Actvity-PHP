@@ -344,7 +344,7 @@ class ManagerController extends Controller
         $this->authorizeManagerPortalAccess();
 
         $manager = $this->resolveCurrentManager();
-        if (!$manager && !auth()->user()?->hasRole('admin')) {
+        if (!$manager && !auth()->user()?->hasRole('direktur_utama')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data manager untuk akun ini tidak ditemukan.',
@@ -429,7 +429,7 @@ class ManagerController extends Controller
         $this->authorizeManagerPortalAccess();
 
         $manager = $this->resolveCurrentManager();
-        $isAdmin = auth()->user()?->hasRole('admin');
+        $isAdmin = auth()->user()?->hasRole('direktur_utama');
 
         $employeeQuery = Employee::query()->with(['division', 'department', 'position', 'managerFunctional', 'managerOperational']);
         if (!$isAdmin) {
@@ -547,7 +547,7 @@ class ManagerController extends Controller
         $this->authorizeManagerPortalAccess();
 
         $manager = $this->resolveCurrentManager();
-        $isAdmin = auth()->user()?->hasRole('admin');
+        $isAdmin = auth()->user()?->hasRole('direktur_utama');
 
         $employeeQuery = Employee::query();
         if (!$isAdmin) {
@@ -674,7 +674,7 @@ class ManagerController extends Controller
         $this->authorizeManagerPortalAccess();
 
         $manager = $this->resolveCurrentManager();
-        if (!$manager && !auth()->user()?->hasRole('admin')) {
+        if (!$manager && !auth()->user()?->hasRole('direktur_utama')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data manager untuk akun ini tidak ditemukan.',
@@ -811,7 +811,7 @@ class ManagerController extends Controller
 
     private function resolveManagerEmployeeIds(): ?Collection
     {
-        if (auth()->user()?->hasRole('admin')) {
+        if (auth()->user()?->hasRole('direktur_utama')) {
             return Employee::query()->pluck('id');
         }
 
@@ -970,7 +970,7 @@ class ManagerController extends Controller
     private function authorizeManagerAccess(): void
     {
         abort_unless(
-            auth()->user()?->hasAnyRole(['admin', 'intercomm', 'pcx_manager']),
+            auth()->user()?->hasAnyRole(['direktur_utama', 'intercomm', 'pcx_manager']),
             403,
             'Anda tidak memiliki akses ke Manage Manager'
         );
@@ -979,7 +979,7 @@ class ManagerController extends Controller
     private function authorizeManagerPortalAccess(): void
     {
         abort_unless(
-            auth()->user()?->hasAnyRole(['admin', 'manager']),
+            auth()->user()?->hasAnyRole(['direktur_utama', 'manager']),
             403,
             'Anda tidak memiliki akses ke portal manager'
         );
@@ -1750,7 +1750,7 @@ class ManagerController extends Controller
     {
         $manager = $this->resolveCurrentManager();
         if (!$manager) {
-            return auth()->user()?->hasRole('admin') ?? false;
+            return auth()->user()?->hasRole('direktur_utama') ?? false;
         }
 
         $ownerManagerId = $this->getStageOwnerManagerId($employee, $stage);

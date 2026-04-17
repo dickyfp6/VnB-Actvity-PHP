@@ -511,7 +511,7 @@ class VnbPlanController extends Controller
     public function managerApproveReject(Request $request, VnbPlan $plan): JsonResponse
     {
         $user = auth()->user();
-        $isAdmin = (bool) $user?->hasRole('admin');
+        $isAdmin = (bool) $user?->hasRole('direktur_utama');
 
         if (!$isAdmin) {
             abort_unless($user?->hasRole('manager'), 403, 'Hanya manager yang bisa memproses approval.');
@@ -777,7 +777,7 @@ class VnbPlanController extends Controller
         // Check if user is the employee or admin
         $employee = $user?->employee;
         $isOwner = $employee && $employee->id === $plan->employee_id;
-        $isAdmin = (bool) $user?->hasRole('admin');
+        $isAdmin = (bool) $user?->hasRole('direktur_utama');
 
         abort_unless($isOwner || $isAdmin, 403, 'Anda tidak berwenang melihat feedback plan ini');
 
@@ -854,7 +854,7 @@ class VnbPlanController extends Controller
     public function managerApproveAll(VnbPlan $plan): JsonResponse
     {
         $user = auth()->user();
-        $isAdmin = (bool) $user?->hasRole('admin');
+        $isAdmin = (bool) $user?->hasRole('direktur_utama');
 
         if (!$isAdmin) {
             abort_unless($user?->hasRole('manager'), 403, 'Hanya manager yang bisa approve plan.');
@@ -929,7 +929,7 @@ class VnbPlanController extends Controller
     public function managerSaveRevisions(Request $request, VnbPlan $plan): JsonResponse
     {
         $user = auth()->user();
-        $isAdmin = (bool) $user?->hasRole('admin');
+        $isAdmin = (bool) $user?->hasRole('direktur_utama');
 
         if (!$isAdmin) {
             abort_unless($user?->hasRole('manager'), 403, 'Hanya manager yang bisa revise plan.');

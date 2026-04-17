@@ -23,7 +23,7 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed',
             'phone' => 'nullable|string',
-            'role' => 'required|in:employee,manager,pcx_manager,intercomm,admin',
+            'role' => 'required|in:employee,manager,pcx_manager,intercomm,direktur_utama',
         ]);
 
         $user = User::create([

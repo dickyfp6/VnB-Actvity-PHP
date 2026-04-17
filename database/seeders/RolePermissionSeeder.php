@@ -19,7 +19,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create roles
         $roles = [
-            'admin',
+            'direktur_utama',
             'employee',
             'manager',
             'pcx_manager',
@@ -73,8 +73,8 @@ class RolePermissionSeeder extends Seeder
         }
 
         // Assign permissions to roles
-        // Admin - all permissions
-        Role::findByName('admin')->givePermissionTo(Permission::all());
+        // Direktur Utama - all permissions
+        Role::findByName('direktur_utama')->givePermissionTo(Permission::all());
 
         // Employee
         $employeePermissions = [
@@ -134,10 +134,10 @@ class RolePermissionSeeder extends Seeder
         // Create demo users
         $users = [
             [
-                'name' => 'Admin User',
-                'email' => 'admin@vnb.id',
+                'name' => 'Direktur Utama',
+                'email' => 'direktur@vnb.id',
                 'password' => 'password',
-                'role' => 'admin',
+                'role' => 'direktur_utama',
             ],
             [
                 'name' => 'Manager User',

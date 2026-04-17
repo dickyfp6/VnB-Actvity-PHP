@@ -12,8 +12,10 @@ Route::post('/register', [AuthWebController::class, 'register'])->name('register
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
+    Route::post('/switch-role', [AuthWebController::class, 'switchRole'])->name('switch-role');
 
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
+    Route::get('/star', [PageController::class, 'star'])->name('star');
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
     Route::get('/plan-feedback/{planId}', [PageController::class, 'planFeedback'])->name('plan.feedback');

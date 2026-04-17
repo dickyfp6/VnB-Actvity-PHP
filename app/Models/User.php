@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\Manager;
+use App\Models\VnbActivityAssignment;
 
 /**
  * @property int $id
@@ -37,6 +39,7 @@ class User extends Authenticatable
         'avatar',
         'status',
         'employee_id',
+        'last_active_role',
         'temp_password_encrypted',
         'temp_password_generated_at',
     ];
@@ -67,6 +70,11 @@ class User extends Authenticatable
     public function manager(): HasOne
     {
         return $this->hasOne(Manager::class);
+    }
+
+    public function vnbActivityAssignments(): HasMany
+    {
+        return $this->hasMany(VnbActivityAssignment::class, 'user_id');
     }
 
     /**
@@ -101,11 +109,16 @@ class User extends Authenticatable
         return $this->hasRole('intercomm');
     }
 
+    public function isDirekturUtama(): bool
+    {
+        return $this->hasRole('direktur_utama');
+    }
+
     /**
-     * Check if user is Admin
+     * Backward compatibility for old checks.
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin');
+        return $this->isDirekturUtama();
     }
 }

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\VnbActivityAssignment;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Artisan;
@@ -23,10 +24,10 @@ class DatabaseSeeder extends Seeder
         // 2. THEN: Create test users WITHOUT employee_id (will assign later after EmployeeAndManagerSeeder runs)
         $users = [
             [
-                'name' => 'Admin User',
-                'email' => 'admin@vnb.id',
+                'name' => 'Direktur Utama',
+                'email' => 'direktur@vnb.id',
                 'phone' => null,
-                'roles' => ['admin']
+                'roles' => ['direktur_utama']
             ],
             [
                 'name' => 'PCX Manager',
@@ -91,6 +92,19 @@ class DatabaseSeeder extends Seeder
             // Assign roles
             $user->syncRoles($roles);
         }
+
+        $assignedBy = User::where('email', 'intercomm@vnb.id')->first();
+        User::role('employee')->get()->each(function (User $user) use ($assignedBy): void {
+            VnbActivityAssignment::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'assigned_by_user_id' => $assignedBy?->id,
+                    'is_active' => true,
+                    'assigned_at' => now(),
+                    'revoked_at' => null,
+                ]
+            );
+        });
 
         // 3. FINALLY: Seed all other data
         $this->call([

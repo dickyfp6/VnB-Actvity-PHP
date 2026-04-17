@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\VnbPlanItem;
 use App\Models\VnbFrameworkItem;
+use App\Support\ActiveRoleContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -14,7 +15,7 @@ class DashboardController extends Controller
     public function overview(): JsonResponse
     {
         $user = auth()->user();
-        $role = $user->getRoleNames()->first();
+        $role = ActiveRoleContext::current(request(), $user) ?? 'employee';
         $scope = $this->resolveEmployeeScope($user, $role);
 
         return response()->json([
