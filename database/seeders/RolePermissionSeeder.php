@@ -137,35 +137,43 @@ class RolePermissionSeeder extends Seeder
                 'name' => 'Direktur Utama',
                 'email' => 'direktur@vnb.id',
                 'password' => 'password',
-                'role' => 'direktur_utama',
+                'roles' => ['direktur_utama'],
             ],
             [
                 'name' => 'Manager User',
                 'email' => 'manager@vnb.id',
                 'password' => 'password',
-                'role' => 'manager',
+                'roles' => ['manager'],
             ],
             [
                 'name' => 'Employee User',
                 'email' => 'employee@vnb.id',
                 'password' => 'password',
-                'role' => 'employee',
+                'roles' => ['employee'],
             ],
             [
                 'name' => 'PCX Manager',
                 'email' => 'pcx@vnb.id',
                 'password' => 'password',
-                'role' => 'pcx_manager',
+                'roles' => ['pcx_manager', 'manager'],
             ],
             [
                 'name' => 'Intercomm User',
                 'email' => 'intercomm@vnb.id',
                 'password' => 'password',
-                'role' => 'intercomm',
+                'roles' => ['intercomm'],
+            ],
+            [
+                'name' => 'Developer',
+                'email' => 'dev@vnb.id',
+                'password' => 'password',
+                'roles' => ['direktur_utama', 'pcx_manager', 'intercomm', 'manager', 'employee'],
             ],
         ];
 
         foreach ($users as $userData) {
+            $roles = $userData['roles'] ?? [$userData['role']];
+
             $user = User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
@@ -176,7 +184,7 @@ class RolePermissionSeeder extends Seeder
                 ]
             );
 
-            $user->assignRole($userData['role']);
+            $user->syncRoles($roles);
         }
     }
 }

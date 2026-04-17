@@ -346,12 +346,35 @@
 
         .top-role-select {
             width: 100%;
-            border: 1px solid rgba(17, 24, 39, 0.15);
-            border-radius: 0.6rem;
-            padding: 0.45rem 0.5rem;
-            font-size: 0.78rem;
-            color: var(--color-neutral-800);
+            border: 1.5px solid #37AA05;
+            border-radius: 0.7rem;
+            padding: 0.6rem 0.7rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--color-primary-dark);
+            background: linear-gradient(135deg, #f0fdf4 0%, #f9fafb 100%);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .top-role-select:hover {
+            background: linear-gradient(135deg, #dcfce7 0%, #f3f4f6 100%);
+            border-color: var(--color-primary-light);
+            box-shadow: 0 4px 12px rgba(55, 170, 5, 0.15);
+        }
+
+        .top-role-select:focus {
+            outline: none;
+            background: linear-gradient(135deg, #dcfce7 0%, #f3f4f6 100%);
+            border-color: var(--color-primary-light);
+            box-shadow: 0 0 0 3px rgba(55, 170, 5, 0.1);
+        }
+
+        .top-role-select option {
             background: white;
+            color: var(--color-neutral-800);
+            padding: 0.6rem;
+            font-weight: 600;
         }
 
         /* Main Content */
@@ -765,7 +788,7 @@
                         <select name="role" onchange="this.form.submit()" class="top-role-select">
                             <?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $roleOption): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <option value="<?php echo e($roleOption); ?>" <?php echo e($activeRole === $roleOption ? 'selected' : ''); ?>>
-                                As <?php echo e(ucwords(str_replace('_', ' ', $roleOption))); ?>
+                                <?php echo e(ucwords(str_replace('_', ' ', $roleOption))); ?>
 
                             </option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

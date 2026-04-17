@@ -63,6 +63,37 @@
         <div class="absolute top-1/2 left-1/3 w-80 h-80 bg-green-700/3 rounded-full blur-3xl mix-blend-multiply"></div>
     </div>
 
+    <!-- Demo Credentials - Floating (Right) -->
+    <div class="hidden lg:block fixed right-12 top-1/2 transform -translate-y-1/2 z-10">
+        <div class="w-64 rounded-2xl p-4 bg-white/10 backdrop-filter backdrop-blur-sm border border-white/20">
+            <p class="text-white text-xs font-semibold uppercase tracking-wider mb-3 opacity-70">Demo Accounts</p>
+            <div class="space-y-2">
+                <button type="button" onclick="document.querySelector('input[name=email]').value='dev@vnb.id'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
+                    <span class="block text-xs font-semibold text-white opacity-90">Developer (All)</span>
+                    <span class="text-xs text-white/70">dev@vnb.id</span>
+                </button>
+                <button type="button" onclick="document.querySelector('input[name=email]').value='employee@vnb.id'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
+                    <span class="block text-xs font-semibold text-white opacity-90">Employee</span>
+                    <span class="text-xs text-white/70">employee@vnb.id</span>
+                </button>
+                <button type="button" onclick="document.querySelector('input[name=email]').value='manager@vnb.id'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
+                    <span class="block text-xs font-semibold text-white opacity-90">Manager</span>
+                    <span class="text-xs text-white/70">manager@vnb.id</span>
+                </button>
+                <button type="button" onclick="document.querySelector('input[name=email]').value='pcx@vnb.id'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
+                    <span class="block text-xs font-semibold text-white opacity-90">PCX Manager</span>
+                    <span class="text-xs text-white/70">pcx@vnb.id</span>
+                </button>
+                <button type="button" onclick="document.querySelector('input[name=email]').value='intercomm@vnb.id'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
+                    <span class="block text-xs font-semibold text-white opacity-90">Intercomm</span>
+                    <span class="text-xs text-white/70">intercomm@vnb.id</span>
+                </button>
+            </div>
+            <p class="text-center text-white text-xs mt-2 opacity-60">pwd: <span class="font-mono text-xs">password</span></p>
+        </div>
+    </div>
+
+    <!-- Main Login Form - Centered -->
     <div class="w-full max-w-md z-10">
         <!-- Main Card -->
         <div class="glass-effect rounded-2xl p-8 md:p-10">
@@ -166,36 +197,40 @@ unset($__errorArgs, $__bag); ?>
                 </button>
             </form>
 
-            <!-- Demo Credentials Section -->
-            <div class="mt-8 pt-8 border-t border-white/20">
+            <!-- Demo Credentials Section (Mobile Friendly) -->
+            <div class="lg:hidden mt-8 pt-8 border-t border-white/20">
                 <p class="text-gray-700 text-xs font-semibold uppercase tracking-wider mb-3">Demo Accounts</p>
-                <div class="space-y-2">
-                    <button type="button" onclick="document.querySelector('input[name=email]').value='employee@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
-                        <span class="block text-sm font-semibold text-green-900">Employee</span>
-                        <span class="text-xs text-green-700">employee@vnb.id</span>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='dev@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-blue-100 to-blue-50 border border-blue-300 hover:shadow-md hover:border-blue-400 transition text-xs">
+                        <span class="block font-semibold text-blue-900">Developer (All)</span>
+                        <span class="text-blue-700">dev@vnb.id</span>
                     </button>
-                    <button type="button" onclick="document.querySelector('input[name=email]').value='manager@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
-                        <span class="block text-sm font-semibold text-green-900">Manager</span>
-                        <span class="text-xs text-green-700">manager@vnb.id</span>
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='employee@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
+                        <span class="block font-semibold text-green-900">Employee</span>
+                        <span class="text-green-700">employee@vnb.id</span>
                     </button>
-                    <button type="button" onclick="document.querySelector('input[name=email]').value='pcx@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
-                        <span class="block text-sm font-semibold text-green-900">PCX Manager</span>
-                        <span class="text-xs text-green-700">pcx@vnb.id</span>
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='manager@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
+                        <span class="block font-semibold text-green-900">Manager</span>
+                        <span class="text-green-700">manager@vnb.id</span>
                     </button>
-                    <button type="button" onclick="document.querySelector('input[name=email]').value='intercomm@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-3 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition">
-                        <span class="block text-sm font-semibold text-green-900">Intercomm</span>
-                        <span class="text-xs text-green-700">intercomm@vnb.id</span>
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='pcx@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
+                        <span class="block font-semibold text-green-900">PCX Manager</span>
+                        <span class="text-green-700">pcx@vnb.id</span>
+                    </button>
+                    <button type="button" onclick="document.querySelector('input[name=email]').value='intercomm@vnb.id'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
+                        <span class="block font-semibold text-green-900">Intercomm</span>
+                        <span class="text-green-700">intercomm@vnb.id</span>
                     </button>
                 </div>
-                <p class="text-center text-gray-600 text-xs mt-2">All passwords: <span class="font-mono font-semibold">password</span></p>
+                <p class="text-center text-gray-600 text-xs mt-2">pwd: <span class="font-mono text-xs">password</span></p>
             </div>
         </div>
-
-        <!-- Footer -->
-        <p class="text-center text-white text-xs mt-6 opacity-80">
-            © 2026 Wismilak — Values & Behavior Development Platform
-        </p>
     </div>
+
+    <!-- Footer -->
+    <p class="fixed bottom-6 left-0 right-0 text-center text-white text-xs opacity-80">
+        © 2026 Wismilak — Values & Behavior Development Platform
+    </p>
 
     <script>
         // Toggle password visibility

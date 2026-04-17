@@ -119,7 +119,7 @@ class AuthWebController extends Controller
         $user = Auth::user();
         ActiveRoleContext::switch($request, $user, $validated['role']);
 
-        return back()->with('success', 'Role aktif berhasil diganti.');
+        return redirect()->route('dashboard')->with('success', 'Role aktif berhasil diganti.');
     }
 
     /**

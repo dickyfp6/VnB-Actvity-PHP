@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'PCX Manager',
                 'email' => 'pcx@vnb.id',
                 'phone' => null,
-                'roles' => ['pcx_manager']
+                'roles' => ['pcx_manager', 'manager']
             ],
             [
                 'name' => 'Intercomm User',
