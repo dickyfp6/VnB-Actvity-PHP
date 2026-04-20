@@ -185,7 +185,7 @@
         </div>
 
         <div class="py-4 border-t">
-            <a href="{{ route('my-account.change-password') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition">
+            <a href="{{ route('profile.change-password') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition">
                 <i class="fas fa-key"></i>
                 <span>Ganti Password</span>
                 <i class="fas fa-arrow-right ml-2"></i>

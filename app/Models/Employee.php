@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use App\Observers\EmployeeObserver;
 
 /**
  * @property int $id
@@ -39,6 +40,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
  * @property int $manager_functional_id REQUIRED - Every employee MUST have a functional manager
  * @property int|null $manager_operational_id OPTIONAL - Can be null (operational manager is optional)
  */
+#[ObservedBy([EmployeeObserver::class])]
 class Employee extends Model
 {
     use SoftDeletes;

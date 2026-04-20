@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\VnbFrameworkController;
 use App\Http\Controllers\Api\IntercommController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\VnbActivityController;
+use App\Http\Controllers\Api\HrisController;
+use App\Http\Controllers\Api\StarController;
 
 Route::get('/health', function () { return response()->json(['status' => 'ok']); });
 
@@ -25,7 +27,57 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    // UC004 - Manage Employee
+    // ==================== BERANDA - HRIS ====================
+    Route::prefix('beranda/hris')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/', [HrisController::class, 'index']);
+        Route::get('/sync-pending', [HrisController::class, 'getPendingUpdates']);
+        Route::post('/sync/{id}', [HrisController::class, 'syncToEmployee']);
+        Route::post('/sync-batch', [HrisController::class, 'syncBatch']);
+        Route::get('/history', [HrisController::class, 'getSyncHistory']);
+    });
+
+    // ==================== STAR ====================
+    Route::prefix('star')->middleware(['auth:sanctum'])->group(function () {
+        // Schema
+        Route::get('/schema', [StarController::class, 'getSchema']);
+        
+        // Recognition (STAR recognitions by employees)
+        Route::get('/recognition', [StarController::class, 'listRecognitions']);
+        Route::post('/recognition', [StarController::class, 'createRecognition']);
+        Route::get('/recognition/{id}', [StarController::class, 'showRecognition']);
+        
+        // Achievements (employee's submitted achievements)
+        Route::get('/achievements', [StarController::class, 'listAchievements']);
+        Route::post('/achievements', [StarController::class, 'submitAchievement']);
+        Route::get('/achievements/{id}', [StarController::class, 'showAchievement']);
+        
+        // Approval (PCX, Intercomm, Direktur assign TTD & calculate points)
+        Route::get('/approvals', [StarController::class, 'listApprovalsForMe']);
+        Route::post('/approvals/{id}/assign-ttd', [StarController::class, 'assignSignature']);
+        Route::post('/approvals/{id}/approve', [StarController::class, 'approve']);
+        Route::post('/approvals/{id}/reject', [StarController::class, 'reject']);
+        Route::get('/approvals/{id}/points', [StarController::class, 'calculatePoints']);
+    });
+
+    // ==================== UC004 - BERANDA/EMPLOYEES ====================
+    Route::prefix('beranda/employees')->middleware(['auth:sanctum'])->group(function () {
+        // Include legacy employees API
+        Route::get('/', [EmployeeController::class, 'index']);
+        Route::post('/', [EmployeeController::class, 'store']);
+        Route::get('/{employee}', [EmployeeController::class, 'show']);
+        Route::put('/{employee}', [EmployeeController::class, 'update']);
+        Route::delete('/{employee}', [EmployeeController::class, 'destroy']);
+        Route::get('/manager-options', [EmployeeController::class, 'managerOptions']);
+        Route::get('/import/template', [EmployeeController::class, 'downloadImportTemplate']);
+        Route::post('/import/paste', [EmployeeController::class, 'importFromPaste']);
+        Route::post('/import/file', [EmployeeController::class, 'importFromFile']);
+        Route::post('/import/confirm', [EmployeeController::class, 'confirmImport']);
+        Route::post('/{employee}/cancel-vnb', [EmployeeController::class, 'cancelVnb']);
+        Route::post('/{employee}/lifecycle', [EmployeeController::class, 'updateLifecycle']);
+        Route::post('/{employee}/reset-credential', [EmployeeController::class, 'resetCredential']);
+    });
+
+    // UC004 - Manage Employee (legacy API - keep for backward compatibility)
     Route::get('employees/manager-options', [EmployeeController::class, 'managerOptions']);
     Route::get('employees/import/template', [EmployeeController::class, 'downloadImportTemplate']);
     Route::post('employees/import/paste', [EmployeeController::class, 'importFromPaste']);
@@ -36,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('employees/{employee}/lifecycle', [EmployeeController::class, 'updateLifecycle']);
     Route::post('employees/{employee}/reset-credential', [EmployeeController::class, 'resetCredential']);
 
-    // UC005 - VnB Planning
+    // ==================== UC005 - VNB PLANNING ====================
     Route::prefix('vnb-plans')->group(function () {
         Route::get('employee', [VnbPlanController::class, 'getOrCreateEmployeePlan']);
         Route::get('{plan}', [VnbPlanController::class, 'show']);
@@ -47,24 +99,42 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{plan}/manager-review', [VnbPlanController::class, 'managerApproveReject']);
         Route::post('{plan}/mark-in-progress', [VnbPlanController::class, 'markInProgress']);
         Route::post('{plan}/submit-revision/{revision}', [VnbPlanController::class, 'submitRevisionChanges']);
-        // NEW: Manager Approve All & Revise Items
         Route::post('{plan}/approve-all', [VnbPlanController::class, 'managerApproveAll']);
         Route::post('{plan}/save-revisions', [VnbPlanController::class, 'managerSaveRevisions']);
-        // NEW: Employee Plan Feedback
         Route::get('{plan}/feedback', [VnbPlanController::class, 'getPlanFeedback']);
     });
 
-    // UC006 - VnB Activity
+    // ==================== UC006 - VNB ACTIVITY ====================
     Route::get('/vnb-activities', [VnbActivityController::class, 'index']);
     Route::post('/vnb-activities/{planItem}/submit', [VnbActivityController::class, 'submit']);
     Route::post('/vnb-activities/{planItem}/draft', [VnbActivityController::class, 'saveDraft']);
 
-    // UC007 - Review & Approve
+    // ==================== UC007 - REVIEW & APPROVE ====================
     Route::get('/vnb-activities/pending-review', [VnbActivityController::class, 'pendingReview']);
     Route::post('/vnb-activities/{planItem}/approve', [VnbActivityController::class, 'approve']);
     Route::post('/vnb-activities/{planItem}/request-revision', [VnbActivityController::class, 'requestRevision']);
 
-    // Evidence
+    // ==================== VNB PARTICIPANTS (PCX/Intercomm manage who has VnB access) ====================
+    Route::prefix('vnb/participants')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/', [VnbActivityController::class, 'getParticipants']);
+        Route::post('/{employee}/assign', [VnbActivityController::class, 'assignParticipant']);
+        Route::post('/{employee}/revoke', [VnbActivityController::class, 'revokeParticipant']);
+        Route::get('/activity/{activityId}/participants', [VnbActivityController::class, 'getActivityParticipants']);
+    });
+
+    // ==================== VNB APPROVAL (Manager approval portal) ====================
+    Route::prefix('vnb/approval')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/requests', [ManagerController::class, 'myApprovalRequests']);
+        Route::get('/summary', [ManagerController::class, 'myApprovalSummary']);
+        Route::get('/plans/{planId}/revisions/history', [ManagerController::class, 'getRevisionHistory']);
+        Route::post('/plans/{planId}/approve', [ManagerController::class, 'approvePlan']);
+        Route::post('/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);
+        Route::post('/plans/{planId}/batch-review', [ManagerController::class, 'batchReviewPlanItems']);
+        Route::post('/plans/{planId}/items/{itemId}/approve', [ManagerController::class, 'approvePlanningItem']);
+        Route::post('/plans/{planId}/items/{itemId}/request-revision', [ManagerController::class, 'requestRevisionForItem']);
+    });
+
+    // ==================== EVIDENCE ====================
     Route::prefix('evidence')->group(function () {
         Route::post('upload', [EvidenceController::class, 'uploadEvidence']);
         Route::get('plan-item/{planItem}', [EvidenceController::class, 'listEvidences']);
@@ -72,35 +142,71 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{evidence}/verify', [EvidenceController::class, 'verifyEvidence']);
     });
 
-    // Import
+    // ==================== IMPORT ====================
     Route::prefix('imports')->group(function () {
         Route::post('employees', [ImportController::class, 'importEmployees']);
         Route::get('{import}/status', [ImportController::class, 'getImportStatus']);
     });
 
-    // UC008 - Dashboard
+    // ==================== DASHBOARD ====================
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
 
-    // UC009 - Master Data
+    // ==================== MASTER DATA ====================
+    Route::prefix('beranda/master-data')->group(function () {
+        Route::get('/', [MasterDataController::class, 'index']);
+        Route::post('/', [MasterDataController::class, 'store']);
+        Route::post('/bulk', [MasterDataController::class, 'bulkStore']);
+        Route::put('/{id}', [MasterDataController::class, 'update']);
+        Route::delete('/{id}', [MasterDataController::class, 'destroy']);
+    });
+
+    // UC009 - Master Data (legacy API - keep for backward compatibility)
     Route::get('/master/{category}', [MasterDataController::class, 'index']);
     Route::post('/master/{category}', [MasterDataController::class, 'store']);
     Route::post('/master/{category}/bulk', [MasterDataController::class, 'bulkStore']);
     Route::put('/master/{category}/{id}', [MasterDataController::class, 'update']);
     Route::delete('/master/{category}/{id}', [MasterDataController::class, 'destroy']);
 
-    // UC002 - V&B Framework
+    // ==================== VNB FRAMEWORK ====================
+    Route::prefix('beranda/vnb-framework')->group(function () {
+        Route::get('/', [VnbFrameworkController::class, 'index']);
+        Route::post('/upsert', [VnbFrameworkController::class, 'upsert']);
+        Route::post('/clone', [VnbFrameworkController::class, 'clone']);
+    });
+
+    // UC002 - V&B Framework (legacy API - keep for backward compatibility)
     Route::get('/vnb-framework', [VnbFrameworkController::class, 'index']);
     Route::post('/vnb-framework/upsert', [VnbFrameworkController::class, 'upsert']);
     Route::post('/vnb-framework/clone', [VnbFrameworkController::class, 'clone']);
 
-    // UC001 - Manage Intercomm
+    // ==================== INTERCOMM ====================
+    Route::prefix('beranda/intercomm')->group(function () {
+        Route::get('/', [IntercommController::class, 'index']);
+        Route::post('/', [IntercommController::class, 'store']);
+        Route::put('/{id}', [IntercommController::class, 'update']);
+        Route::post('/{id}/deactivate', [IntercommController::class, 'deactivate']);
+        Route::post('/{id}/activate', [IntercommController::class, 'activate']);
+    });
+
+    // UC001 - Manage Intercomm (legacy API - keep for backward compatibility)
     Route::get('/intercomm', [IntercommController::class, 'index']);
     Route::post('/intercomm', [IntercommController::class, 'store']);
     Route::put('/intercomm/{id}', [IntercommController::class, 'update']);
     Route::post('/intercomm/{id}/deactivate', [IntercommController::class, 'deactivate']);
     Route::post('/intercomm/{id}/activate', [IntercommController::class, 'activate']);
 
-    // UC003 - Manage Manager
+    // ==================== MANAGERS ====================
+    Route::prefix('beranda/managers')->group(function () {
+        Route::get('/', [ManagerController::class, 'index']);
+        Route::get('/{id}', [ManagerController::class, 'show']);
+        Route::post('/', [ManagerController::class, 'store']);
+        Route::put('/{id}', [ManagerController::class, 'update']);
+        Route::delete('/{id}', [ManagerController::class, 'destroy']);
+        Route::post('/{id}/reset-credential', [ManagerController::class, 'resetCredential']);
+        Route::get('/{id}/employees', [ManagerController::class, 'employees']);
+    });
+
+    // UC003 - Manage Manager (legacy API - keep for backward compatibility)
     Route::get('/managers', [ManagerController::class, 'index']);
     Route::get('/managers/{id}', [ManagerController::class, 'show']);
     Route::post('/managers', [ManagerController::class, 'store']);
@@ -109,28 +215,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/managers/{id}/reset-credential', [ManagerController::class, 'resetCredential']);
     Route::get('/managers/{id}/employees', [ManagerController::class, 'employees']);
 
-    // Manager Portal
-    Route::get('/manager/employees', [ManagerController::class, 'myEmployees']);
-    Route::get('/manager/employees/{employeeId}', [ManagerController::class, 'myEmployeeDetail']);
-    Route::get('/manager/employees/{employeeId}/planning-history', [ManagerController::class, 'myEmployeePlanningHistory']);
-    Route::get('/manager/approval-requests', [ManagerController::class, 'myApprovalRequests']);
-    Route::get('/manager/approval-summary', [ManagerController::class, 'myApprovalSummary']);
-    
-    // Manager Profile
-    Route::get('/manager/profile', [ManagerController::class, 'getMyProfile']);
-    Route::put('/manager/profile', [ManagerController::class, 'updateMyProfile']);
-
-    // Manager Approval Flow - Revisions
-    Route::post('/manager/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);
-    Route::post('/manager/plans/{planId}/approve', [ManagerController::class, 'approvePlan']);
-    Route::get('/manager/plans/{planId}/revisions/history', [ManagerController::class, 'getRevisionHistory']);
-    Route::get('/manager/my-employee-revisions', [ManagerController::class, 'myEmployeeRevisions']);
-    
-    // Manager Approval Flow - Per-Row & Batch Approval
-    Route::post('/manager/plans/{planId}/batch-review', [ManagerController::class, 'batchReviewPlanItems']);
-    Route::post('/manager/plans/{planId}/items/{itemId}/approve', [ManagerController::class, 'approvePlanningItem']);
-    Route::post('/manager/plans/{planId}/items/{itemId}/request-revision', [ManagerController::class, 'requestRevisionForItem']);
-    
-    // Employee Pending Revisions
-    Route::get('/employee/pending-revisions', [ManagerController::class, 'getEmployeePendingRevisions']);
+    // ==================== MANAGER PORTAL (My Employees & Approvals) ====================
+    Route::prefix('manager')->group(function () {
+        Route::get('/employees', [ManagerController::class, 'myEmployees']);
+        Route::get('/employees/{employeeId}', [ManagerController::class, 'myEmployeeDetail']);
+        Route::get('/employees/{employeeId}/planning-history', [ManagerController::class, 'myEmployeePlanningHistory']);
+        Route::get('/approval-requests', [ManagerController::class, 'myApprovalRequests']);
+        Route::get('/approval-summary', [ManagerController::class, 'myApprovalSummary']);
+        Route::get('/profile', [ManagerController::class, 'getMyProfile']);
+        Route::put('/profile', [ManagerController::class, 'updateMyProfile']);
+        Route::post('/plans/{planId}/request-revision', [ManagerController::class, 'requestRevision']);
+        Route::post('/plans/{planId}/approve', [ManagerController::class, 'approvePlan']);
+        Route::get('/plans/{planId}/revisions/history', [ManagerController::class, 'getRevisionHistory']);
+        Route::get('/my-employee-revisions', [ManagerController::class, 'myEmployeeRevisions']);
+        Route::post('/plans/{planId}/batch-review', [ManagerController::class, 'batchReviewPlanItems']);
+        Route::post('/plans/{planId}/items/{itemId}/approve', [ManagerController::class, 'approvePlanningItem']);
+        Route::post('/plans/{planId}/items/{itemId}/request-revision', [ManagerController::class, 'requestRevisionForItem']);
+        Route::get('/pending-revisions', [ManagerController::class, 'getEmployeePendingRevisions']);
+    });
 });
+

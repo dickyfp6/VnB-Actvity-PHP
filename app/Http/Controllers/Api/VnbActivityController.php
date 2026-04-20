@@ -211,6 +211,76 @@ class VnbActivityController extends Controller
         ]);
     }
 
+    // ==================== VNB PARTICIPANTS MANAGEMENT ====================
+    
+    /**
+     * Get list of employees with VnB access (participants)
+     * Managed by PCX/Intercomm
+     */
+    public function getParticipants(Request $request): JsonResponse
+    {
+        // TODO: Authorize: PCX, Intercomm only
+        // TODO: Get all employees with VnB activity assignment
+        // TODO: Show assignment status and dates
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'VnB participants list',
+            'data' => [],
+        ]);
+    }
+
+    /**
+     * Assign VnB access to an employee (make them a participant)
+     */
+    public function assignParticipant(Request $request, int $employeeId): JsonResponse
+    {
+        // TODO: Authorize: PCX, Intercomm only
+        // TODO: Find employee by ID
+        // TODO: Create/activate VnbActivityAssignment for this employee
+        // TODO: Set is_active = true
+        // TODO: Record who assigned and when
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Employee assigned to VnB Activity',
+            'data' => [],
+        ]);
+    }
+
+    /**
+     * Revoke VnB access from an employee
+     */
+    public function revokeParticipant(Request $request, int $employeeId): JsonResponse
+    {
+        // TODO: Authorize: PCX, Intercomm only
+        // TODO: Find employee by ID
+        // TODO: Deactivate VnbActivityAssignment (set is_active = false)
+        // TODO: Record who revoked and when
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Employee revoked from VnB Activity',
+            'data' => [],
+        ]);
+    }
+
+    /**
+     * Get participants for a specific activity
+     */
+    public function getActivityParticipants(int $activityId): JsonResponse
+    {
+        // TODO: Get activity by ID
+        // TODO: Get all employees who have this activity in their plan
+        // TODO: Show submission status for each
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Activity participants',
+            'data' => [],
+        ]);
+    }
+
     // --------------- helpers ---------------
 
     private function formatActivityItem(VnbPlanItem $item, bool $withEmployee = false): array

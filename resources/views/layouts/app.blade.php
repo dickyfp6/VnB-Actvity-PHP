@@ -347,14 +347,16 @@
         .top-role-select {
             width: 100%;
             border: 1.5px solid #37AA05;
-            border-radius: 0.7rem;
-            padding: 0.6rem 0.7rem;
-            font-size: 0.82rem;
+            border-radius: 0.5rem;
+            padding: 0.42rem 0.65rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: var(--color-primary-dark);
             background: linear-gradient(135deg, #f0fdf4 0%, #f9fafb 100%);
             cursor: pointer;
             transition: all 0.2s ease;
+            min-height: 34px;
+            line-height: 1.1;
         }
 
         .top-role-select:hover {
@@ -707,7 +709,7 @@
             </a>
 
             @if(in_array($activeRole, ['pcx_manager', 'intercomm', 'direktur_utama']))
-            <a href="/star/approval" class="nav-link {{ request()->is('star/approval*') ? 'active' : '' }}" title="Approval">
+            <a href="/star/star-approval" class="nav-link {{ request()->is('star/star-approval*') ? 'active' : '' }}" title="Approval">
                 <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
                 <span>Approval</span>
             </a>
@@ -724,7 +726,7 @@
             @endif
 
             @if($activeRole === 'employee')
-            <a href="/vnb/plans" class="nav-link {{ request()->is('vnb/plans*') ? 'active' : '' }}" title="Planning">
+            <a href="/vnb/plan" class="nav-link {{ request()->is('vnb/plan*') ? 'active' : '' }}" title="Planning">
                 <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
                 <span>Plans</span>
             </a>
@@ -742,7 +744,7 @@
             @endif
 
             @if($activeRole === 'manager')
-            <a href="/vnb/approval" class="nav-link {{ request()->is('vnb/approval*') ? 'active' : '' }}" title="Activity Approval">
+            <a href="/vnb/vnb-approval" class="nav-link {{ request()->is('vnb/vnb-approval*') ? 'active' : '' }}" title="Activity Approval">
                 <div style="position: relative; display: inline-block;">
                     <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
                     <span id="manager-approval-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: -4px; right: -4px; z-index: 10;"></span>
@@ -752,18 +754,7 @@
             </a>
             @endif
 
-            <!-- Legacy Manager Portal (kept for backward compatibility) -->
-            @if($activeRole === 'manager')
-            <p class="nav-section-title">MANAGER PORTAL</p>
-            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Kelola Employee">
-                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>My Employees</span>
-            </a>
-            <a href="/manager/approval-requests" class="nav-link {{ request()->is('manager/approval-requests*') ? 'active' : '' }}" title="Approval Request">
-                <i class="fas fa-check-square w-5 flex-shrink-0"></i>
-                <span>Approval Requests</span>
-            </a>
-            @endif
+            <!-- Sidebar ends here; profile access is available from the top menu -->
         </nav>
 
     </div>
@@ -782,34 +773,40 @@
                 </button>
 
                 <div id="topProfileMenu" class="top-profile-menu hidden">
+                    @php
+                        $roleLabels = [
+                            'direktur_utama' => 'Direktur Utama',
+                            'pcx_manager' => 'PCX Manager',
+                            'intercomm' => 'Intercomm',
+                            'manager' => 'Manager',
+                            'employee' => 'Employee',
+                        ];
+                    @endphp
                     <div class="px-2 pb-2 mb-2 border-b border-gray-100">
                         <p class="text-xs font-bold text-gray-900">{{ Auth::user()->name }}</p>
-                        <p class="text-[11px] text-gray-500 mt-0.5">Role aktif: {{ str_replace('_',' ',$activeRole ?? '-') }}</p>
-                        @if(count($availableRoles) > 1)
-                        <p class="text-[11px] text-emerald-700 mt-1 font-semibold">Akun ini bisa switch role</p>
-                        @else
-                        <p class="text-[11px] text-gray-400 mt-1 font-semibold">Akun ini hanya punya 1 role</p>
-                        @endif
+                        <p class="mt-0.5 text-xs font-semibold text-emerald-700">
+                            {{ $roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-')) }}
+                        </p>
                     </div>
-
-                    <a href="/profile" class="top-profile-menu-item">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Profil Saya</span>
-                    </a>
 
                     @if(count($availableRoles) > 1)
                     <form action="{{ route('switch-role') }}" method="POST" class="px-2 py-1">
                         @csrf
-                        <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses</label>
+                        <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses (Role)</label>
                         <select name="role" onchange="this.form.submit()" class="top-role-select">
                             @foreach($availableRoles as $roleOption)
                             <option value="{{ $roleOption }}" {{ $activeRole === $roleOption ? 'selected' : '' }}>
-                                {{ ucwords(str_replace('_', ' ', $roleOption)) }}
+                                {{ $roleLabels[$roleOption] ?? ucwords(str_replace('_', ' ', $roleOption)) }}
                             </option>
                             @endforeach
                         </select>
                     </form>
                     @endif
+
+                    <a href="/profile/details" class="top-profile-menu-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profil Saya</span>
+                    </a>
 
                     <form action="{{ route('logout') }}" method="POST" class="pt-1 mt-1 border-t border-gray-100">
                         @csrf

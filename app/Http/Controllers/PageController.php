@@ -130,14 +130,14 @@ class PageController extends Controller
         return view('account.change-password');
     }
 
-    // ==================== HRIS ====================
+    // ==================== HRIS Routes ====================
     public function hris(Request $request)
     {
         $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
         return view('hris.index');
     }
 
-    // ==================== STAR ====================
+    // ==================== STAR Routes ====================
     public function starSchema(Request $request)
     {
         $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
@@ -158,21 +158,21 @@ class PageController extends Controller
 
     public function starApproval(Request $request)
     {
-        $this->ensureActiveRole($request, ['pcx_manager', 'intercomm', 'direktur_utama']);
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager', 'direktur_utama']);
         return view('star.approval');
     }
 
-    // ==================== VNB ACTIVITY ====================
+    // ==================== VNB Routes ====================
     public function vnbParticipants(Request $request)
     {
         $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
-        return view('vnb.participants');
+        return view('vnb-participants.index');
     }
 
     public function vnbApproval(Request $request)
     {
         $this->ensureActiveRole($request, ['manager']);
-        return view('vnb.approval');
+        return view('manager-approval.index');
     }
 
     private function ensureActiveRole(Request $request, array $allowedRoles): void

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\AuthWebController;
+use App\Http\Controllers\PcxDashboardController;
 
 Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
@@ -13,48 +14,77 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
     Route::post('/switch-role', [AuthWebController::class, 'switchRole'])->name('switch-role');
 
-    // ==================== BERANDA (127.0.0.1:8000) ====================
+    // ==================== DASHBOARD ====================
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard', [PageController::class, 'dashboard'])->name('dashboard.alt');
     
+    // ==================== ROOT LEVEL ROUTES ====================
+    // /hris - PCX, Intercomm
     Route::get('/hris', [PageController::class, 'hris'])->name('hris');
+    
+    // /employees - PCX, Intercomm, Manager
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
+    
+    // /intercomm - PCX
     Route::get('/intercomm', [PageController::class, 'intercomm'])->name('intercomm');
+    
+    // /managers - PCX, Intercomm
     Route::get('/managers', [PageController::class, 'managers'])->name('managers');
+    
+    // /master-data - PCX, Intercomm
     Route::get('/master-data', [PageController::class, 'masterData'])->name('master-data');
 
     // ==================== STAR ====================
-    Route::prefix('star')->name('star.')->group(function () {
-        Route::get('/schema', [PageController::class, 'starSchema'])->name('schema');
-        Route::get('/recognition', [PageController::class, 'starRecognition'])->name('recognition');
-        Route::get('/achievements', [PageController::class, 'starAchievements'])->name('achievements');
-        Route::get('/approval', [PageController::class, 'starApproval'])->name('approval');
+    Route::prefix('star')->group(function () {
+        // /schema - Semua Role
+        Route::get('/schema', [PageController::class, 'starSchema'])->name('star.schema');
+        
+        // /recognition - Semua Role
+        Route::get('/recognition', [PageController::class, 'starRecognition'])->name('star.recognition');
+        
+        // /achievements - Semua Role
+        Route::get('/achievements', [PageController::class, 'starAchievements'])->name('star.achievements');
+        
+        // /star-approval - PCX, Intercomm, Direktur Utama
+        Route::get('/star-approval', [PageController::class, 'starApproval'])->name('star.star-approval');
     });
 
     // ==================== VNB ACTIVITY ====================
-    Route::prefix('vnb')->name('vnb.')->group(function () {
-        Route::get('/framework', [PageController::class, 'vnbFramework'])->name('framework');
-        Route::get('/plans', [PageController::class, 'vnbPlans'])->name('plans');
-        Route::get('/activity', [PageController::class, 'vnbActivity'])->name('activity');
-        Route::get('/participants', [PageController::class, 'vnbParticipants'])->name('participants');
-        Route::get('/approval', [PageController::class, 'vnbApproval'])->name('approval');
+    Route::prefix('vnb')->group(function () {
+        // /framework - PCX, Intercomm
+        Route::get('/framework', [PageController::class, 'vnbFramework'])->name('vnb.framework');
+        
+        // /plan - Employee
+        Route::get('/plan', [PageController::class, 'vnbPlans'])->name('vnb.plan');
+        Route::get('/plan/{planId}/feedback', [PageController::class, 'planFeedback'])->name('vnb.plan.feedback');
+        
+        // /activity - Employee
+        Route::get('/activity', [PageController::class, 'vnbActivity'])->name('vnb.activity');
+        
+        // /participants - PCX, Intercomm
+        Route::get('/participants', [PageController::class, 'vnbParticipants'])->name('vnb.participants');
+        
+        // /vnb-approval - Manager
+        Route::get('/vnb-approval', [PageController::class, 'vnbApproval'])->name('vnb.vnb-approval');
     });
 
-    // ==================== PROFILE (All Employees) ====================
-    Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [PageController::class, 'profile'])->name('index');
-        Route::get('/change-password', [PageController::class, 'changePassword'])->name('change-password');
+    // ==================== PROFILE (Semua Employee) ====================
+    Route::prefix('profile')->group(function () {
+        // /details
+        Route::get('/details', [PageController::class, 'profile'])->name('profile.details');
+        
+        // /change-password
+        Route::get('/change-password', [PageController::class, 'changePassword'])->name('profile.change-password');
     });
 
-    // ==================== LEGACY / MANAGER PORTAL ====================
-    // Manager Portal Routes
+    // Legacy aliases for backward compatibility
+    Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
+    Route::get('/star', [PageController::class, 'starSchema'])->name('star');
+    Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
+    Route::get('/vnb-activity', [PageController::class, 'vnbActivity'])->name('vnb-activity');
+    Route::get('/review-activity', [PageController::class, 'reviewActivity'])->name('review-activity');
     Route::get('/manager/employees', [PageController::class, 'managerEmployees'])->name('manager.employees');
     Route::get('/manager/employees/{employeeId}', [PageController::class, 'managerEmployeeDetail'])->name('manager.employee.detail');
     Route::get('/manager/employees/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.employee.planning-history');
-    Route::get('/manager/approval-requests', [PageController::class, 'managerApprovalRequests'])->name('manager.approval-requests');
-
-    // Legacy routes (for backward compatibility with API/other references)
-    Route::get('/plan-feedback/{planId}', [PageController::class, 'planFeedback'])->name('plan.feedback');
-    Route::get('/evidence', [PageController::class, 'evidence'])->name('evidence');
-    Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
+    Route::redirect('/manager/approval-requests', '/vnb/vnb-approval')->name('manager.approval-requests');
 });
