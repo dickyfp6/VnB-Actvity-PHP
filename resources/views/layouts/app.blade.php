@@ -652,100 +652,116 @@
 
         <!-- Navigation Links -->
         <nav>
+            <!-- BERANDA Section -->
             <p class="nav-section-title">BERANDA</p>
             <a href="/" class="nav-link {{ request()->is('/') ? 'active' : '' }}" title="Dashboard">
                 <i class="fas fa-chart-line w-5 flex-shrink-0"></i>
                 <span>Dashboard</span>
             </a>
 
-            <p class="nav-section-title">STAR</p>
-            <a href="/star" class="nav-link {{ request()->is('star*') ? 'active' : '' }}" title="STAR">
-                <i class="fas fa-star w-5 flex-shrink-0"></i>
-                <span>STAR</span>
-            </a>
-
-            <p class="nav-section-title">VNB ACTIVITY</p>
-
-            @if($activeRole === 'employee')
-            <a href="/vnb-plans" class="nav-link {{ request()->is('vnb-plans*') ? 'active' : '' }}" title="Planning">
-                <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
-                <span>Planning</span>
-            </a>
-            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
-                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
-                <span>VnB Activity</span>
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
+            <a href="/hris" class="nav-link {{ request()->is('hris*') ? 'active' : '' }}" title="HRIS Sync">
+                <i class="fas fa-sync-alt w-5 flex-shrink-0"></i>
+                <span>HRIS</span>
             </a>
             @endif
 
-            @if($activeRole === 'manager')
-            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Kelola Employee">
-                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>Kelola Employee</span>
-            </a>
-            <a href="/manager/approval-requests" class="nav-link {{ request()->is('manager/approval-requests*') ? 'active' : '' }}" title="Approval Request">
-                <div style="position: relative; display: inline-block;">
-                    <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
-                    <span id="manager-approval-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: -4px; right: -4px; z-index: 10;"></span>
-                </div>
-                <span>Approval Request</span>
-                <span id="manager-approval-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: white; color: white; min-width: unset; font-size: 10px;">0</span>
-            </a>
-            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
-                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
-                <span>VnB Activity</span>
-            </a>
-            @endif
-
-            @if($activeRole === 'intercomm')
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager', 'manager']))
             <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Manage Employee">
                 <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>Manage Employee</span>
-            </a>
-            <a href="/managers" class="nav-link {{ request()->is('managers*') ? 'active' : '' }}" title="Manage Manager">
-                <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
-                <span>Manage Manager</span>
-            </a>
-            <a href="/vnb-framework" class="nav-link {{ request()->is('vnb-framework*') ? 'active' : '' }}" title="V&B Framework">
-                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
-                <span>V&B Framework</span>
-            </a>
-            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
-                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
-                <span>VnB Activity</span>
+                <span>Employees</span>
             </a>
             @endif
 
             @if($activeRole === 'pcx_manager')
             <a href="/intercomm" class="nav-link {{ request()->is('intercomm*') ? 'active' : '' }}" title="Manage Intercomm">
                 <i class="fas fa-users-cog w-5 flex-shrink-0"></i>
-                <span>Manage Intercomm</span>
+                <span>Intercomm</span>
             </a>
-            <a href="/employees" class="nav-link {{ request()->is('employees*') ? 'active' : '' }}" title="Manage Employee">
-                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
-                <span>Manage Employee</span>
-            </a>
+            @endif
+
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
             <a href="/managers" class="nav-link {{ request()->is('managers*') ? 'active' : '' }}" title="Manage Manager">
                 <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
-                <span>Manage Manager</span>
-            </a>
-            <a href="/vnb-framework" class="nav-link {{ request()->is('vnb-framework*') ? 'active' : '' }}" title="V&B Framework">
-                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
-                <span>V&B Framework</span>
+                <span>Managers</span>
             </a>
             <a href="/master-data" class="nav-link {{ request()->is('master-data*') ? 'active' : '' }}" title="Master Data">
                 <i class="fas fa-database w-5 flex-shrink-0"></i>
                 <span>Master Data</span>
             </a>
-            <a href="/vnb-activity" class="nav-link {{ request()->is('vnb-activity*') ? 'active' : '' }}" title="VnB Activity">
-                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
-                <span>VnB Activity</span>
+            @endif
+
+            <!-- STAR Section -->
+            <p class="nav-section-title">STAR</p>
+            <a href="/star/schema" class="nav-link {{ request()->is('star/schema*') ? 'active' : '' }}" title="STAR Schema">
+                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
+                <span>Schema</span>
+            </a>
+            <a href="/star/recognition" class="nav-link {{ request()->is('star/recognition*') ? 'active' : '' }}" title="Recognition">
+                <i class="fas fa-trophy w-5 flex-shrink-0"></i>
+                <span>Recognition</span>
+            </a>
+            <a href="/star/achievements" class="nav-link {{ request()->is('star/achievements*') ? 'active' : '' }}" title="Achievements">
+                <i class="fas fa-star w-5 flex-shrink-0"></i>
+                <span>Achievements</span>
+            </a>
+
+            @if(in_array($activeRole, ['pcx_manager', 'intercomm', 'direktur_utama']))
+            <a href="/star/approval" class="nav-link {{ request()->is('star/approval*') ? 'active' : '' }}" title="Approval">
+                <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
+                <span>Approval</span>
             </a>
             @endif
 
-            @if($activeRole === 'direktur_utama')
-            <a href="/my-account/profile" class="nav-link {{ request()->is('my-account/profile*') ? 'active' : '' }}" title="Profil Saya">
-                <i class="fas fa-user-circle w-5 flex-shrink-0"></i>
-                <span>Profil Saya</span>
+            <!-- VNB ACTIVITY Section -->
+            <p class="nav-section-title">VNB ACTIVITY</p>
+
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
+            <a href="/vnb/framework" class="nav-link {{ request()->is('vnb/framework*') ? 'active' : '' }}" title="V&B Framework">
+                <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
+                <span>Framework</span>
+            </a>
+            @endif
+
+            @if($activeRole === 'employee')
+            <a href="/vnb/plans" class="nav-link {{ request()->is('vnb/plans*') ? 'active' : '' }}" title="Planning">
+                <i class="fas fa-clipboard-list w-5 flex-shrink-0"></i>
+                <span>Plans</span>
+            </a>
+            <a href="/vnb/activity" class="nav-link {{ request()->is('vnb/activity*') ? 'active' : '' }}" title="VnB Activity">
+                <i class="fas fa-tasks w-5 flex-shrink-0"></i>
+                <span>Activity</span>
+            </a>
+            @endif
+
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
+            <a href="/vnb/participants" class="nav-link {{ request()->is('vnb/participants*') ? 'active' : '' }}" title="Participants">
+                <i class="fas fa-users w-5 flex-shrink-0"></i>
+                <span>Participants</span>
+            </a>
+            @endif
+
+            @if($activeRole === 'manager')
+            <a href="/vnb/approval" class="nav-link {{ request()->is('vnb/approval*') ? 'active' : '' }}" title="Activity Approval">
+                <div style="position: relative; display: inline-block;">
+                    <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
+                    <span id="manager-approval-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: -4px; right: -4px; z-index: 10;"></span>
+                </div>
+                <span>Approval</span>
+                <span id="manager-approval-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: white; color: white; min-width: unset; font-size: 10px;">0</span>
+            </a>
+            @endif
+
+            <!-- Legacy Manager Portal (kept for backward compatibility) -->
+            @if($activeRole === 'manager')
+            <p class="nav-section-title">MANAGER PORTAL</p>
+            <a href="/manager/employees" class="nav-link {{ request()->is('manager/employees*') ? 'active' : '' }}" title="Kelola Employee">
+                <i class="fas fa-user-graduate w-5 flex-shrink-0"></i>
+                <span>My Employees</span>
+            </a>
+            <a href="/manager/approval-requests" class="nav-link {{ request()->is('manager/approval-requests*') ? 'active' : '' }}" title="Approval Request">
+                <i class="fas fa-check-square w-5 flex-shrink-0"></i>
+                <span>Approval Requests</span>
             </a>
             @endif
         </nav>
@@ -776,7 +792,7 @@
                         @endif
                     </div>
 
-                    <a href="/my-account/profile" class="top-profile-menu-item">
+                    <a href="/profile" class="top-profile-menu-item">
                         <i class="fas fa-user-circle"></i>
                         <span>Profil Saya</span>
                     </a>

@@ -130,6 +130,51 @@ class PageController extends Controller
         return view('account.change-password');
     }
 
+    // ==================== HRIS ====================
+    public function hris(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        return view('hris.index');
+    }
+
+    // ==================== STAR ====================
+    public function starSchema(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        return view('star.schema');
+    }
+
+    public function starRecognition(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        return view('star.recognition');
+    }
+
+    public function starAchievements(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        return view('star.achievements');
+    }
+
+    public function starApproval(Request $request)
+    {
+        $this->ensureActiveRole($request, ['pcx_manager', 'intercomm', 'direktur_utama']);
+        return view('star.approval');
+    }
+
+    // ==================== VNB ACTIVITY ====================
+    public function vnbParticipants(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        return view('vnb.participants');
+    }
+
+    public function vnbApproval(Request $request)
+    {
+        $this->ensureActiveRole($request, ['manager']);
+        return view('vnb.approval');
+    }
+
     private function ensureActiveRole(Request $request, array $allowedRoles): void
     {
         $user = auth()->user();
