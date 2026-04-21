@@ -2,12 +2,7 @@
 @section('title','Manager - Approval Request')
 @section('content')
 <div class="px-4 space-y-4">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Approval Request</h1>
-    <button onclick="loadRequests()" class="text-white px-4 py-2 rounded-lg text-sm" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
-      <i class="fas fa-sync-alt mr-1"></i> Refresh
-    </button>
-  </div>
+  <h1 class="text-2xl font-bold text-gray-800">Approval Request</h1>
 
   <!-- Tab Navigation -->
   <div class="flex gap-2 border-b border-gray-200">

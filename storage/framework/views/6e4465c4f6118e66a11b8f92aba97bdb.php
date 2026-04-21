@@ -19,23 +19,6 @@
             <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">Employee Active</button>
             <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History Employee</button>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3">
-            <input id="f-search" type="text" placeholder="Cari NIP/Nama/Email" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onkeyup="applyFilters()">
-            <select id="f-status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onchange="applyFilters()">
-                <option value="">Semua Status Pegawai</option>
-            </select>
-            <select id="f-phase" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onchange="applyFilters()">
-                <option value="">Semua Fase</option>
-                <option value="Planning">Planning</option>
-                <option value="Fase 1">Fase 1</option>
-                <option value="Fase 2">Fase 2</option>
-                <option value="Fase 3">Fase 3</option>
-                <option value="Selesai">Selesai</option>
-            </select>
-            <button onclick="loadEmployees()" class="text-white px-4 py-2 rounded-lg text-sm" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
-                <i class="fas fa-sync-alt mr-1"></i> Refresh
-            </button>
-        </div>
     </div>
 
     <div class="table-container">
@@ -44,7 +27,12 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>NIP</th>
+                        <th>
+                            <div class="flex flex-col gap-1">
+                                <span>NIP</span>
+                                <input id="f-search" type="text" placeholder="Cari..." class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onkeyup="applyFilters()">
+                            </div>
+                        </th>
                         <th>Nama Employee</th>
                         <th>Tanggal Masuk</th>
                         <th>Tanggal Induction</th>
@@ -53,7 +41,19 @@
                         <th>Periode Awal</th>
                         <th>Periode Akhir</th>
                         <th>Career Stage</th>
-                        <th>Fase</th>
+                        <th>
+                            <div class="flex flex-col gap-1">
+                                <span>Fase</span>
+                                <select id="f-phase" class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onchange="applyFilters()">
+                                    <option value="">Semua</option>
+                                    <option value="Planning">Planning</option>
+                                    <option value="Fase 1">Fase 1</option>
+                                    <option value="Fase 2">Fase 2</option>
+                                    <option value="Fase 3">Fase 3</option>
+                                    <option value="Selesai">Selesai</option>
+                                </select>
+                            </div>
+                        </th>
                         <th>Progress</th>
                         <th>Manager Fungsional</th>
                         <th>Manager Operasional</th>
@@ -63,7 +63,14 @@
                         <th>Jabatan</th>
                         <th>Penempatan</th>
                         <th>Golongan</th>
-                        <th>Status Pegawai</th>
+                        <th>
+                            <div class="flex flex-col gap-1">
+                                <span>Status Pegawai</span>
+                                <select id="f-status" class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onchange="applyFilters()">
+                                    <option value="">Semua</option>
+                                </select>
+                            </div>
+                        </th>
                         <th>Status Lifecycle</th>
                         <th class="text-right">Aksi</th>
                     </tr>

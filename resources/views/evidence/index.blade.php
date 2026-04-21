@@ -22,9 +22,6 @@
                 <option value="verified">Verified</option>
                 <option value="rejected">Rejected</option>
             </select>
-            <button onclick="loadEvidence()" class="text-white px-4 py-2 rounded-lg transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
-                <i class="fas fa-sync"></i> Refresh
-            </button>
         </div>
     </div>
 

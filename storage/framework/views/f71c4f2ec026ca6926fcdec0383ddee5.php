@@ -687,10 +687,8 @@
                 <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
                 <span>Managers</span>
             </a>
-            <a href="/master-data" class="nav-link <?php echo e(request()->is('master-data*') ? 'active' : ''); ?>" title="Master Data">
-                <i class="fas fa-database w-5 flex-shrink-0"></i>
-                <span>Master Data</span>
-            </a>
+            
+            
             <?php endif; ?>
 
             <!-- STAR Section -->
@@ -760,28 +758,28 @@
     </div>
 
     <!-- Main Content -->
-    <main id="mainContent" class="main-content px-4 py-6 sm:px-6 lg:px-8 flex-grow max-w-full">
+    <main id="mainContent" class="main-content px-4 py-4 sm:px-6 lg:px-8 flex-grow max-w-full">
         <div class="top-navbar">
+            <?php
+                $roleLabels = [
+                    'direktur_utama' => 'Direktur Utama',
+                    'pcx_manager' => 'PCX Manager',
+                    'intercomm' => 'Intercomm',
+                    'manager' => 'Manager',
+                    'employee' => 'Employee',
+                ];
+            ?>
             <div id="topProfileMenuWrapper" class="relative">
                 <button id="topProfileMenuBtn" class="top-profile-btn" type="button" aria-haspopup="menu" aria-expanded="false">
                     <span class="avatar"><i class="fas fa-user"></i></span>
                     <span class="meta hidden sm:inline">
                         <span class="name"><?php echo e(Auth::user()->name); ?></span>
-                        <small><?php echo e(ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?></small>
+                        <small><?php echo e($roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?></small>
                     </span>
                     <i class="fas fa-chevron-down text-xs"></i>
                 </button>
 
                 <div id="topProfileMenu" class="top-profile-menu hidden">
-                    <?php
-                        $roleLabels = [
-                            'direktur_utama' => 'Direktur Utama',
-                            'pcx_manager' => 'PCX Manager',
-                            'intercomm' => 'Intercomm',
-                            'manager' => 'Manager',
-                            'employee' => 'Employee',
-                        ];
-                    ?>
                     <div class="px-2 pb-2 mb-2 border-b border-gray-100">
                         <p class="text-xs font-bold text-gray-900"><?php echo e(Auth::user()->name); ?></p>
                         <p class="mt-0.5 text-xs font-semibold text-emerald-700">

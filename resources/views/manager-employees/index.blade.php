@@ -21,9 +21,6 @@
         <option value="Fase 3">Fase 3</option>
         <option value="Selesai">Selesai</option>
       </select>
-      <button onclick="loadRows()" class="text-white px-4 py-2 rounded-lg text-sm" style="background-color: #144600;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
-        <i class="fas fa-sync-alt mr-1"></i> Refresh
-      </button>
     </div>
   </div>
 
