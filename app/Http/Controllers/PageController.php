@@ -130,7 +130,7 @@ class PageController extends Controller
         return view('account.change-password');
     }
 
-    // ==================== HRIS Routes ====================
+    // ==================== Sinkronisasi Data Routes ====================
     public function hris(Request $request)
     {
         $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);

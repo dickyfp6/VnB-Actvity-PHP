@@ -19,8 +19,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [PageController::class, 'dashboard'])->name('dashboard.alt');
     
     // ==================== ROOT LEVEL ROUTES ====================
-    // /hris - PCX, Intercomm
-    Route::get('/hris', [PageController::class, 'hris'])->name('hris');
+    // /sinkronisasi - PCX, Intercomm
+    Route::get('/sinkronisasi', [PageController::class, 'hris'])->name('hris');
     
     // /employees - PCX, Intercomm, Manager
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');

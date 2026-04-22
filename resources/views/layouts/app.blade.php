@@ -662,9 +662,9 @@
             </a>
 
             @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
-            <a href="/hris" class="nav-link {{ request()->is('hris*') ? 'active' : '' }}" title="HRIS Sync">
+            <a href="/sinkronisasi" class="nav-link {{ request()->is('sinkronisasi*') ? 'active' : '' }}" title="Sinkronisasi Data">
                 <i class="fas fa-sync-alt w-5 flex-shrink-0"></i>
-                <span>HRIS</span>
+                <span>Sinkronisasi Data</span>
             </a>
             @endif
 

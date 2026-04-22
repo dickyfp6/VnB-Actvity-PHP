@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class HrisController extends Controller
 {
@@ -56,11 +57,11 @@ class HrisController extends Controller
         // Authorize: PCX, Intercomm only
         $this->authorizeHrisAccess('Hanya PCX dan Intercomm yang bisa melakukan sinkronisasi HRIS.');
 
-        $sourceRow = $this->getHrisSourceRows()->firstWhere('id', $id);
+        $sourceRow = $this->getCombinedSourceRows()->firstWhere('id', $id);
         if (!$sourceRow) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data HRIS tidak ditemukan.',
+                'message' => 'Data sumber tidak ditemukan.',
             ], 404);
         }
 
@@ -162,11 +163,16 @@ class HrisController extends Controller
 
     private function buildComparisonDataset(): array
     {
-        $sourceRows = $this->getHrisSourceRows();
-        $employeeByNumber = Employee::query()->get()->keyBy('employee_number');
+        $hrisSourceRows = $this->getSourceRowsBySystem('HRIS');
+        $hrmsSourceRows = $this->getSourceRowsBySystem('HRMS');
+        $sourceRows = $hrisSourceRows->concat($hrmsSourceRows)->values();
+
+        $employeeByNumber = Employee::query()
+            ->get()
+            ->keyBy(fn (Employee $employee) => mb_strtolower(trim((string) $employee->employee_number)));
 
         $rows = $sourceRows->map(function (array $sourceRow) use ($employeeByNumber) {
-            $existing = $employeeByNumber->get($sourceRow['employee_number']);
+            $existing = $employeeByNumber->get(mb_strtolower(trim((string) ($sourceRow['employee_number'] ?? ''))));
             $changes = $this->detectChanges($existing, $sourceRow);
 
             if (!$existing) {
@@ -188,10 +194,12 @@ class HrisController extends Controller
         $pending = $rows->where('is_pending', true)->values();
 
         return [
-            'source' => $rows,
+            'source' => $hrisSourceRows,
+            'hrms_source' => $hrmsSourceRows,
+            'employees' => Employee::query()->get(),
             'pending' => $pending,
             'summary' => [
-                'total_source' => $rows->count(),
+                'total_source' => $sourceRows->count(),
                 'pending_total' => $pending->count(),
                 'new_total' => $pending->where('sync_type', 'new')->count(),
                 'updated_total' => $pending->where('sync_type', 'updated')->count(),
@@ -199,76 +207,42 @@ class HrisController extends Controller
         ];
     }
 
-    /**
-     * Temporary source adapter for external HRIS data.
-     * In production this should fetch from API or dedicated mirror table.
-     */
-    private function getHrisSourceRows(): Collection
+    private function getCombinedSourceRows(): Collection
     {
-        $rows = [
-            [
-                'id' => 1,
-                'employee_number' => 'EMP0001',
-                'name' => 'Dina Prameswari',
-                'date_joined' => '2022-01-17',
-                'email' => 'dina.prameswari@wismilak.co.id',
-                'whatsapp' => '081234500001',
-                'company' => 'PT Wismilak Inti Makmur',
-                'division' => 'Human Capital',
-                'department' => 'C&B and HRIS',
-                'position' => 'HRIS Specialist',
-                'placement' => 'Surabaya',
-                'level' => 'Staff',
-                'employee_status' => 'PKWTT',
-            ],
-            [
-                'id' => 2,
-                'employee_number' => 'EMP0002',
-                'name' => 'Rifki Mahendra',
-                'date_joined' => '2021-08-03',
-                'email' => 'rifki.mahendra@wismilak.co.id',
-                'whatsapp' => '081234500002',
-                'company' => 'PT Gelora Djaja',
-                'division' => 'Sales',
-                'department' => 'Area East',
-                'position' => 'Area Supervisor',
-                'placement' => 'Malang',
-                'level' => 'Supervisor',
-                'employee_status' => 'PKWTT',
-            ],
-            [
-                'id' => 3,
-                'employee_number' => 'EMP0003',
-                'name' => 'Silfia Nur Aini',
-                'date_joined' => '2024-03-12',
-                'email' => 'silfia.nuraini@wismilak.co.id',
-                'whatsapp' => '081234500003',
-                'company' => 'PT Wismilak Inti Makmur',
-                'division' => 'Technology',
-                'department' => 'Product Engineering',
-                'position' => 'Backend Engineer',
-                'placement' => 'Surabaya',
-                'level' => 'Staff',
-                'employee_status' => 'PKWT',
-            ],
-            [
-                'id' => 4,
-                'employee_number' => 'EMP0099',
-                'name' => 'Bagas Pratama',
-                'date_joined' => '2026-04-01',
-                'email' => 'bagas.pratama@wismilak.co.id',
-                'whatsapp' => '081234509999',
-                'company' => 'PT Gelora Djaja',
-                'division' => 'Technology',
-                'department' => 'Digital Platform',
-                'position' => 'Data Analyst',
-                'placement' => 'Gresik',
-                'level' => 'Staff',
-                'employee_status' => 'PKWTT',
-            ],
-        ];
+        return $this->getSourceRowsBySystem('HRIS')
+            ->concat($this->getSourceRowsBySystem('HRMS'))
+            ->values();
+    }
 
-        return collect($rows);
+    private function getSourceRowsBySystem(string $sourceSystem): Collection
+    {
+        if (!Schema::hasTable('sync_source_employees')) {
+            return collect();
+        }
+
+        return DB::table('sync_source_employees')
+            ->where('source_system', strtoupper($sourceSystem))
+            ->orderBy('employee_number')
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'id' => (int) $row->id,
+                    'source_system' => (string) $row->source_system,
+                    'employee_number' => (string) ($row->employee_number ?? ''),
+                    'name' => (string) ($row->name ?? ''),
+                    'date_joined' => (string) ($row->date_joined ?? ''),
+                    'email' => (string) ($row->email ?? ''),
+                    'whatsapp' => (string) ($row->whatsapp ?? ''),
+                    'company' => (string) ($row->company ?? ''),
+                    'division' => (string) ($row->division ?? ''),
+                    'department' => (string) ($row->department ?? ''),
+                    'position' => (string) ($row->position ?? ''),
+                    'placement' => (string) ($row->placement ?? ''),
+                    'level' => (string) ($row->level ?? ''),
+                    'employee_status' => (string) ($row->employee_status ?? ''),
+                ];
+            })
+            ->values();
     }
 
     private function detectChanges(?Employee $existing, array $sourceRow): array
@@ -290,6 +264,19 @@ class HrisController extends Controller
             'department' => 'department_id',
             'position' => 'position_id',
         ];
+        $fieldLabels = [
+            'name' => 'Nama',
+            'date_joined' => 'Tanggal Masuk',
+            'email' => 'Email',
+            'whatsapp' => 'Whatsapp',
+            'company' => 'Perusahaan',
+            'placement' => 'Penempatan',
+            'level' => 'Golongan',
+            'employee_status' => 'Status Pegawai',
+            'division' => 'Divisi',
+            'department' => 'Departemen',
+            'position' => 'Jabatan',
+        ];
 
         $changes = [];
         foreach ($fieldMap as $sourceKey => $employeeField) {
@@ -304,6 +291,7 @@ class HrisController extends Controller
             if (mb_strtolower(trim($sourceValue)) !== mb_strtolower(trim((string) $currentValue))) {
                 $changes[] = [
                     'field' => $sourceKey,
+                    'label' => $fieldLabels[$sourceKey] ?? $sourceKey,
                     'from' => $currentValue,
                     'to' => $sourceValue,
                 ];
@@ -366,7 +354,7 @@ class HrisController extends Controller
         $divisionId = $this->resolveMasterId('master_divisions', (string) ($sourceRow['division'] ?? ''));
         $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
-        $managerFunctionalId = $existing?->manager_functional_id ?? DB::table('managers')->value('id');
+        $managerFunctionalId = $this->resolveFunctionalManagerId($existing);
 
         return [
             'employee_number' => (string) $sourceRow['employee_number'],
@@ -384,6 +372,44 @@ class HrisController extends Controller
             'manager_functional_id' => $managerFunctionalId,
             'manager_operational_id' => $existing?->manager_operational_id,
         ];
+    }
+
+    private function resolveFunctionalManagerId(?Employee $existing): ?int
+    {
+        if ($existing?->manager_functional_id) {
+            return (int) $existing->manager_functional_id;
+        }
+
+        if (!Schema::hasTable('managers')) {
+            return null;
+        }
+
+        $existingManagerId = DB::table('managers')
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->value('id');
+
+        if ($existingManagerId) {
+            return (int) $existingManagerId;
+        }
+
+        $now = now();
+        $fallbackEmail = 'sync.default.manager@vnb.local';
+
+        DB::table('managers')->updateOrInsert(
+            ['email' => $fallbackEmail],
+            [
+                'name' => 'Default Sync Manager',
+                'company' => 'VnB Platform',
+                'division' => 'System',
+                'status' => 'active',
+                'user_id' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+
+        return (int) DB::table('managers')->where('email', $fallbackEmail)->value('id');
     }
 
     private function resolveMasterId(string $table, string $name): ?int

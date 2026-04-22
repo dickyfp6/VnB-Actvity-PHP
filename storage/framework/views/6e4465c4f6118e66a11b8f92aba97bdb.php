@@ -19,6 +19,9 @@
             <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">Employee Active</button>
             <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History Employee</button>
         </div>
+        <div id="filters-bar" class="pt-3">
+            <!-- Filters in column headers -->
+        </div>
     </div>
 
     <div class="table-container">
@@ -26,57 +29,127 @@
             <table class="table-modern">
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>
-                            <div class="flex flex-col gap-1">
-                                <span>NIP</span>
-                                <input id="f-search" type="text" placeholder="Cari..." class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onkeyup="applyFilters()">
+                        <th class="text-center" style="width: 50px;">No</th>
+                        <th class="text-center" style="width: 100px;">NIP</th>
+                        <th class="text-center" style="width: 150px;">Nama Lengkap</th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Tanggal Masuk</span>
+                                <button onclick="toggleSort('date_joined')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-date_joined-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-date_joined-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-date_joined-options"></div></div>
+                                </div>
                             </div>
                         </th>
-                        <th>Nama Employee</th>
-                        <th>Tanggal Masuk</th>
-                        <th>Tanggal Induction</th>
-                        <th>Email</th>
-                        <th>Whatsapp</th>
-                        <th>Periode Awal</th>
-                        <th>Periode Akhir</th>
-                        <th>Career Stage</th>
-                        <th>
-                            <div class="flex flex-col gap-1">
-                                <span>Fase</span>
-                                <select id="f-phase" class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onchange="applyFilters()">
-                                    <option value="">Semua</option>
-                                    <option value="Planning">Planning</option>
-                                    <option value="Fase 1">Fase 1</option>
-                                    <option value="Fase 2">Fase 2</option>
-                                    <option value="Fase 3">Fase 3</option>
-                                    <option value="Selesai">Selesai</option>
-                                </select>
+                        <th class="text-center" style="width: 150px;">Email</th>
+                        <th class="text-center" style="width: 120px;">Whatsapp</th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Perusahaan</span>
+                                <button onclick="toggleSort('company')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-company-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-company-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-company-options"></div></div>
+                                </div>
                             </div>
                         </th>
-                        <th>Progress</th>
-                        <th>Manager Fungsional</th>
-                        <th>Manager Operasional</th>
-                        <th>Perusahaan</th>
-                        <th>Divisi</th>
-                        <th>Departemen</th>
-                        <th>Jabatan</th>
-                        <th>Penempatan</th>
-                        <th>Golongan</th>
-                        <th>
-                            <div class="flex flex-col gap-1">
+                        <th class="text-center" style="width: 110px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Divisi</span>
+                                <button onclick="toggleSort('division')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-division-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-division-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-division-options"></div></div>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Departemen</span>
+                                <button onclick="toggleSort('department')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-department-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-department-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-department-options"></div></div>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Jabatan</span>
+                                <button onclick="toggleSort('position')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-position-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-position-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-position-options"></div></div>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Penempatan</span>
+                                <button onclick="toggleSort('placement')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-placement-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-placement-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-placement-options"></div></div>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 110px;">
+                            <div class="flex items-center justify-center gap-1">
+                                <span>Golongan</span>
+                                <button onclick="toggleSort('level')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-level-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-level-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-level-options"></div></div>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="text-center" style="width: 120px;">
+                            <div class="flex items-center justify-center gap-1">
                                 <span>Status Pegawai</span>
-                                <select id="f-status" class="border border-gray-300 rounded px-2 py-1 text-xs w-full" onchange="applyFilters()">
-                                    <option value="">Semua</option>
-                                </select>
+                                <button onclick="toggleSort('employee_status')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-employee_status-btn" title="Sort">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m0 0l4 4m10-4v12m0 0l4-4m0 0l-4-4"></path></svg>
+                                </button>
+                                <div class="relative group cursor-pointer">
+                                    <button class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" id="filter-employee_status-btn" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max"><div class="p-1" id="filter-employee_status-options"></div></div>
+                                </div>
                             </div>
                         </th>
-                        <th>Status Lifecycle</th>
-                        <th class="text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="employee-body">
-                    <tr><td colspan="23" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -286,6 +359,26 @@
 let allEmployees = [];
 let filteredEmployees = [];
 let currentLifecycle = 'active';
+let columnFilters = {
+    date_joined: null,
+    company: null,
+    division: null,
+    department: null,
+    position: null,
+    placement: null,
+    level: null,
+    employee_status: null
+};
+let columnSort = {
+    date_joined: null,
+    company: null,
+    division: null,
+    department: null,
+    position: null,
+    placement: null,
+    level: null,
+    employee_status: null
+};
 let master = { companies: [], divisions: [], departments: [], positions: [], placements: [], levels: [], employee_statuses: [] };
 let managerOptions = [];
 let importPreviewRows = [];
@@ -431,71 +524,166 @@ function getEmploymentStateLabel(state) {
 }
 
 async function loadEmployees() {
-    document.getElementById('employee-body').innerHTML = '<tr><td colspan="23" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+    document.getElementById('employee-body').innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
     const res = await apiGet(`/api/employees?lifecycle=${encodeURIComponent(currentLifecycle)}`);
     allEmployees = res.data || [];
+    renderAllFilterOptions();
     applyFilters();
+    updateButtonStates();
 }
 
 function applyFilters() {
-    const search = (document.getElementById('f-search').value || '').toLowerCase();
-    const status = document.getElementById('f-status').value;
-    const phase = document.getElementById('f-phase').value;
-
     filteredEmployees = allEmployees.filter(row => {
-        const textMatch = !search || [row.employee_number, row.name, row.email].join(' ').toLowerCase().includes(search);
-        const statusMatch = !status || row.employee_status === status;
-        const phaseMatch = !phase || row.phase === phase;
-        return textMatch && statusMatch && phaseMatch;
+        const dateMatch = columnFilters.date_joined === null || row.date_joined === columnFilters.date_joined;
+        const companyMatch = columnFilters.company === null || row.company === columnFilters.company;
+        const divisionMatch = columnFilters.division === null || row.division === columnFilters.division;
+        const departmentMatch = columnFilters.department === null || row.department === columnFilters.department;
+        const positionMatch = columnFilters.position === null || row.position === columnFilters.position;
+        const placementMatch = columnFilters.placement === null || row.placement === columnFilters.placement;
+        const levelMatch = columnFilters.level === null || row.level === columnFilters.level;
+        const statusMatch = columnFilters.employee_status === null || normalizeValue(row.employee_status) === columnFilters.employee_status;
+        return dateMatch && companyMatch && divisionMatch && departmentMatch && positionMatch && placementMatch && levelMatch && statusMatch;
     });
 
+    // Apply sorting
+    const activeSortColumn = Object.keys(columnSort).find(k => columnSort[k] !== null);
+    if (activeSortColumn) {
+        const sortDir = columnSort[activeSortColumn];
+        filteredEmployees.sort((a, b) => {
+            const aVal = (a[activeSortColumn] || '').toString().toLowerCase();
+            const bVal = (b[activeSortColumn] || '').toString().toLowerCase();
+            if (sortDir === 'asc') return aVal.localeCompare(bVal);
+            if (sortDir === 'desc') return bVal.localeCompare(aVal);
+            return 0;
+        });
+    }
+
     renderTable();
+    updateButtonStates();
+}
+
+function updateButtonStates() {
+    const filterColumns = ['date_joined', 'company', 'division', 'department', 'position', 'placement', 'level', 'employee_status'];
+    
+    filterColumns.forEach(col => {
+        // Update filter button
+        const filterBtn = document.getElementById(`filter-${col}-btn`);
+        if (filterBtn) {
+            if (columnFilters[col] !== null) {
+                filterBtn.style.backgroundColor = '#4B5563';
+                filterBtn.style.borderRadius = '4px';
+                const svg = filterBtn.querySelector('svg');
+                if (svg) svg.style.color = 'white';
+            } else {
+                filterBtn.style.backgroundColor = '';
+                filterBtn.style.borderRadius = '';
+                const svg = filterBtn.querySelector('svg');
+                if (svg) svg.style.color = '';
+            }
+        }
+        
+        // Update sort button
+        const sortBtn = document.getElementById(`sort-${col}-btn`);
+        if (sortBtn) {
+            const sortState = columnSort[col];
+            const svg = sortBtn.querySelector('svg');
+            if (sortState === 'asc' || sortState === 'desc') {
+                if (svg) svg.style.color = '#4B5563';
+            } else {
+                if (svg) svg.style.color = '';
+            }
+        }
+    });
+}
+
+function setColumnFilter(column, value) {
+    columnFilters[column] = value || null;
+    applyFilters();
+}
+
+function toggleSort(column) {
+    if (columnSort[column] === 'asc') {
+        columnSort[column] = 'desc';
+    } else if (columnSort[column] === 'desc') {
+        columnSort[column] = null;
+    } else {
+        columnSort[column] = 'asc';
+    }
+    applyFilters();
+    updateButtonStates();
+}
+
+function resetColumnFilter(column) {
+    columnFilters[column] = null;
+    applyFilters();
+}
+
+function renderStatusOptions() {
+    const container = document.getElementById('filter-employee_status-options');
+    if (!container) return;
+    
+    const statuses = [...new Set(allEmployees.map(row => row.employee_status).filter(Boolean))].sort();
+    container.innerHTML = statuses.map(s => `<button onclick="setColumnFilter('employee_status', '${normalizeValue(s)}')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">${escapeHtml(s)}</button>`).join('');
+}
+
+function renderFilterOptions(columnName, dataKey) {
+    const container = document.getElementById(`filter-${columnName}-options`);
+    if (!container) return;
+    
+    const values = [...new Set(allEmployees.map(row => row[dataKey]).filter(Boolean))].sort();
+    container.innerHTML = values.map(v => `<button onclick="setColumnFilter('${columnName}', '${escapeHtml(v)}')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">${escapeHtml(v)}</button>`).join('');
+}
+
+function renderAllFilterOptions() {
+    renderFilterOptions('date_joined', 'date_joined');
+    renderFilterOptions('company', 'company');
+    renderFilterOptions('division', 'division');
+    renderFilterOptions('department', 'department');
+    renderFilterOptions('position', 'position');
+    renderFilterOptions('placement', 'placement');
+    renderFilterOptions('level', 'level');
+    renderStatusOptions();
+}
+
+function escapeHtml(value) {
+    return (value || '').toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function renderTable() {
     const tbody = document.getElementById('employee-body');
     if (!filteredEmployees.length) {
         const emptyText = currentLifecycle === 'history' ? 'Belum ada data history employee' : 'Belum ada data employee active';
-        tbody.innerHTML = `<tr><td colspan="23" class="text-center py-8 text-gray-400">${emptyText}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" class="text-center py-2 text-gray-400">${emptyText}</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = filteredEmployees.map(row => `
+    tbody.innerHTML = filteredEmployees.map((row, idx) => `
         <tr class="hover:bg-gray-50">
-            <td class="px-4 py-2">${row.code ?? '-'}</td>
-            <td class="px-4 py-2">${row.employee_number ?? '-'}</td>
-            <td class="px-4 py-2 font-medium">
+            <td class="px-3 py-2 text-left">${idx + 1}</td>
+            <td class="px-3 py-2 text-left">${row.employee_number ?? '-'}</td>
+            <td class="px-3 py-2 text-left font-medium">
                 <div class="inline-flex items-center gap-2">
                     <span>${row.name_display ?? row.name ?? '-'}</span>
-                    <button onclick="openDetailModal(${row.id})" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat detail ${row.name_display ?? row.name ?? 'Employee'}">
+                    <button onclick="openDetailModal(${row.id})" class="text-xs px-1.5 py-0.5 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat detail">
                         <i class="fas fa-arrow-up-right-from-square"></i>
                     </button>
                 </div>
             </td>
-            <td class="px-4 py-2">${row.date_joined ?? '-'}</td>
-            <td class="px-4 py-2">${row.induction_date ?? '-'}</td>
-            <td class="px-4 py-2">${row.email ?? '-'}</td>
-            <td class="px-4 py-2">${row.whatsapp ?? '-'}</td>
-            <td class="px-4 py-2">${row.vnb_period_start ?? '-'}</td>
-            <td class="px-4 py-2">${row.vnb_period_end ?? '-'}</td>
-            <td class="px-4 py-2">${row.career_stage ?? '-'}</td>
-            <td class="px-4 py-2">${row.phase ?? '-'}</td>
-            <td class="px-4 py-2 font-medium">${row.progress ?? 0}%</td>
-            <td class="px-4 py-2">${escapeHtml(normalizeDisplayValue(row.manager_functional))}</td>
-            <td class="px-4 py-2">${escapeHtml(normalizeDisplayValue(row.manager_operational))}</td>
-            <td class="px-4 py-2">${row.company ?? '-'}</td>
-            <td class="px-4 py-2">${row.division ?? '-'}</td>
-            <td class="px-4 py-2">${row.department ?? '-'}</td>
-            <td class="px-4 py-2">${row.position ?? '-'}</td>
-            <td class="px-4 py-2">${row.placement ?? '-'}</td>
-            <td class="px-4 py-2">${row.level ?? '-'}</td>
-            <td class="px-4 py-2">${row.employee_status ?? '-'}</td>
-            <td class="px-4 py-2">${getEmploymentStateLabel(row.employment_state)}</td>
-            <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
-                <button onclick="openEmployeeModal(${row.id})" class="text-sm" style="color:#144600;"><i class="fas fa-edit"></i></button>
-                ${normalizeValue(row.employment_state) === 'active' ? `<button onclick="mutateEmployeeLifecycle(${row.id})" class="text-sm text-orange-600" title="Mutasi Status"><i class="fas fa-random"></i></button>` : ''}
-                <button onclick="deleteEmployee(${row.id}, '${(row.name || '').replace(/'/g, "\\'")}')" class="text-sm text-red-500"><i class="fas fa-trash"></i></button>
-            </td>
+            <td class="px-3 py-2 text-left">${row.date_joined ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.email ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.whatsapp ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.company ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.division ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.department ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.position ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.placement ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.level ?? '-'}</td>
+            <td class="px-3 py-2 text-left">${row.employee_status ?? '-'}</td>
         </tr>
     `).join('');
 }

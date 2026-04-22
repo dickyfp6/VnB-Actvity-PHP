@@ -11,16 +11,8 @@
       <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">Employee Active</button>
       <button id="btn-lifecycle-history" onclick="setLifecycleTab('history')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">History Employee</button>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3">
-      <input id="f-search" type="text" placeholder="Cari NIP/Nama/Email" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onkeyup="applyFilters()">
-      <select id="f-phase" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onchange="applyFilters()">
-        <option value="">Semua Fase</option>
-        <option value="Planning">Planning</option>
-        <option value="Fase 1">Fase 1</option>
-        <option value="Fase 2">Fase 2</option>
-        <option value="Fase 3">Fase 3</option>
-        <option value="Selesai">Selesai</option>
-      </select>
+    <div id="filters-bar" class="pt-3">
+      <!-- Filters in column headers -->
     </div>
   </div>
 
@@ -39,7 +31,23 @@
             <th>Periode Awal</th>
             <th>Periode Akhir</th>
             <th>Career Stage</th>
-            <th>Fase</th>
+            <th class="relative">
+              <div class="flex items-center justify-between gap-2">
+                <span>Fase</span>
+                <div class="relative group cursor-pointer">
+                  <span class="text-gray-500 group-hover:text-gray-700">▼</span>
+                  <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
+                    <div class="p-1">
+                      <button onclick="setColumnFilter('phase', 'Planning')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">Planning</button>
+                      <button onclick="setColumnFilter('phase', 'Fase 1')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">Fase 1</button>
+                      <button onclick="setColumnFilter('phase', 'Fase 2')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">Fase 2</button>
+                      <button onclick="setColumnFilter('phase', 'Fase 3')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">Fase 3</button>
+                      <button onclick="setColumnFilter('phase', 'Selesai')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">Selesai</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </th>
             <th>Progress</th>
             <th>Manager Fungsional</th>
             <th>Manager Operasional</th>
@@ -66,6 +74,9 @@
 let allRows = [];
 let filteredRows = [];
 let currentLifecycle = 'active';
+let columnFilters = {
+  phase: null
+};
 
 function setLifecycleTab(lifecycle) {
   currentLifecycle = lifecycle;
@@ -91,8 +102,7 @@ async function loadRows() {
   const tbody = document.getElementById('rows-body');
   tbody.innerHTML = '<tr><td colspan="22" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
-  const search = encodeURIComponent(document.getElementById('f-search').value || '');
-  const url = `/api/manager/employees?lifecycle=${encodeURIComponent(currentLifecycle)}&search=${search}`;
+  const url = `/api/manager/employees?lifecycle=${encodeURIComponent(currentLifecycle)}`;
   const res = await apiGet(url);
 
   if (!(res && res.success === true)) {
@@ -105,19 +115,22 @@ async function loadRows() {
 }
 
 function applyFilters() {
-  const phase = (document.getElementById('f-phase').value || '').toLowerCase();
-  const search = (document.getElementById('f-search').value || '').toLowerCase();
-
   filteredRows = allRows.filter(row => {
-    if (phase && (row.phase || '').toLowerCase() !== phase) return false;
-    if (search) {
-      const haystack = `${row.employee_number || ''} ${row.name || ''} ${row.email || ''}`.toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
-    return true;
+    const phaseMatch = columnFilters.phase === null || row.phase === columnFilters.phase;
+    return phaseMatch;
   });
 
   renderRows();
+}
+
+function setColumnFilter(column, value) {
+  columnFilters[column] = value || null;
+  applyFilters();
+}
+
+function resetColumnFilter(column) {
+  columnFilters[column] = null;
+  applyFilters();
 }
 
 function renderRows() {

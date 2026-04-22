@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             MasterDataSeeder::class,
             VnbFrameworkSeeder::class,
+            SyncSourceEmployeesSeeder::class,
         ]);
 
         // 2. Create minimal test users for role testing only
