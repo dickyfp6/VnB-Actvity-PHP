@@ -911,6 +911,96 @@
         setTimeout(() => div.remove(), 3500);
     }
 
+    function escapeHtml(value) {
+        return (value ?? '').toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function normalizeFilterValue(value) {
+        return (value ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+    }
+
+    function setFilterButtonState(buttonIdOrIds, active) {
+        const buttonIds = Array.isArray(buttonIdOrIds) ? buttonIdOrIds : [buttonIdOrIds];
+
+        buttonIds.forEach((buttonId) => {
+            const button = document.getElementById(buttonId);
+            if (!button) {
+                return;
+            }
+
+            button.style.backgroundColor = active ? '#4B5563' : '';
+            button.style.borderRadius = active ? '4px' : '';
+
+            const icon = button.querySelector('svg');
+            if (icon) {
+                icon.style.color = active ? 'white' : '';
+            }
+        });
+    }
+
+    function renderFilterOptions(containerId, values, column, selectedValue = null, options = {}) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        const toJsSingleQuoted = (value) => {
+            return `'${(value ?? '')
+                .toString()
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")}'`;
+        };
+
+        const settings = {
+            allLabel: 'Semua',
+            emptyLabel: 'Tidak ada opsi',
+            onSelect: 'setColumnFilter',
+            ...options,
+        };
+
+        const uniqueValues = [...new Set((values || [])
+            .map((value) => (value ?? '').toString().trim())
+            .filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right, 'id', { sensitivity: 'base' }));
+
+        const selectedKey = normalizeFilterValue(selectedValue);
+        const allButtonClass = 'block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100';
+        const selectedClass = 'bg-gray-100 font-semibold text-gray-800';
+        const columnArg = toJsSingleQuoted(column);
+
+        const items = [
+            `<button type="button" onclick="${settings.onSelect}(${columnArg}, '')" class="${allButtonClass}${!selectedKey ? ` ${selectedClass}` : ''}">${escapeHtml(settings.allLabel)}</button>`,
+        ];
+
+        if (!uniqueValues.length) {
+            items.push(`<div class="px-3 py-1.5 text-sm text-gray-400">${escapeHtml(settings.emptyLabel)}</div>`);
+        } else {
+            uniqueValues.forEach((value) => {
+                const valueKey = normalizeFilterValue(value);
+                const isSelected = selectedKey && valueKey === selectedKey;
+                const valueArg = toJsSingleQuoted(value);
+                items.push(
+                    `<button type="button" onclick="${settings.onSelect}(${columnArg}, ${valueArg})" class="${allButtonClass}${isSelected ? ` ${selectedClass}` : ''}">${escapeHtml(value)}</button>`
+                );
+            });
+        }
+
+        container.innerHTML = items.join('');
+    }
+
+    window.escapeHtml = window.escapeHtml || escapeHtml;
+    window.normalizeFilterValue = window.normalizeFilterValue || normalizeFilterValue;
+    window.setFilterButtonState = window.setFilterButtonState || setFilterButtonState;
+    window.renderFilterOptions = window.renderFilterOptions || renderFilterOptions;
+
     // Styled Confirmation Modal
     function showConfirm(message, title = 'Konfirmasi') {
         return new Promise((resolve) => {

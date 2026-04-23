@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Employee;
+use App\Models\EmployeeHistory;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -240,6 +241,7 @@ class HrisController extends Controller
                     'placement' => (string) ($row->placement ?? ''),
                     'level' => (string) ($row->level ?? ''),
                     'employee_status' => (string) ($row->employee_status ?? ''),
+                    'status' => (string) ($row->status ?? 'Aktif'),
                 ];
             })
             ->values();
@@ -260,6 +262,7 @@ class HrisController extends Controller
             'placement' => 'placement',
             'level' => 'level',
             'employee_status' => 'employee_status',
+            'status' => 'status',
             'division' => 'division_id',
             'department' => 'department_id',
             'position' => 'position_id',
@@ -273,6 +276,7 @@ class HrisController extends Controller
             'placement' => 'Penempatan',
             'level' => 'Golongan',
             'employee_status' => 'Status Pegawai',
+            'status' => 'Status Aktif',
             'division' => 'Divisi',
             'department' => 'Departemen',
             'position' => 'Jabatan',
@@ -322,11 +326,22 @@ class HrisController extends Controller
     {
         $employee = Employee::query()->where('employee_number', $sourceRow['employee_number'])->first();
         $payload = $this->mapSourceToEmployeePayload($sourceRow, $employee);
+        $statusChangedToInactive = false;
 
         try {
-            DB::transaction(function () use ($employee, $payload): void {
+            DB::transaction(function () use ($employee, $payload, $sourceRow, &$statusChangedToInactive): void {
+                // Check if status is changing to Inactive
+                if ($employee && $employee->status === 'Aktif' && ($payload['status'] ?? 'Aktif') === 'Inactive') {
+                    $statusChangedToInactive = true;
+                }
+
                 if ($employee) {
                     $employee->update($payload);
+
+                    // If status changed to Inactive, move to history
+                    if ($statusChangedToInactive) {
+                        $this->moveEmployeeToHistory($employee);
+                    }
                     return;
                 }
 
@@ -341,10 +356,13 @@ class HrisController extends Controller
 
         return [
             'success' => true,
-            'message' => 'Data HRIS berhasil disinkronkan ke Employees.',
+            'message' => $statusChangedToInactive
+                ? 'Data HRIS berhasil disinkronkan dan dipindahkan ke History.'
+                : 'Data HRIS berhasil disinkronkan ke Employees.',
             'data' => [
                 'employee_number' => $payload['employee_number'],
                 'name' => $payload['name'],
+                'status_changed_to_inactive' => $statusChangedToInactive,
             ],
         ];
     }
@@ -371,6 +389,7 @@ class HrisController extends Controller
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
             'manager_operational_id' => $existing?->manager_operational_id,
+            'status' => (string) ($sourceRow['status'] ?? 'Aktif'),
         ];
     }
 
@@ -412,6 +431,36 @@ class HrisController extends Controller
         return (int) DB::table('managers')->where('email', $fallbackEmail)->value('id');
     }
 
+    private function moveEmployeeToHistory(Employee $employee): void
+    {
+        EmployeeHistory::create([
+            'employee_id' => $employee->id,
+            'employee_number' => $employee->employee_number,
+            'name' => $employee->name,
+            'date_joined' => $employee->date_joined,
+            'induction_date' => $employee->induction_date,
+            'company' => $employee->company,
+            'division_id' => $employee->division_id,
+            'department_id' => $employee->department_id,
+            'position_id' => $employee->position_id,
+            'placement' => $employee->placement,
+            'level' => $employee->level,
+            'employee_status' => $employee->employee_status,
+            'email' => $employee->email,
+            'whatsapp' => $employee->whatsapp,
+            'manager_functional_id' => $employee->manager_functional_id,
+            'manager_operational_id' => $employee->manager_operational_id,
+            'career_stage' => $employee->career_stage,
+            'employment_state' => $employee->employment_state,
+            'status_changed_at' => $employee->status_changed_at,
+            'status_change_reason' => $employee->status_change_reason,
+            'status_changed_by' => $employee->status_changed_by,
+            'notes' => $employee->notes,
+            'status' => $employee->status,
+            'moved_to_history_at' => now(),
+        ]);
+    }
+
     private function resolveMasterId(string $table, string $name): ?int
     {
         $needle = trim($name);
@@ -419,8 +468,32 @@ class HrisController extends Controller
             return null;
         }
 
-        return DB::table($table)
-            ->whereRaw('LOWER(name) = ?', [mb_strtolower($needle)])
-            ->value('id');
+        if (!Schema::hasTable($table)) {
+            return null;
+        }
+
+        $existing = DB::table($table)
+            ->select('id', 'deleted_at')
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($needle)])
+            ->first();
+
+        if ($existing) {
+            if (!empty($existing->deleted_at)) {
+                DB::table($table)
+                    ->where('id', $existing->id)
+                    ->update([
+                        'deleted_at' => null,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return (int) $existing->id;
+        }
+
+        return (int) DB::table($table)->insertGetId([
+            'name' => $needle,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

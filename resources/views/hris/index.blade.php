@@ -65,17 +65,20 @@
                             <div class="flex items-center justify-between gap-2">
                                 <span>Status Pegawai</span>
                                 <div class="relative group cursor-pointer">
-                                    <span class="text-gray-500 group-hover:text-gray-700">▼</span>
+                                    <button type="button" id="filter-updated-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
                                     <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
-                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-employee_status-options"></div>
+                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-updated-employee_status-options"></div>
                                     </div>
                                 </div>
                             </div>
                         </th>
+                        <th>Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="updated-body" style="white-space: nowrap;">
-                    <tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -98,11 +101,24 @@
                         <th>Jabatan</th>
                         <th>Penempatan</th>
                         <th>Golongan</th>
-                        <th>Status Pegawai</th>
+                        <th class="relative">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Status Pegawai</span>
+                                <div class="relative group cursor-pointer">
+                                    <button type="button" id="filter-hris-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
+                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-hris-employee_status-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+                        <th>Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hris-body" style="white-space: nowrap;">
-                    <tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -125,11 +141,24 @@
                         <th>Jabatan</th>
                         <th>Penempatan</th>
                         <th>Golongan</th>
-                        <th>Status Pegawai</th>
+                        <th class="relative">
+                            <div class="flex items-center justify-between gap-2">
+                                <span>Status Pegawai</span>
+                                <div class="relative group cursor-pointer">
+                                    <button type="button" id="filter-hrms-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                    </button>
+                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
+                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-hrms-employee_status-options"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </th>
+                        <th>Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hrms-body" style="white-space: nowrap;">
-                    <tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -145,15 +174,15 @@
                 </div>
 
                 <div class="p-5 space-y-3">
-                    <div class="rounded-lg border" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                        <label class="flex items-center justify-between px-4 py-3 border-b" style="border-color: #7dd3fc;">
-                            <span class="font-semibold text-sky-800">Update Data</span>
+                    <div id="sync-updated-container" class="rounded-lg border" style="background-color: #fef3c7; border-color: #fcd34d;">
+                        <label class="flex items-center justify-between px-4 py-3 border-b" style="border-color: #fcd34d;">
+                            <span class="font-semibold text-yellow-800">Update Data</span>
                             <input id="sync-option-updated" type="checkbox" checked>
                         </label>
                         <div class="p-3 overflow-x-auto">
                             <table class="w-full text-sm" id="sync-updated-table">
                                 <thead>
-                                    <tr class="text-sky-900">
+                                    <tr class="text-yellow-900">
                                         <th class="text-left px-2 py-1">NIP</th>
                                         <th class="text-left px-2 py-1">Nama</th>
                                         <th class="text-left px-2 py-1">Keterangan</th>
@@ -164,7 +193,7 @@
                         </div>
                     </div>
 
-                    <div class="rounded-lg border" style="background-color: #dcfce7; border-color: #86efac;">
+                    <div id="sync-add-container" class="rounded-lg border" style="background-color: #dcfce7; border-color: #86efac;">
                         <label class="flex items-center justify-between px-4 py-3 border-b" style="border-color: #86efac;">
                             <span class="font-semibold text-green-800">Add Data (Data yg baru masuk)</span>
                             <input id="sync-option-add" type="checkbox" checked>
@@ -178,6 +207,24 @@
                                     </tr>
                                 </thead>
                                 <tbody id="sync-add-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="sync-inactive-container" class="rounded-lg border" style="background-color: #fee2e2; border-color: #fca5a5;">
+                        <label class="flex items-center justify-between px-4 py-3 border-b" style="border-color: #fca5a5;">
+                            <span class="font-semibold text-red-800">Non-Aktif</span>
+                            <input id="sync-option-inactive" type="checkbox" checked>
+                        </label>
+                        <div class="p-3 overflow-x-auto">
+                            <table class="w-full text-sm" id="sync-inactive-table">
+                                <thead>
+                                    <tr class="text-red-900">
+                                        <th class="text-left px-2 py-1">NIP</th>
+                                        <th class="text-left px-2 py-1">Nama</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sync-inactive-table-body"></tbody>
                             </table>
                         </div>
                     </div>
@@ -324,6 +371,38 @@ function normalize(value) {
     return (value || '').toString().trim().toLowerCase();
 }
 
+function isInactiveStatus(value) {
+    const normalized = normalize(value);
+    return normalized === 'inactive' || normalized === 'inaktif' || normalized === 'tidak aktif';
+}
+
+function renderActiveStatusPill(statusValue) {
+    const label = (statusValue || 'Aktif').toString().trim() || 'Aktif';
+    const inactive = isInactiveStatus(label);
+
+    if (inactive) {
+        return '<span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Inactive</span>';
+    }
+
+    return '<span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>';
+}
+
+function isMovedToHistoryChange(row) {
+    if (!row || !Array.isArray(row.changes)) {
+        return false;
+    }
+
+    return row.changes.some(change => {
+        if (change?.field !== 'status') {
+            return false;
+        }
+
+        const fromIsActive = ['aktif', 'active'].includes(normalize(change.from));
+        const toIsInactive = isInactiveStatus(change.to);
+        return fromIsActive && toIsInactive;
+    });
+}
+
 function switchTab(tab) {
     currentTab = tab === 'hris' ? 'hris' : (tab === 'hrms' ? 'hrms' : 'updated');
 
@@ -387,6 +466,7 @@ function applyFilters() {
     renderHrisTable();
     renderHrmsTable();
     renderUpdatedTable();
+    updateFilterButtonStates();
 }
 
 function setColumnFilter(column, value) {
@@ -400,11 +480,30 @@ function resetColumnFilter(column) {
 }
 
 function renderStatusOptions() {
-    const container = document.getElementById('filter-employee_status-options');
-    if (!container) return;
+    const statuses = [...new Set([...hrisSourceRows, ...hrmsSourceRows, ...hrisPendingRows].map(row => row.employee_status).filter(Boolean))].sort();
 
-    const statuses = [...new Set([...hrisSourceRows, ...hrmsSourceRows].map(row => row.employee_status).filter(Boolean))].sort();
-    container.innerHTML = statuses.map(s => `<button onclick="setColumnFilter('employee_status', '${escapeHtml(s)}')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">${escapeHtml(s)}</button>`).join('');
+    renderFilterOptions('filter-updated-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
+        allLabel: 'Semua Status',
+        emptyLabel: 'Belum ada status',
+    });
+    renderFilterOptions('filter-hris-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
+        allLabel: 'Semua Status',
+        emptyLabel: 'Belum ada status',
+    });
+    renderFilterOptions('filter-hrms-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
+        allLabel: 'Semua Status',
+        emptyLabel: 'Belum ada status',
+    });
+
+    updateFilterButtonStates();
+}
+
+function updateFilterButtonStates() {
+    setFilterButtonState([
+        'filter-updated-employee_status-btn',
+        'filter-hris-employee_status-btn',
+        'filter-hrms-employee_status-btn',
+    ], columnFilters.employee_status !== null);
 }
 
 function updateSummary(summary) {
@@ -440,7 +539,11 @@ function formatSyncType(syncType) {
     return '<span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Up to date</span>';
 }
 
-function getPendingRowClass(syncType) {
+function getPendingRowClass(row) {
+    if (isMovedToHistoryChange(row) || isInactiveStatus(row?.status)) {
+        return 'bg-red-50';
+    }
+    const syncType = row?.sync_type;
     if (syncType === 'new') {
         return 'bg-green-50';
     }
@@ -455,12 +558,12 @@ function renderUpdatedTable() {
     const rows = filteredPendingRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Tidak ada data pending sinkronisasi.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data pending sinkronisasi.</td></tr>';
         return;
     }
 
     tbody.innerHTML = rows.map((row, idx) => `
-        <tr class="${getPendingRowClass(row.sync_type)} hover:bg-gray-50">
+        <tr class="${getPendingRowClass(row)} hover:bg-gray-50">
             <td class="px-3 py-2">${idx + 1}</td>
             <td class="px-3 py-2">${escapeHtml(row.employee_number)}</td>
             <td class="px-3 py-2">${escapeHtml(row.name)}</td>
@@ -474,6 +577,7 @@ function renderUpdatedTable() {
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
             <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
 }
@@ -483,7 +587,7 @@ function renderHrisTable() {
     const rows = filteredSourceRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
         return;
     }
 
@@ -502,6 +606,7 @@ function renderHrisTable() {
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
             <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
 }
@@ -511,7 +616,7 @@ function renderHrmsTable() {
     const rows = filteredHrmsRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
         return;
     }
 
@@ -530,6 +635,7 @@ function renderHrmsTable() {
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
             <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
 }
@@ -555,19 +661,24 @@ function closeSyncModal() {
 async function submitSyncModal() {
     const optUpdated = document.getElementById('sync-option-updated')?.checked;
     const optAdd = document.getElementById('sync-option-add')?.checked;
+    const optInactive = document.getElementById('sync-option-inactive')?.checked;
 
-    const selectedRows = filteredPendingRows.filter(row => {
-        if (optUpdated && row.sync_type === 'updated') return true;
-        if (optAdd && row.sync_type === 'new') return true;
-        return false;
-    });
+    const updatedRows = filteredPendingRows.filter(row => row.sync_type === 'updated' && !isMovedToHistoryChange(row));
+    const newRows = filteredPendingRows.filter(row => row.sync_type === 'new');
+    const inactiveRows = filteredPendingRows.filter(row => isMovedToHistoryChange(row));
+
+    const selectedRows = [
+        ...(optUpdated ? updatedRows : []),
+        ...(optAdd ? newRows : []),
+        ...(optInactive ? inactiveRows : []),
+    ];
 
     if (!selectedRows.length) {
         showAlert('Pilih minimal 1 section sinkronisasi.', 'error');
         return;
     }
 
-    const ids = selectedRows.map(row => Number(row.id)).filter(id => !Number.isNaN(id));
+    const ids = [...new Set(selectedRows.map(row => Number(row.id)).filter(id => !Number.isNaN(id)))];
     if (!ids.length) {
         showAlert('Data sinkron tidak valid.', 'error');
         return;
@@ -594,39 +705,71 @@ async function submitSyncModal() {
 function renderSyncPreviewTables() {
     const updatedBody = document.getElementById('sync-updated-table-body');
     const addBody = document.getElementById('sync-add-table-body');
-    if (!updatedBody || !addBody) {
+    const inactiveBody = document.getElementById('sync-inactive-table-body');
+    const updatedContainer = document.getElementById('sync-updated-container');
+    const addContainer = document.getElementById('sync-add-container');
+    const inactiveContainer = document.getElementById('sync-inactive-container');
+    const updatedOption = document.getElementById('sync-option-updated');
+    const addOption = document.getElementById('sync-option-add');
+    const inactiveOption = document.getElementById('sync-option-inactive');
+
+    if (!updatedBody || !addBody || !inactiveBody || !updatedContainer || !addContainer || !inactiveContainer || !updatedOption || !addOption || !inactiveOption) {
         return;
     }
 
-    const updatedRows = filteredPendingRows.filter(row => row.sync_type === 'updated');
+    const updatedRows = filteredPendingRows.filter(row => row.sync_type === 'updated' && !isMovedToHistoryChange(row));
     const newRows = filteredPendingRows.filter(row => row.sync_type === 'new');
+    const inactiveRows = filteredPendingRows.filter(row => isMovedToHistoryChange(row));
 
-    if (!updatedRows.length) {
-        updatedBody.innerHTML = '<tr><td colspan="3" class="px-2 py-2 text-gray-500">Tidak ada data update.</td></tr>';
-    } else {
+    if (updatedRows.length) {
         updatedBody.innerHTML = updatedRows.map(row => {
             const note = Array.isArray(row.changes) && row.changes.length
                 ? row.changes.map(change => change.label || change.field).join(', ')
                 : 'Perubahan data karyawan';
             return `
-                <tr class="border-t border-sky-200">
+                <tr class="border-t border-yellow-200">
                     <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
                     <td class="px-2 py-1">${escapeHtml(row.name)}</td>
                     <td class="px-2 py-1">${escapeHtml(note)}</td>
                 </tr>
             `;
         }).join('');
+        updatedContainer.classList.remove('hidden');
+        updatedOption.checked = true;
+    } else {
+        updatedBody.innerHTML = '';
+        updatedContainer.classList.add('hidden');
+        updatedOption.checked = false;
     }
 
-    if (!newRows.length) {
-        addBody.innerHTML = '<tr><td colspan="2" class="px-2 py-2 text-gray-500">Tidak ada data baru.</td></tr>';
-    } else {
+    if (newRows.length) {
         addBody.innerHTML = newRows.map(row => `
             <tr class="border-t border-green-200">
                 <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
                 <td class="px-2 py-1">${escapeHtml(row.name)}</td>
             </tr>
         `).join('');
+        addContainer.classList.remove('hidden');
+        addOption.checked = true;
+    } else {
+        addBody.innerHTML = '';
+        addContainer.classList.add('hidden');
+        addOption.checked = false;
+    }
+
+    if (inactiveRows.length) {
+        inactiveBody.innerHTML = inactiveRows.map(row => `
+            <tr class="border-t border-red-200">
+                <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
+                <td class="px-2 py-1">${escapeHtml(row.name)}</td>
+            </tr>
+        `).join('');
+        inactiveContainer.classList.remove('hidden');
+        inactiveOption.checked = true;
+    } else {
+        inactiveBody.innerHTML = '';
+        inactiveContainer.classList.add('hidden');
+        inactiveOption.checked = false;
     }
 }
 
@@ -754,16 +897,16 @@ async function loadHrisData() {
     const hrisBody = document.getElementById('hris-body');
     const hrmsBody = document.getElementById('hrms-body');
     const pendingBody = document.getElementById('updated-body');
-    hrisBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
-    hrmsBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
-    pendingBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+    hrisBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+    hrmsBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+    pendingBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
     const res = await apiGet('/api/beranda/hris');
 
     if (!(res && res.success === true && res.data)) {
-        hrisBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-red-500">Gagal memuat data HRIS.</td></tr>';
-        hrmsBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-red-500">Gagal memuat data HRMS.</td></tr>';
-        pendingBody.innerHTML = '<tr><td colspan="13" class="text-center py-8 text-red-500">Gagal memuat data pending.</td></tr>';
+        hrisBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-red-500">Gagal memuat data HRIS.</td></tr>';
+        hrmsBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-red-500">Gagal memuat data HRMS.</td></tr>';
+        pendingBody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-red-500">Gagal memuat data pending.</td></tr>';
         return;
     }
 
@@ -779,6 +922,7 @@ async function loadHrisData() {
     renderHrisTable();
     renderHrmsTable();
     renderUpdatedTable();
+    updateFilterButtonStates();
     updateActionVisibility();
 }
 

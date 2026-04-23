@@ -131,6 +131,12 @@ class EmployeeController extends Controller
                 };
             }
 
+            $rawLevel = $employee->level;
+            $resolvedLevel = '-';
+            if ($rawLevel !== null && $rawLevel !== '') {
+                $resolvedLevel = $levels[$rawLevel] ?? $levels[(int) $rawLevel] ?? (string) $rawLevel;
+            }
+
             return [
                 'id' => $employee->id,
                 'code' => $index + 1,
@@ -161,7 +167,7 @@ class EmployeeController extends Controller
                 'position' => $employee->position?->name ?? ($employee->position_id ? "Pos #{$employee->position_id}" : '-'),
                 'placement' => $employee->placement,
                 'level_id' => $employee->level,
-                'level' => $levels[$employee->level] ?? ($employee->level ? "Level #{$employee->level}" : '-'),
+                'level' => $resolvedLevel,
                 'employee_status' => $employee->employee_status,
                 'vnb_status' => $employee->vnb_status,
                 'employment_state' => $employee->employment_state ?? 'active',

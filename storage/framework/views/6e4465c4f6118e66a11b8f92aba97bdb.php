@@ -25,14 +25,14 @@
     </div>
 
     <div class="table-container">
-        <div class="overflow-x-auto">
-            <table class="table-modern">
-                <thead>
+        <div class="overflow-x-auto" style="overflow-x: auto;">
+            <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+                <thead style="white-space: nowrap;">
                     <tr>
-                        <th class="text-center" style="width: 50px;">No</th>
-                        <th class="text-center" style="width: 100px;">NIP</th>
-                        <th class="text-center" style="width: 150px;">Nama Lengkap</th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">No</th>
+                        <th class="text-center">NIP</th>
+                        <th class="text-center">Nama Lengkap</th>
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Tanggal Masuk</span>
                                 <button onclick="toggleSort('date_joined')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-date_joined-btn" title="Sort">
@@ -46,9 +46,9 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 150px;">Email</th>
-                        <th class="text-center" style="width: 120px;">Whatsapp</th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">Email</th>
+                        <th class="text-center">Whatsapp</th>
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Perusahaan</span>
                                 <button onclick="toggleSort('company')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-company-btn" title="Sort">
@@ -62,7 +62,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 110px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Divisi</span>
                                 <button onclick="toggleSort('division')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-division-btn" title="Sort">
@@ -76,7 +76,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Departemen</span>
                                 <button onclick="toggleSort('department')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-department-btn" title="Sort">
@@ -90,7 +90,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Jabatan</span>
                                 <button onclick="toggleSort('position')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-position-btn" title="Sort">
@@ -104,7 +104,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Penempatan</span>
                                 <button onclick="toggleSort('placement')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-placement-btn" title="Sort">
@@ -118,7 +118,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 110px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Golongan</span>
                                 <button onclick="toggleSort('level')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-level-btn" title="Sort">
@@ -132,7 +132,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th class="text-center" style="width: 120px;">
+                        <th class="text-center">
                             <div class="flex items-center justify-center gap-1">
                                 <span>Status Pegawai</span>
                                 <button onclick="toggleSort('employee_status')" class="p-0.5 text-gray-500 hover:text-gray-700" id="sort-employee_status-btn" title="Sort">
@@ -148,7 +148,7 @@
                         </th>
                     </tr>
                 </thead>
-                <tbody id="employee-body">
+                <tbody id="employee-body" style="white-space: nowrap;">
                     <tr><td colspan="13" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
@@ -541,7 +541,7 @@ function applyFilters() {
         const positionMatch = columnFilters.position === null || row.position === columnFilters.position;
         const placementMatch = columnFilters.placement === null || row.placement === columnFilters.placement;
         const levelMatch = columnFilters.level === null || row.level === columnFilters.level;
-        const statusMatch = columnFilters.employee_status === null || normalizeValue(row.employee_status) === columnFilters.employee_status;
+        const statusMatch = columnFilters.employee_status === null || normalizeValue(row.employee_status) === normalizeValue(columnFilters.employee_status);
         return dateMatch && companyMatch && divisionMatch && departmentMatch && positionMatch && placementMatch && levelMatch && statusMatch;
     });
 
@@ -619,29 +619,39 @@ function resetColumnFilter(column) {
 }
 
 function renderStatusOptions() {
-    const container = document.getElementById('filter-employee_status-options');
-    if (!container) return;
-    
     const statuses = [...new Set(allEmployees.map(row => row.employee_status).filter(Boolean))].sort();
-    container.innerHTML = statuses.map(s => `<button onclick="setColumnFilter('employee_status', '${normalizeValue(s)}')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">${escapeHtml(s)}</button>`).join('');
+    renderColumnFilterOptions('filter-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
+        allLabel: 'Semua Status',
+        emptyLabel: 'Belum ada status',
+    });
 }
 
-function renderFilterOptions(columnName, dataKey) {
-    const container = document.getElementById(`filter-${columnName}-options`);
-    if (!container) return;
-    
+function renderColumnFilterOptions(containerId, values, columnName, selectedValue = null, options = {}) {
+    window.renderFilterOptions(
+        containerId,
+        values,
+        columnName,
+        selectedValue,
+        options
+    );
+}
+
+function renderColumnFilterFromData(columnName, dataKey) {
     const values = [...new Set(allEmployees.map(row => row[dataKey]).filter(Boolean))].sort();
-    container.innerHTML = values.map(v => `<button onclick="setColumnFilter('${columnName}', '${escapeHtml(v)}')" class="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100">${escapeHtml(v)}</button>`).join('');
+    renderColumnFilterOptions(`filter-${columnName}-options`, values, columnName, columnFilters[columnName], {
+        allLabel: 'Semua',
+        emptyLabel: 'Belum ada data',
+    });
 }
 
 function renderAllFilterOptions() {
-    renderFilterOptions('date_joined', 'date_joined');
-    renderFilterOptions('company', 'company');
-    renderFilterOptions('division', 'division');
-    renderFilterOptions('department', 'department');
-    renderFilterOptions('position', 'position');
-    renderFilterOptions('placement', 'placement');
-    renderFilterOptions('level', 'level');
+    renderColumnFilterFromData('date_joined', 'date_joined');
+    renderColumnFilterFromData('company', 'company');
+    renderColumnFilterFromData('division', 'division');
+    renderColumnFilterFromData('department', 'department');
+    renderColumnFilterFromData('position', 'position');
+    renderColumnFilterFromData('placement', 'placement');
+    renderColumnFilterFromData('level', 'level');
     renderStatusOptions();
 }
 
@@ -666,13 +676,16 @@ function renderTable() {
         <tr class="hover:bg-gray-50">
             <td class="px-3 py-2 text-left">${idx + 1}</td>
             <td class="px-3 py-2 text-left">${row.employee_number ?? '-'}</td>
-            <td class="px-3 py-2 text-left font-medium">
-                <div class="inline-flex items-center gap-2">
-                    <span>${row.name_display ?? row.name ?? '-'}</span>
-                    <button onclick="openDetailModal(${row.id})" class="text-xs px-1.5 py-0.5 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat detail">
-                        <i class="fas fa-arrow-up-right-from-square"></i>
-                    </button>
-                </div>
+            <td class="px-3 py-2 text-left">
+                <button
+                    type="button"
+                    onclick="openDetailModal(${row.id})"
+                    class="font-bold hover:underline"
+                    style="color:#144600;"
+                    title="Lihat detail"
+                >
+                    ${row.name_display ?? row.name ?? '-'}
+                </button>
             </td>
             <td class="px-3 py-2 text-left">${row.date_joined ?? '-'}</td>
             <td class="px-3 py-2 text-left">${row.email ?? '-'}</td>
