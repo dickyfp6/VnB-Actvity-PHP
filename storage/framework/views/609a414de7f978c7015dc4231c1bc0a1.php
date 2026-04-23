@@ -222,7 +222,6 @@
                                     <tr class="text-red-900">
                                         <th class="text-left px-2 py-1">NIP</th>
                                         <th class="text-left px-2 py-1">Nama</th>
-                                        <th class="text-left px-2 py-1">Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sync-inactive-table-body"></tbody>
@@ -763,7 +762,6 @@ function renderSyncPreviewTables() {
             <tr class="border-t border-red-200">
                 <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
                 <td class="px-2 py-1">${escapeHtml(row.name)}</td>
-                <td class="px-2 py-1">Status menjadi Inactive - employee dipindah ke History</td>
             </tr>
         `).join('');
         inactiveContainer.classList.remove('hidden');

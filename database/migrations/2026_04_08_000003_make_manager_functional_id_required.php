@@ -15,13 +15,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, update any existing null values to a default manager
-        // This is a safety measure before making the column NOT NULL
-        DB::statement('
-            UPDATE employees 
-            SET manager_functional_id = (SELECT id FROM employees WHERE id < 1000 LIMIT 1)
-            WHERE manager_functional_id IS NULL
-        ');
+        // First, update any existing null values to a default manager.
+        // Avoid MySQL 1093 by selecting the ID separately before update.
+        $defaultManagerId = DB::table('employees')
+            ->where('id', '<', 1000)
+            ->value('id');
+
+        if ($defaultManagerId === null) {
+            $defaultManagerId = DB::table('employees')->value('id');
+        }
+
+        if ($defaultManagerId !== null) {
+            DB::table('employees')
+                ->whereNull('manager_functional_id')
+                ->update(['manager_functional_id' => $defaultManagerId]);
+        }
 
         Schema::table('employees', function (Blueprint $table) {
             // Make manager_functional_id NOT NULL

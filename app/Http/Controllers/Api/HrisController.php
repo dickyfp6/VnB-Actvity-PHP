@@ -331,7 +331,10 @@ class HrisController extends Controller
         try {
             DB::transaction(function () use ($employee, $payload, $sourceRow, &$statusChangedToInactive): void {
                 // Check if status is changing to Inactive
-                if ($employee && $employee->status === 'Aktif' && ($payload['status'] ?? 'Aktif') === 'Inactive') {
+                if ($employee
+                    && !$this->isInactiveEmployeeStatus((string) ($employee->status ?? 'Aktif'))
+                    && $this->isInactiveEmployeeStatus((string) ($payload['status'] ?? 'Aktif'))
+                ) {
                     $statusChangedToInactive = true;
                 }
 
@@ -373,6 +376,23 @@ class HrisController extends Controller
         $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
         $managerFunctionalId = $this->resolveFunctionalManagerId($existing);
+        $status = $this->normalizeEmployeeStatusLabel((string) ($sourceRow['status'] ?? 'Aktif'));
+        $isInactive = $this->isInactiveEmployeeStatus($status);
+        $existingStatus = $existing ? $this->normalizeEmployeeStatusLabel((string) ($existing->status ?? 'Aktif')) : null;
+        $wasInactive = $existingStatus !== null ? $this->isInactiveEmployeeStatus($existingStatus) : false;
+        $statusChangedAt = $existing?->status_changed_at;
+        $statusChangeReason = $existing?->status_change_reason;
+        $statusChangedBy = $existing?->status_changed_by;
+
+        if (($existing && !$wasInactive && $isInactive) || (!$existing && $isInactive)) {
+            $statusChangedAt = now();
+            $statusChangeReason = 'Sinkronisasi HRIS: status menjadi Inactive';
+            $statusChangedBy = auth()->id();
+        } elseif ($existing && $wasInactive && !$isInactive) {
+            $statusChangedAt = null;
+            $statusChangeReason = null;
+            $statusChangedBy = null;
+        }
 
         return [
             'employee_number' => (string) $sourceRow['employee_number'],
@@ -389,8 +409,24 @@ class HrisController extends Controller
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
             'manager_operational_id' => $existing?->manager_operational_id,
-            'status' => (string) ($sourceRow['status'] ?? 'Aktif'),
+            'status' => $status,
+            'employment_state' => $isInactive ? 'terminated' : 'active',
+            'status_changed_at' => $statusChangedAt,
+            'status_change_reason' => $statusChangeReason,
+            'status_changed_by' => $statusChangedBy,
         ];
+    }
+
+    private function normalizeEmployeeStatusLabel(string $status): string
+    {
+        return $this->isInactiveEmployeeStatus($status) ? 'Inactive' : 'Aktif';
+    }
+
+    private function isInactiveEmployeeStatus(string $status): bool
+    {
+        $normalized = mb_strtolower(trim($status));
+
+        return in_array($normalized, ['inactive', 'inaktif', 'tidak aktif', 'nonaktif', 'non-active', 'non active'], true);
     }
 
     private function resolveFunctionalManagerId(?Employee $existing): ?int

@@ -144,7 +144,7 @@ class EmployeeController extends Controller
                 'name' => $employee->name,
                 'name_display' => (($sameNameCounts[Str::lower(trim((string) $employee->name))] ?? 0) > 1)
                     ? ($employee->name . ' (' . ($employee->division?->name ?? 'Tanpa Divisi') . ')')
-                    : $employee->name,
+                    : $employee->name,r
                 'date_joined' => optional($employee->date_joined)->toDateString(),
                 'induction_date' => optional($employee->induction_date)->toDateString(),
                 'email' => $employee->email,

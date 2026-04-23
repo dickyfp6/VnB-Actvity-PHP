@@ -182,6 +182,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==================== INTERCOMM ====================
     Route::prefix('beranda/intercomm')->group(function () {
         Route::get('/', [IntercommController::class, 'index']);
+        Route::get('/employee-options', [IntercommController::class, 'employeeOptions']);
         Route::post('/', [IntercommController::class, 'store']);
         Route::put('/{id}', [IntercommController::class, 'update']);
         Route::post('/{id}/deactivate', [IntercommController::class, 'deactivate']);
@@ -190,6 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UC001 - Manage Intercomm (legacy API - keep for backward compatibility)
     Route::get('/intercomm', [IntercommController::class, 'index']);
+    Route::get('/intercomm/employee-options', [IntercommController::class, 'employeeOptions']);
     Route::post('/intercomm', [IntercommController::class, 'store']);
     Route::put('/intercomm/{id}', [IntercommController::class, 'update']);
     Route::post('/intercomm/{id}/deactivate', [IntercommController::class, 'deactivate']);

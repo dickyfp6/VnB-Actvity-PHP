@@ -13,37 +13,53 @@
     <table class="table-modern">
       <thead>
         <tr>
-          <th>Nama</th>
+          <th>No</th>
+          <th>NIP</th>
+          <th>Nama Lengkap</th>
+          <th>Tanggal Masuk</th>
           <th>Email</th>
-          <th>Status</th>
-          <th>Terdaftar</th>
+          <th>Golongan</th>
+          <th>Status Pegawai</th>
+          <th>Tanggal Assign</th>
           <th class="text-right">Aksi</th>
         </tr>
       </thead>
       <tbody id="table-body">
-        <tr><td colspan="5" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
+        <tr><td colspan="9" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+{{-- Modal Detail Employee --}}
+<div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-gray-800">Detail Employee</h2>
+      <button type="button" onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="detail-body" class="max-h-[70vh] overflow-y-auto space-y-1"></div>
   </div>
 </div>
 
 {{-- Modal Tambah --}}
 <div id="modal-add" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-    <h2 class="text-lg font-bold text-gray-800 mb-4">Tambah Intercomm</h2>
+    <h2 class="text-lg font-bold text-gray-800 mb-4">Assign Intercomm</h2>
     <form id="form-add" class="space-y-3">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-        <input id="add-name" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'" required>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Employee</label>
+        <select id="add-employee-id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
+          <option value="">Memuat opsi employee...</option>
+        </select>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input id="add-email" type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'" required>
+      <div id="eligible-info" class="text-xs text-gray-500">
+        Hanya employee dari Divisi Human Resource dan Departemen People, Culture, and Experience yang bisa di-assign sebagai Intercomm.
       </div>
-      <p class="text-xs text-gray-400">Password akan dibuat otomatis dan ditampilkan setelah menyimpan.</p>
+      <p class="text-xs text-gray-400">Jika employee belum punya akun user, sistem akan membuat akun otomatis.</p>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" onclick="document.getElementById('modal-add').classList.add('hidden')" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Batal</button>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Simpan</button>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Assign</button>
       </div>
     </form>
   </div>
@@ -86,15 +102,57 @@
 @push('scripts')
 <script>
 let users = [];
+let employeeOptions = [];
+
+function escapeHtml(value) {
+  return (value || '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return value;
+  return dt.toLocaleDateString('id-ID');
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return value;
+  return `${dt.toLocaleDateString('id-ID')} ${dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 function openAddModal() {
-  document.getElementById('add-name').value = '';
-  document.getElementById('add-email').value = '';
-  document.getElementById('modal-add').classList.remove('hidden');
+  loadEmployeeOptions().then(() => {
+    document.getElementById('modal-add').classList.remove('hidden');
+  });
+}
+
+async function loadEmployeeOptions() {
+  const select = document.getElementById('add-employee-id');
+  select.innerHTML = '<option value="">Memuat opsi employee...</option>';
+
+  const res = await apiGet('/api/intercomm/employee-options');
+  employeeOptions = res?.data || [];
+
+  if (!employeeOptions.length) {
+    select.innerHTML = '<option value="">Tidak ada employee yang eligible</option>';
+    return;
+  }
+
+  select.innerHTML = '<option value="">Pilih employee</option>' + employeeOptions.map(emp => {
+    const label = `${emp.employee_number || '-'} - ${emp.name || '-'} (${emp.email || '-'})`;
+    return `<option value="${emp.id}">${escapeHtml(label)}</option>`;
+  }).join('');
 }
 
 async function loadData() {
-  document.getElementById('table-body').innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
+  document.getElementById('table-body').innerHTML = '<tr><td colspan="9" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
   const res = await apiGet('/api/intercomm');
   users = res.data || res || [];
   renderTable();
@@ -103,19 +161,25 @@ async function loadData() {
 function renderTable() {
   const tbody = document.getElementById('table-body');
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400">Belum ada data intercomm</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-10 text-gray-400">Belum ada data intercomm</td></tr>';
     return;
   }
-  tbody.innerHTML = users.map(u => `
+  tbody.innerHTML = users.map((u, idx) => `
     <tr class="hover:bg-gray-50">
-      <td class="px-6 py-3 font-medium">${u.name}</td>
-      <td class="px-6 py-3">${u.email}</td>
-      <td class="px-6 py-3">
-        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">
-          ${u.status === 'active' ? 'Aktif' : 'Nonaktif'}
-        </span>
+      <td class="px-6 py-3">${idx + 1}</td>
+      <td class="px-6 py-3">${u.employee_number ?? '-'}</td>
+      <td class="px-6 py-3 font-medium">
+        ${u.employee_id
+          ? `<button type="button" onclick="openDetailModal(${u.employee_id})" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">${escapeHtml(u.name || '-')}</button>`
+          : `${escapeHtml(u.name || '-')}`}
       </td>
-      <td class="px-6 py-3 text-gray-500">${new Date(u.created_at).toLocaleDateString('id-ID')}</td>
+      <td class="px-6 py-3">${formatDate(u.date_joined)}</td>
+      <td class="px-6 py-3">${u.email}</td>
+      <td class="px-6 py-3">${u.level ?? '-'}</td>
+      <td class="px-6 py-3">${u.employee_status ?? '-'}</td>
+      <td class="px-6 py-3">
+        ${formatDateTime(u.assigned_at)}
+      </td>
       <td class="px-6 py-3 text-right space-x-2">
         <button onclick="openEditModal(${u.id})" class="text-sm" title="Edit" style="cursor: pointer; color: #144600;" onmouseover="this.style.color='#37AA05'" onmouseout="this.style.color='#144600'"><i class="fas fa-edit"></i></button>
         ${u.status === 'active'
@@ -125,6 +189,51 @@ function renderTable() {
       </td>
     </tr>
   `).join('');
+}
+
+async function openDetailModal(employeeId) {
+  if (!employeeId) {
+    showAlert('Data employee belum terhubung.', 'error');
+    return;
+  }
+
+  const body = document.getElementById('detail-body');
+  body.innerHTML = '<div class="text-sm text-gray-500 py-2">Memuat detail...</div>';
+
+  let row = users.find(item => item.employee_id === employeeId) || {};
+  const detailRes = await apiGet(`/api/employees/${employeeId}`);
+  if (detailRes && detailRes.success === true && detailRes.data) {
+    row = detailRes.data;
+  }
+
+  const fields = [
+    ['NIP', row.employee_number],
+    ['Nama Lengkap', row.name_display || row.name],
+    ['Tanggal Masuk', row.date_joined],
+    ['Email', row.email],
+    ['Whatsapp', row.whatsapp],
+    ['Perusahaan', row.company],
+    ['Divisi', row.division?.name || row.division],
+    ['Departemen', row.department?.name || row.department],
+    ['Jabatan', row.position?.name || row.position],
+    ['Penempatan', row.placement],
+    ['Golongan', row.level],
+    ['Status Pegawai', row.employee_status],
+    ['Lifecycle', row.employment_state],
+  ];
+
+  body.innerHTML = fields.map(([k, v]) => `
+    <div class="grid grid-cols-3 gap-2 text-sm py-1">
+      <div class="text-gray-500">${escapeHtml(k)}</div>
+      <div class="col-span-2 font-medium text-gray-800">${escapeHtml(v || '-')}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('modal-detail').classList.remove('hidden');
+}
+
+function closeDetailModal() {
+  document.getElementById('modal-detail').classList.add('hidden');
 }
 
 function openEditModal(id) {
@@ -138,15 +247,24 @@ function openEditModal(id) {
 
 document.getElementById('form-add').addEventListener('submit', async function(e) {
   e.preventDefault();
+  const employeeId = Number(document.getElementById('add-employee-id').value);
+  if (!employeeId) {
+    showAlert('Pilih employee terlebih dahulu.', 'error');
+    return;
+  }
+
   const res = await apiPost('/api/intercomm', {
-    name: document.getElementById('add-name').value,
-    email: document.getElementById('add-email').value,
+    employee_id: employeeId,
   });
-  if (res.temp_password) {
+  if (res.success && res.temp_password) {
     document.getElementById('modal-add').classList.add('hidden');
     document.getElementById('pw-display').textContent = res.temp_password;
     document.getElementById('modal-pw').classList.remove('hidden');
-    loadData();
+    await loadData();
+  } else if (res.success) {
+    showAlert(res.message || 'Intercomm berhasil di-assign');
+    document.getElementById('modal-add').classList.add('hidden');
+    await loadData();
   } else {
     showAlert(res.message || res.error || 'Gagal menambahkan', 'error');
   }
