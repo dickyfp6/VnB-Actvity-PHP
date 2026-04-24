@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','V&B Framework')
-@section('content')
+
+<?php $__env->startSection('title','V&B Framework'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="py-2 space-y-6">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-900">V&B Framework</h1>
@@ -96,9 +96,9 @@
     </div>
   </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let setupPayload = null;
 let setupDraft = { behaviours: [], stages: [] };
@@ -765,4 +765,6 @@ window.addEventListener('beforeunload', warnBeforeUnload);
 
 loadFrameworkPage();
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-framework/index.blade.php ENDPATH**/ ?>

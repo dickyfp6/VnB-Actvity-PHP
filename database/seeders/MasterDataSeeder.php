@@ -127,16 +127,13 @@ class MasterDataSeeder extends Seeder
             MasterDepartment::create($department);
         }
 
-        // 4. Master Position
+        // 4. Master Position / Golongan
         $positions = [
-            ['name' => 'Staff'],
-            ['name' => 'Senior Staff'],
-            ['name' => 'Supervisor'],
+            ['name' => 'Harian'],
+            ['name' => 'Mingguan'],
+            ['name' => 'Borongan'],
+            ['name' => 'Staf/Supervisor'],
             ['name' => 'Manager'],
-            ['name' => 'Senior Manager'],
-            ['name' => 'Head of Division'],
-            ['name' => 'Director'],
-            ['name' => 'Intern'],
         ];
 
         foreach ($positions as $position) {

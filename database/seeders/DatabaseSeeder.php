@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             MasterDataSeeder::class,
-            VnbFrameworkSeeder::class,
             SyncSourceEmployeesSeeder::class,
         ]);
 

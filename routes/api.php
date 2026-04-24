@@ -170,12 +170,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==================== VNB FRAMEWORK ====================
     Route::prefix('beranda/vnb-framework')->group(function () {
         Route::get('/', [VnbFrameworkController::class, 'index']);
+        Route::post('/setup-initialize', [VnbFrameworkController::class, 'setupInitialize']);
+        Route::post('/stage-details', [VnbFrameworkController::class, 'saveStageDetails']);
+        Route::post('/reset-stage-template', [VnbFrameworkController::class, 'resetStageTemplate']);
+        Route::post('/integrations', [VnbFrameworkController::class, 'saveIntegrations']);
         Route::post('/upsert', [VnbFrameworkController::class, 'upsert']);
         Route::post('/clone', [VnbFrameworkController::class, 'clone']);
     });
 
     // UC002 - V&B Framework (legacy API - keep for backward compatibility)
     Route::get('/vnb-framework', [VnbFrameworkController::class, 'index']);
+    Route::post('/vnb-framework/setup-initialize', [VnbFrameworkController::class, 'setupInitialize']);
+    Route::post('/vnb-framework/stage-details', [VnbFrameworkController::class, 'saveStageDetails']);
+    Route::post('/vnb-framework/reset-stage-template', [VnbFrameworkController::class, 'resetStageTemplate']);
+    Route::post('/vnb-framework/integrations', [VnbFrameworkController::class, 'saveIntegrations']);
     Route::post('/vnb-framework/upsert', [VnbFrameworkController::class, 'upsert']);
     Route::post('/vnb-framework/clone', [VnbFrameworkController::class, 'clone']);
 

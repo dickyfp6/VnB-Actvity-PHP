@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Observers\EmployeeObserver;
 
 /**
@@ -148,7 +150,12 @@ class Employee extends Model
             return $this->career_stage;
         }
 
-        // Fallback: compute from position for safety
+        $frameworkStage = $this->resolveFrameworkCareerStage();
+        if ($frameworkStage) {
+            return $frameworkStage['label'];
+        }
+
+        // Fallback: compute from position for safety when framework has not been configured yet
         if (!$this->position) {
             return null;
         }
@@ -162,14 +169,18 @@ class Employee extends Model
      */
     public function getCareerStageCode(): string
     {
+        $frameworkStage = $this->resolveFrameworkCareerStage();
+        if ($frameworkStage) {
+            return $frameworkStage['code'];
+        }
+
         $stage = $this->getCareerStage();
 
         $stageCodeMap = [
             'Manage Self (Non-Staff)' => 'manage_self_non_staff',
-            'Manage Self (Staff)' => 'manage_self_staff',
-            'Manage Others' => 'manage_others',
-            'Manage Managers' => 'manage_managers',
-            'Manage Function' => 'manage_function',
+            'Manage Self (Staff dan Supervisor)' => 'manage_self_staff',
+            'Manage Other (Manager)' => 'manage_others',
+            'Manage Manager (Direktur)' => 'manage_managers',
         ];
 
         return $stageCodeMap[$stage] ?? 'manage_self_non_staff';
@@ -182,44 +193,53 @@ class Employee extends Model
     {
         $positionLower = strtolower(trim($position));
 
-        // Non-Staff (Intern, Harian, Contract worker, etc)
-        if (str_contains($positionLower, 'non-staff') || 
-            str_contains($positionLower, 'non staff') ||
-            str_contains($positionLower, 'intern') || 
-            str_contains($positionLower, 'harian') || 
+        // Non-Staff (Harian, Mingguan, Borongan)
+        if (
+            str_contains($positionLower, 'harian') ||
             str_contains($positionLower, 'mingguan') ||
-            str_contains($positionLower, 'contract')) {
+            str_contains($positionLower, 'borongan') ||
+            str_contains($positionLower, 'non-staff') ||
+            str_contains($positionLower, 'non staff') ||
+            str_contains($positionLower, 'contract') ||
+            str_contains($positionLower, 'intern')
+        ) {
             return 'Manage Self (Non-Staff)';
         }
 
         // Staff & Supervisor
-        if (str_contains($positionLower, 'staff') || str_contains($positionLower, 'supervisor')) {
-            return 'Manage Self (Staff)';
+        if (str_contains($positionLower, 'staf') || str_contains($positionLower, 'staff') || str_contains($positionLower, 'supervisor')) {
+            return 'Manage Self (Staff dan Supervisor)';
         }
 
-        // Manager & Tim Leader (but not "general manager")
-        if (!str_contains($positionLower, 'general') && 
-            (str_contains($positionLower, 'manager') || 
-             str_contains($positionLower, 'tim leader') || 
-             str_contains($positionLower, 'lead'))) {
-            return 'Manage Others';
-        }
-
-        // General Manager (or Managing Director)
-        if (str_contains($positionLower, 'general manager') || 
-            str_contains($positionLower, 'managing director')) {
-            return 'Manage Managers';
-        }
-
-        // Kepala Divisi, Director, Head, etc.
-        if (str_contains($positionLower, 'kepala divisi') || 
-            str_contains($positionLower, 'director') || 
-            str_contains($positionLower, 'direktur') || 
-            str_contains($positionLower, 'head of') || 
-            str_contains($positionLower, 'head division')) {
-            return 'Manage Function';
+        // Manager
+        if (str_contains($positionLower, 'manager') || 
+            str_contains($positionLower, 'tim leader') || 
+            str_contains($positionLower, 'lead')) {
+            return 'Manage Other (Manager)';
         }
 
         return null;
+    }
+
+    private function resolveFrameworkCareerStage(): ?array
+    {
+        if (!$this->position_id || !Schema::hasTable('vnb_framework_stage_position_maps') || !Schema::hasTable('vnb_framework_stage_configs')) {
+            return null;
+        }
+
+        $stage = DB::table('vnb_framework_stage_position_maps as maps')
+            ->join('vnb_framework_stage_configs as configs', 'configs.id', '=', 'maps.stage_config_id')
+            ->where('maps.position_id', $this->position_id)
+            ->select('configs.career_stage as code', 'configs.label as label')
+            ->first();
+
+        if (!$stage) {
+            return null;
+        }
+
+        return [
+            'code' => (string) $stage->code,
+            'label' => (string) $stage->label,
+        ];
     }
 }
