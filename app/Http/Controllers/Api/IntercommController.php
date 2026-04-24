@@ -80,7 +80,7 @@ class IntercommController extends Controller
 
         $rows = Employee::query()
             ->with(['division', 'department'])
-            ->where('employment_state', 'active')
+            ->where('status', 'Aktif')
             ->whereHas('division', function ($q) {
                 $q->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(self::REQUIRED_DIVISION)]);
             })

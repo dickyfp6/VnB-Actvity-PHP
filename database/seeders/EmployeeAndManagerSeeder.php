@@ -104,7 +104,7 @@ class EmployeeAndManagerSeeder extends Seeder
                 'level' => 1,
                 'employee_status' => 'OS',
                 'vnb_status' => 'active',
-                'employment_state' => 'active',
+                'status' => 'Aktif',
                 'manager_functional_id' => $allManagers->count() > 0 ? $allManagers[0]->id : 1,
                 'manager_operational_id' => null,  // Opsional: hanya functional manager
             ],
@@ -123,7 +123,7 @@ class EmployeeAndManagerSeeder extends Seeder
                 'level' => 1,
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
-                'employment_state' => 'active',
+                'status' => 'Aktif',
                 'manager_functional_id' => $allManagers->count() > 1 ? $allManagers[1]->id : 1,
                 'manager_operational_id' => $allManagers->count() > 2 ? $allManagers[2]->id : null,  // Berbeda manager
             ],
@@ -142,7 +142,7 @@ class EmployeeAndManagerSeeder extends Seeder
                 'level' => 1,
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
-                'employment_state' => 'active',
+                'status' => 'Aktif',
                 'manager_functional_id' => $allManagers->count() > 2 ? $allManagers[2]->id : 1,
                 'manager_operational_id' => null,  // Opsional: hanya functional manager
             ],

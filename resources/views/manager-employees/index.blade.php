@@ -172,12 +172,9 @@ function renderRows() {
       <td class="px-4 py-3">${row.employee_status || '-'}</td>
       <td class="px-4 py-3">
         <span class="inline-block px-2 py-1 rounded text-xs font-medium ${
-          row.employment_state === 'active' ? 'bg-green-100 text-green-700' :
-          row.employment_state === 'resigned' ? 'bg-gray-100 text-gray-700' :
-          row.employment_state === 'terminated' ? 'bg-red-100 text-red-700' :
-          'bg-blue-100 text-blue-700'
+          row.status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
         }">
-          ${row.employment_state || '-'}
+          ${row.status || '-'}
         </span>
       </td>
     </tr>

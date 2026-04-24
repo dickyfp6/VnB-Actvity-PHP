@@ -29,10 +29,6 @@ use App\Observers\EmployeeObserver;
  * @property string|null $notes
  * @property int|null $division_id
  * @property int|null $department_id
- * @property string $employment_state
- * @property \Illuminate\Support\Carbon|null $status_changed_at
- * @property string|null $status_change_reason
- * @property int|null $status_changed_by
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property \Illuminate\Support\Carbon|null $deleted_at
@@ -51,7 +47,7 @@ class Employee extends Model
         'division_id', 'department_id', 'position_id', 'placement', 'level', 'career_stage',
         'employee_status', 'email', 'whatsapp', 'manager_functional_id',
         'manager_operational_id', 'vnb_period_start', 'vnb_period_end',
-        'vnb_status', 'employment_state', 'status_changed_at', 'status_change_reason', 'status_changed_by', 'notes', 'status'
+        'vnb_status', 'notes', 'status'
     ];
 
     protected $casts = [
@@ -59,7 +55,6 @@ class Employee extends Model
         'induction_date' => 'date',
         'vnb_period_start' => 'date',
         'vnb_period_end' => 'date',
-        'status_changed_at' => 'datetime',
     ];
 
     /**

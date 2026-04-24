@@ -514,13 +514,11 @@ function setLifecycleTab(tab) {
     loadEmployees();
 }
 
-function getEmploymentStateLabel(state) {
-    const key = normalizeValue(state);
-    if (!key || key === 'active') return 'Active';
-    if (key === 'resigned') return 'Mengundurkan Diri';
-    if (key === 'terminated') return 'Dikeluarkan';
-    if (key === 'graduated') return 'Lulus';
-    return state;
+function getEmployeeStatusLabel(status) {
+    const key = normalizeValue(status);
+    if (key === 'aktif' || key === 'active') return 'Aktif';
+    if (key === 'inactive' || key === 'inaktif' || key === 'nonaktif') return 'Inactive';
+    return status || '-';
 }
 
 async function loadEmployees() {
@@ -739,8 +737,7 @@ async function openDetailModal(id) {
         ['Periode Akhir', row.vnb_period_end], ['Career Stage', row.career_stage], ['Fase', row.phase], ['Progress', `${row.progress ?? 0}%`],
         ['Manager Fungsional', managerFunctionalLabel], ['Manager Operasional', managerOperationalLabel], ['Perusahaan', row.company],
         ['Divisi', divisionLabel], ['Departemen', departmentLabel], ['Jabatan', positionLabel], ['Penempatan', row.placement],
-        ['Golongan', row.level], ['Status Pegawai', row.employee_status], ['Status Lifecycle', getEmploymentStateLabel(row.employment_state)],
-        ['Catatan Perubahan Status', row.status_change_reason], ['Waktu Perubahan Status', row.status_changed_at]
+        ['Golongan', row.level], ['Status Pegawai', row.employee_status], ['Status Employee', getEmployeeStatusLabel(row.status)]
     ];
 
     body.innerHTML = fields.map(([k, v]) => `
@@ -894,29 +891,27 @@ async function mutateEmployeeLifecycle(id) {
     const row = allEmployees.find(item => item.id === id);
     if (!row) return;
 
-    const choice = (prompt('Mutasi status Employee:\n1 = Mengundurkan Diri\n2 = Dikeluarkan\n3 = Lulus\n\nMasukkan angka (1/2/3):', '') || '').trim();
-    const stateMap = { '1': 'resigned', '2': 'terminated', '3': 'graduated' };
-    const selectedState = stateMap[choice];
+    const choice = (prompt('Ubah status Employee:\n1 = Aktif\n2 = Inactive\n\nMasukkan angka (1/2):', '') || '').trim();
+    const statusMap = { '1': 'Aktif', '2': 'Inactive' };
+    const selectedStatus = statusMap[choice];
 
-    if (!selectedState) {
+    if (!selectedStatus) {
         showAlert('Pilihan status tidak valid', 'error');
         return;
     }
 
-    const reason = prompt('Catatan mutasi status (opsional):', '') || '';
-    const confirmed = await showConfirm(`Ubah status ${row.name || '-'} menjadi ${getEmploymentStateLabel(selectedState)}?`, 'Konfirmasi Mutasi');
+    const confirmed = await showConfirm(`Ubah status ${row.name || '-'} menjadi ${getEmployeeStatusLabel(selectedStatus)}?`, 'Konfirmasi Status');
     if (!confirmed) return;
 
     const res = await apiPost(`/api/employees/${id}/lifecycle`, {
-        employment_state: selectedState,
-        status_change_reason: reason,
+        status: selectedStatus,
     }, 'POST');
 
     if (res && res.success === true) {
-        showAlert(res.message || 'Status lifecycle berhasil diperbarui');
+        showAlert(res.message || 'Status Employee berhasil diperbarui');
         loadEmployees();
     } else {
-        showAlert(res?.message || res?.error || 'Gagal mutasi status', 'error');
+        showAlert(res?.message || res?.error || 'Gagal mengubah status', 'error');
     }
 }
 

@@ -144,8 +144,8 @@
                     </p>
                 </div>
                 <div>
-                    <p class="text-gray-500 mb-1">Employment State</p>
-                    <p class="font-medium text-gray-900">{{ $employee->employment_state ?? '-' }}</p>
+                    <p class="text-gray-500 mb-1">Status Employee</p>
+                    <p class="font-medium text-gray-900">{{ $employee->status ?? '-' }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Manager Functional</p>

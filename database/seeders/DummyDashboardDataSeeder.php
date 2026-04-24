@@ -98,7 +98,7 @@ class DummyDashboardDataSeeder extends Seeder
                 'vnb_period_start' => $vnbStartDate,
                 'vnb_period_end' => $vnbEndDate,
                 'vnb_status' => 'active',
-                'employment_state' => 'active',
+                'status' => 'Aktif',
                 'notes' => 'Dummy dashboard test data - ' . $currentDept['name'],
             ]);
 

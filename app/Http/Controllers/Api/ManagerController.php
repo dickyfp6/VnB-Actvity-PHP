@@ -359,11 +359,11 @@ class ManagerController extends Controller
             });
         }
 
-        $lifecycle = (string) $request->input('lifecycle', 'active');
-        if ($lifecycle === 'history') {
-            $query->whereIn('employment_state', ['resigned', 'terminated', 'graduated']);
-        } elseif (in_array($lifecycle, ['active', 'resigned', 'terminated', 'graduated'], true)) {
-            $query->where('employment_state', $lifecycle);
+        $lifecycle = strtolower(trim((string) $request->input('lifecycle', 'active')));
+        if ($lifecycle === 'history' || in_array($lifecycle, ['inactive', 'resigned', 'terminated', 'graduated'], true)) {
+            $query->where('status', 'Inactive');
+        } elseif ($lifecycle === 'active') {
+            $query->where('status', 'Aktif');
         }
 
         if ($request->filled('search')) {
@@ -410,7 +410,7 @@ class ManagerController extends Controller
                 'manager_operational' => $employee->managerOperational?->name,
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $latestPlanMap->get($employee->id)),
                 'progress' => round((float) $progress, 1),
-                'employment_state' => $employee->employment_state ?? 'active',
+                'status' => $employee->status ?? 'Aktif',
                 'vnb_status' => $employee->vnb_status,
             ];
         })->values();

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Employee;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -131,24 +130,13 @@ class AuthController extends Controller
         }
 
         $employeeStatus = Str::lower(trim((string) ($employee->employee_status ?? '')));
-        $statusChangeReason = Str::lower(trim((string) ($employee->status_change_reason ?? '')));
-        if (Str::contains($employeeStatus, 'mutasi') || Str::contains($statusChangeReason, 'mutasi')) {
+        if (Str::contains($employeeStatus, 'mutasi')) {
             return 'Akun tidak dapat digunakan karena Employee sudah dimutasi.';
         }
 
-        $employmentState = Str::lower(trim((string) ($employee->employment_state ?? 'active')));
-        if (in_array($employmentState, ['resigned', 'terminated'], true)) {
+        $employeeLifecycleStatus = Str::lower(trim((string) ($employee->status ?? 'Aktif')));
+        if (in_array($employeeLifecycleStatus, ['inactive', 'inaktif', 'tidak aktif', 'nonaktif', 'non-active', 'non active'], true)) {
             return 'Akun tidak dapat digunakan karena status Employee tidak aktif.';
-        }
-
-        if ($employmentState === 'graduated') {
-            $referenceTime = $employee->status_changed_at
-                ?? $employee->vnb_period_end
-                ?? $employee->updated_at;
-
-            if ($referenceTime instanceof Carbon && now()->greaterThan($referenceTime->copy()->addDays(30))) {
-                return 'Akun tidak dapat digunakan karena Employee sudah lulus lebih dari 30 hari.';
-            }
         }
 
         return null;

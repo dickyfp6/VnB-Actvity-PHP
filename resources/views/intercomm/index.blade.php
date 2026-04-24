@@ -219,7 +219,7 @@ async function openDetailModal(employeeId) {
     ['Penempatan', row.placement],
     ['Golongan', row.level],
     ['Status Pegawai', row.employee_status],
-    ['Lifecycle', row.employment_state],
+    ['Status Employee', row.status],
   ];
 
   body.innerHTML = fields.map(([k, v]) => `

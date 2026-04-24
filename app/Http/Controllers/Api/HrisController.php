@@ -377,22 +377,6 @@ class HrisController extends Controller
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
         $managerFunctionalId = $this->resolveFunctionalManagerId($existing);
         $status = $this->normalizeEmployeeStatusLabel((string) ($sourceRow['status'] ?? 'Aktif'));
-        $isInactive = $this->isInactiveEmployeeStatus($status);
-        $existingStatus = $existing ? $this->normalizeEmployeeStatusLabel((string) ($existing->status ?? 'Aktif')) : null;
-        $wasInactive = $existingStatus !== null ? $this->isInactiveEmployeeStatus($existingStatus) : false;
-        $statusChangedAt = $existing?->status_changed_at;
-        $statusChangeReason = $existing?->status_change_reason;
-        $statusChangedBy = $existing?->status_changed_by;
-
-        if (($existing && !$wasInactive && $isInactive) || (!$existing && $isInactive)) {
-            $statusChangedAt = now();
-            $statusChangeReason = 'Sinkronisasi HRIS: status menjadi Inactive';
-            $statusChangedBy = auth()->id();
-        } elseif ($existing && $wasInactive && !$isInactive) {
-            $statusChangedAt = null;
-            $statusChangeReason = null;
-            $statusChangedBy = null;
-        }
 
         return [
             'employee_number' => (string) $sourceRow['employee_number'],
@@ -410,10 +394,6 @@ class HrisController extends Controller
             'manager_functional_id' => $managerFunctionalId,
             'manager_operational_id' => $existing?->manager_operational_id,
             'status' => $status,
-            'employment_state' => $isInactive ? 'terminated' : 'active',
-            'status_changed_at' => $statusChangedAt,
-            'status_change_reason' => $statusChangeReason,
-            'status_changed_by' => $statusChangedBy,
         ];
     }
 
@@ -487,10 +467,6 @@ class HrisController extends Controller
             'manager_functional_id' => $employee->manager_functional_id,
             'manager_operational_id' => $employee->manager_operational_id,
             'career_stage' => $employee->career_stage,
-            'employment_state' => $employee->employment_state,
-            'status_changed_at' => $employee->status_changed_at,
-            'status_change_reason' => $employee->status_change_reason,
-            'status_changed_by' => $employee->status_changed_by,
             'notes' => $employee->notes,
             'status' => $employee->status,
             'moved_to_history_at' => now(),

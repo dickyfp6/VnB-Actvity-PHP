@@ -40,11 +40,11 @@ class EmployeeController extends Controller
     {
         $query = Employee::query();
 
-        $lifecycle = (string) $request->input('lifecycle', 'active');
-        if ($lifecycle === 'history') {
-            $query->whereIn('employment_state', ['resigned', 'terminated', 'graduated']);
-        } elseif (in_array($lifecycle, ['active', 'resigned', 'terminated', 'graduated'], true)) {
-            $query->where('employment_state', $lifecycle);
+        $lifecycle = Str::lower(trim((string) $request->input('lifecycle', 'active')));
+        if ($lifecycle === 'history' || in_array($lifecycle, ['inactive', 'resigned', 'terminated', 'graduated'], true)) {
+            $query->where('status', 'Inactive');
+        } elseif ($lifecycle === 'active') {
+            $query->where('status', 'Aktif');
         }
 
         if ($request->filled('division_id')) {
@@ -144,7 +144,7 @@ class EmployeeController extends Controller
                 'name' => $employee->name,
                 'name_display' => (($sameNameCounts[Str::lower(trim((string) $employee->name))] ?? 0) > 1)
                     ? ($employee->name . ' (' . ($employee->division?->name ?? 'Tanpa Divisi') . ')')
-                    : $employee->name,r
+                    : $employee->name,
                 'date_joined' => optional($employee->date_joined)->toDateString(),
                 'induction_date' => optional($employee->induction_date)->toDateString(),
                 'email' => $employee->email,
@@ -169,10 +169,8 @@ class EmployeeController extends Controller
                 'level_id' => $employee->level,
                 'level' => $resolvedLevel,
                 'employee_status' => $employee->employee_status,
+                'status' => $employee->status ?? 'Aktif',
                 'vnb_status' => $employee->vnb_status,
-                'employment_state' => $employee->employment_state ?? 'active',
-                'status_changed_at' => optional($employee->status_changed_at)->toDateTimeString(),
-                'status_change_reason' => $employee->status_change_reason,
             ];
         });
 
@@ -199,7 +197,7 @@ class EmployeeController extends Controller
             $data['vnb_period_start'] = $periodStart->toDateString();
             $data['vnb_period_end'] = $periodEnd->toDateString();
             $data['vnb_status'] = $this->determineVnbStatus($periodStart, $periodEnd);
-            $data['employment_state'] = 'active';
+            $data['status'] = 'Aktif';
             $data['employee_number'] = trim((string) $validated['employee_number']);
 
             $employee = $this->createOrRestoreEmployee($data);
@@ -340,24 +338,20 @@ class EmployeeController extends Controller
     public function updateLifecycle(Request $request, Employee $employee): JsonResponse
     {
         $validated = $request->validate([
-            'employment_state' => 'required|in:active,resigned,terminated,graduated',
-            'status_change_reason' => 'nullable|string|max:1000',
+            'status' => 'required|string|in:Aktif,Inactive,aktif,active,inactive',
         ]);
 
-        $nextState = (string) $validated['employment_state'];
+        $nextStatus = $this->normalizeLifecycleStatus((string) $validated['status']);
         $payload = [
-            'employment_state' => $nextState,
-            'status_changed_at' => now(),
-            'status_change_reason' => trim((string) ($validated['status_change_reason'] ?? '')) ?: null,
-            'status_changed_by' => auth()->id(),
+            'status' => $nextStatus,
         ];
 
-        if ($nextState === 'graduated') {
-            $payload['vnb_status'] = 'completed';
-        }
-
-        if ($nextState === 'resigned' || $nextState === 'terminated') {
+        if ($nextStatus === 'Inactive') {
             $payload['vnb_status'] = 'canceled';
+        } elseif ($employee->vnb_status === 'canceled') {
+            $start = Carbon::parse($employee->vnb_period_start ?? $employee->induction_date ?? $employee->date_joined);
+            $end = Carbon::parse($employee->vnb_period_end ?? $start->copy()->addYear()->subDay());
+            $payload['vnb_status'] = $this->determineVnbStatus($start, $end);
         }
 
         $employee->update($payload);
@@ -365,7 +359,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Status lifecycle Employee berhasil diperbarui.',
+            'message' => 'Status Employee berhasil diperbarui.',
             'data' => $employee->fresh(),
         ]);
     }
@@ -1024,21 +1018,11 @@ class EmployeeController extends Controller
         }
 
         $employeeStatus = Str::lower(trim((string) ($employee->employee_status ?? '')));
-        $statusChangeReason = Str::lower(trim((string) ($employee->status_change_reason ?? '')));
-        $isMutated = Str::contains($employeeStatus, 'mutasi') || Str::contains($statusChangeReason, 'mutasi');
-        $employmentState = Str::lower(trim((string) ($employee->employment_state ?? 'active')));
-        $isInactiveState = in_array($employmentState, ['resigned', 'terminated'], true);
+        $isMutated = Str::contains($employeeStatus, 'mutasi');
+        $employeeLifecycleStatus = Str::lower(trim((string) ($employee->status ?? 'Aktif')));
+        $isInactiveState = in_array($employeeLifecycleStatus, ['inactive', 'inaktif', 'tidak aktif', 'nonaktif', 'non-active', 'non active'], true);
 
-        $graduatedExpired = false;
-        if ($employmentState === 'graduated') {
-            $referenceTime = $employee->status_changed_at
-                ?? $employee->vnb_period_end
-                ?? $employee->updated_at;
-
-            $graduatedExpired = $referenceTime && now()->greaterThan($referenceTime->copy()->addDays(30));
-        }
-
-        $shouldDeactivate = $isMutated || $isInactiveState || $graduatedExpired;
+        $shouldDeactivate = $isMutated || $isInactiveState;
 
         if ($shouldDeactivate) {
             if ($user->status !== 'inactive') {
@@ -1128,7 +1112,7 @@ class EmployeeController extends Controller
                     $validated['vnb_period_start'] = $periodStart->toDateString();
                     $validated['vnb_period_end'] = $periodEnd->toDateString();
                     $validated['vnb_status'] = $this->determineVnbStatus($periodStart, $periodEnd);
-                    $validated['employment_state'] = 'active';
+                    $validated['status'] = 'Aktif';
 
                     $employee = $this->createOrRestoreEmployee($validated);
                     $this->syncVnbPeriods($employee, $periodStart);
@@ -1241,6 +1225,13 @@ class EmployeeController extends Controller
         }
 
         return mb_strtoupper($normalized);
+    }
+
+    private function normalizeLifecycleStatus(string $value): string
+    {
+        $normalized = Str::lower(trim($value));
+
+        return in_array($normalized, ['aktif', 'active'], true) ? 'Aktif' : 'Inactive';
     }
 
     private function buildImportPreview(array $rows): array
