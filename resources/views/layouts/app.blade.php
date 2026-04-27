@@ -111,6 +111,14 @@
         #manager-approval-badge-dot {
             display: none;
         }
+
+        .sidebar.collapsed #sync-pending-badge-dot {
+            display: block !important;
+        }
+
+        #sync-pending-badge-dot {
+            display: none;
+        }
         
         .sidebar.collapsed #manager-approval-badge-dot.hidden {
             display: block !important;
@@ -550,6 +558,74 @@
             letter-spacing: 0.5px;
         }
 
+        .table-modern thead th.table-interactive-header {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            padding-right: 1.75rem;
+            transition: color 0.15s ease, text-decoration-color 0.15s ease;
+        }
+
+        .table-modern thead th.table-interactive-header:hover {
+            text-decoration: underline;
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 0.2em;
+        }
+
+        .table-modern thead th.table-interactive-header[data-sort-state="asc"]::after {
+            content: '▲';
+            color: #144600;
+        }
+
+        .table-modern thead th.table-interactive-header[data-sort-state="desc"]::after {
+            content: '▼';
+            color: #144600;
+        }
+
+        .table-modern thead th.table-interactive-header[data-filter-active="true"] {
+            color: #144600;
+        }
+
+        .table-modern thead th.table-interactive-header::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50%;
+            top: calc(100% + 0.45rem);
+            transform: translateX(-50%) translateY(0.25rem);
+            z-index: 25;
+            min-width: 12rem;
+            max-width: 18rem;
+            padding: 0.45rem 0.65rem;
+            border-radius: 0.5rem;
+            background: rgba(17, 24, 39, 0.96);
+            color: #fff;
+            font-size: 0.72rem;
+            line-height: 1.25;
+            white-space: normal;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        .table-modern thead th.table-interactive-header:hover::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .table-filter-modal-panel {
+            max-height: min(72vh, 44rem);
+        }
+
+        .table-filter-option {
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .table-filter-option:hover {
+            background: rgba(55, 170, 5, 0.08);
+            border-color: rgba(55, 170, 5, 0.35);
+        }
+
         .table-modern tbody tr {
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             transition: all 0.2s ease;
@@ -663,8 +739,12 @@
 
             @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
             <a href="/sinkronisasi" class="nav-link {{ request()->is('sinkronisasi*') ? 'active' : '' }}" title="Sinkronisasi Data">
-                <i class="fas fa-sync-alt w-5 flex-shrink-0"></i>
+                <div style="position: relative; display: inline-block;">
+                    <i class="fas fa-sync-alt w-5 flex-shrink-0"></i>
+                    <span id="sync-pending-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: 0; right: 0; z-index: 10;"></span>
+                </div>
                 <span>Sinkronisasi Data</span>
+                <span id="sync-pending-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: #dc2626; color: white; min-width: unset; font-size: 10px;"><i class="fas fa-sync-alt"></i></span>
             </a>
             @endif
 
@@ -838,6 +918,34 @@
     </footer>
 
     <!-- Confirmation Modal -->
+    <div id="tableFilterModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[59] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h3 id="tableFilterTitle" class="text-lg font-bold text-gray-900">Filter Kolom</h3>
+                        <p class="text-xs text-gray-500 mt-1">Pilih nilai yang ingin ditampilkan.</p>
+                    </div>
+                    <button type="button" id="tableFilterClose" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            <div class="px-6 py-4 table-filter-modal-panel overflow-y-auto">
+                <div class="mb-3">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5">Search</label>
+                    <input id="tableFilterSearch" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Cari nilai...">
+                </div>
+                <div id="tableFilterOptions" class="space-y-2"></div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-3 bg-gray-50">
+                <button type="button" id="tableFilterClear" class="text-sm font-semibold text-gray-600 hover:text-gray-900 underline underline-offset-2">Hapus Filter</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="tableFilterCancel" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-100">Batal</button>
+                    <button type="button" id="tableFilterApply" class="px-4 py-2 rounded-lg text-white text-sm font-semibold" style="background-color: #144600;">Terapkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="confirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] hidden flex items-center justify-center animate-fade-in">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-slide-in">
             <!-- Modal Header -->
@@ -972,12 +1080,13 @@
             .sort((left, right) => left.localeCompare(right, 'id', { sensitivity: 'base' }));
 
         const selectedKey = normalizeFilterValue(selectedValue);
-        const allButtonClass = 'block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100';
-        const selectedClass = 'bg-gray-100 font-semibold text-gray-800';
+        const columnKey = toJsSingleQuoted(column);
+        const allButtonClass = 'table-filter-option flex items-center gap-2 w-full text-left px-3 py-2 text-sm rounded-lg border border-transparent';
+        const selectedClass = 'bg-green-50 border-green-200 font-semibold text-green-800';
         const columnArg = toJsSingleQuoted(column);
 
         const items = [
-            `<button type="button" onclick="${settings.onSelect}(${columnArg}, '')" class="${allButtonClass}${!selectedKey ? ` ${selectedClass}` : ''}">${escapeHtml(settings.allLabel)}</button>`,
+            `<div class="mb-3"><button type="button" onclick="${settings.onSelect}(${columnArg}, '')" class="${allButtonClass}${!selectedKey ? ` ${selectedClass}` : ''}"><input type="checkbox" class="pointer-events-none" ${!selectedKey ? 'checked' : ''}><span>${escapeHtml(settings.allLabel)}</span></button></div>`,
         ];
 
         if (!uniqueValues.length) {
@@ -988,18 +1097,409 @@
                 const isSelected = selectedKey && valueKey === selectedKey;
                 const valueArg = toJsSingleQuoted(value);
                 items.push(
-                    `<button type="button" onclick="${settings.onSelect}(${columnArg}, ${valueArg})" class="${allButtonClass}${isSelected ? ` ${selectedClass}` : ''}">${escapeHtml(value)}</button>`
+                    `<button type="button" data-filter-value="${escapeHtml(valueKey)}" onclick="${settings.onSelect}(${columnArg}, ${valueArg})" class="${allButtonClass}${isSelected ? ` ${selectedClass}` : ''}"><input type="checkbox" class="pointer-events-none" ${isSelected ? 'checked' : ''}><span>${escapeHtml(value)}</span></button>`
                 );
             });
         }
 
-        container.innerHTML = items.join('');
+        container.innerHTML = `<div class="space-y-2" data-filter-column="${escapeHtml(column)}" data-filter-selected="${escapeHtml(selectedKey)}">`
+            + items.join('')
+            + `</div>`;
+
+        const searchBox = container.previousElementSibling?.querySelector?.('#tableFilterSearch');
+        if (searchBox) {
+            searchBox.value = '';
+        }
+    }
+
+    function filterFilterOptions(containerId, query) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        const normalized = normalizeFilterValue(query);
+        container.querySelectorAll('[data-filter-value]').forEach((item) => {
+            const label = normalizeFilterValue(item.textContent);
+            item.classList.toggle('hidden', normalized && !label.includes(normalized));
+        });
     }
 
     window.escapeHtml = window.escapeHtml || escapeHtml;
     window.normalizeFilterValue = window.normalizeFilterValue || normalizeFilterValue;
     window.setFilterButtonState = window.setFilterButtonState || setFilterButtonState;
     window.renderFilterOptions = window.renderFilterOptions || renderFilterOptions;
+    window.filterFilterOptions = window.filterFilterOptions || filterFilterOptions;
+
+    const tableEnhancers = new Map();
+    window.tableEnhancers = tableEnhancers;
+    const tableFilterModal = document.getElementById('tableFilterModal');
+    const tableFilterTitle = document.getElementById('tableFilterTitle');
+    const tableFilterSearch = document.getElementById('tableFilterSearch');
+    const tableFilterOptions = document.getElementById('tableFilterOptions');
+    const tableFilterApply = document.getElementById('tableFilterApply');
+    const tableFilterClear = document.getElementById('tableFilterClear');
+    const tableFilterClose = document.getElementById('tableFilterClose');
+    const tableFilterCancel = document.getElementById('tableFilterCancel');
+
+    let activeTableFilter = null;
+
+    function getTableBodyRows(table) {
+        return Array.from(table.querySelectorAll('tbody tr')).filter((row) => !row.closest('#tableFilterModal'));
+    }
+
+    function compareTableValues(leftCell, rightCell) {
+        const leftText = normalizeFilterValue(leftCell);
+        const rightText = normalizeFilterValue(rightCell);
+
+        if (leftText === rightText) return 0;
+
+        if (isNaN(leftText) && isNaN(rightText)) {
+            const leftDate = Date.parse(leftCell);
+            const rightDate = Date.parse(rightCell);
+            if (!Number.isNaN(leftDate) && !Number.isNaN(rightDate)) {
+                return leftDate - rightDate;
+            }
+        }
+
+        return leftText.localeCompare(rightText, 'id', { numeric: true, sensitivity: 'base' });
+    }
+
+    function getTableCellText(row, header, columnIndex) {
+        const key = normalizeFilterValue(header?.dataset.columnKey || header?.dataset.sortKey || header?.dataset.filterKey || '');
+        if (key) {
+            const keyedCell = row.querySelector(`[data-column-key="${key}"]`);
+            if (keyedCell) {
+                return keyedCell.textContent || '';
+            }
+        }
+
+        return row.children[columnIndex]?.textContent || '';
+    }
+
+    function updateTableHeaderState(table, state) {
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        headers.forEach((header, index) => {
+            const sortable = header.dataset.sortable !== 'false';
+            const filtered = Boolean(state.filters[index] && state.filters[index].size);
+            if (sortable && !header.dataset.tooltip) {
+                header.dataset.tooltip = 'Klik sekali: sort. Klik dua kali: filter.';
+            }
+            header.removeAttribute('title');
+            header.classList.toggle('table-interactive-header', sortable);
+            header.dataset.sortState = state.sortColumn === index ? state.sortDirection : '';
+            header.dataset.filterActive = filtered ? 'true' : 'false';
+        });
+    }
+
+    function applyTableEnhancer(table) {
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        const rows = getTableBodyRows(table);
+        rows.forEach((row, index) => {
+            if (!row.dataset.tableOriginalOrder) {
+                row.dataset.tableOriginalOrder = String(index);
+            }
+        });
+
+        let visibleRows = rows.filter((row) => {
+            return Object.entries(state.filters).every(([columnIndex, selectedValues]) => {
+                if (!selectedValues || !selectedValues.size) {
+                    return true;
+                }
+                const header = table.querySelectorAll('thead th')[Number(columnIndex)];
+                const cellText = normalizeFilterValue(getTableCellText(row, header, Number(columnIndex)));
+                return selectedValues.has(cellText);
+            });
+        });
+
+        if (state.sortColumn !== null && state.sortDirection) {
+            visibleRows.sort((leftRow, rightRow) => {
+                const header = table.querySelectorAll('thead th')[state.sortColumn];
+                const leftCell = getTableCellText(leftRow, header, state.sortColumn);
+                const rightCell = getTableCellText(rightRow, header, state.sortColumn);
+                const comparison = compareTableValues(leftCell, rightCell);
+                return state.sortDirection === 'asc' ? comparison : -comparison;
+            });
+        } else {
+            visibleRows.sort((leftRow, rightRow) => Number(leftRow.dataset.tableOriginalOrder || 0) - Number(rightRow.dataset.tableOriginalOrder || 0));
+        }
+
+        const tbody = table.tBodies[0];
+        if (tbody) {
+            if (state.observer) {
+                state.observer.disconnect();
+            }
+
+            visibleRows.forEach((row) => {
+                row.style.display = '';
+                tbody.appendChild(row);
+            });
+
+            rows.forEach((row) => {
+                if (!visibleRows.includes(row)) {
+                    row.style.display = 'none';
+                    tbody.appendChild(row);
+                }
+            });
+
+            if (state.observer) {
+                state.observer.observe(tbody, { childList: true, subtree: false });
+            }
+        }
+
+        updateTableHeaderState(table, state);
+    }
+
+    function scheduleApplyTableEnhancer(table) {
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        if (state.applyTimer) {
+            clearTimeout(state.applyTimer);
+        }
+
+        state.applyTimer = setTimeout(() => applyTableEnhancer(table), 0);
+    }
+
+    function setTableSort(table, columnIndex) {
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        if (state.sortColumn === columnIndex) {
+            if (state.sortDirection === 'asc') {
+                state.sortDirection = 'desc';
+            } else if (state.sortDirection === 'desc') {
+                state.sortDirection = null;
+                state.sortColumn = null;
+            } else {
+                state.sortDirection = 'asc';
+            }
+        } else {
+            state.sortColumn = columnIndex;
+            state.sortDirection = 'asc';
+        }
+
+        scheduleApplyTableEnhancer(table);
+    }
+
+    function openTableFilterModal(table, columnIndex) {
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        const header = table.querySelectorAll('thead th')[columnIndex];
+        const label = header ? header.textContent.replace(/↕|▲|▼/g, '').trim() : `Kolom ${columnIndex + 1}`;
+        const rows = getTableBodyRows(table);
+
+        const valueMap = new Map();
+        rows.forEach((row) => {
+            const rawText = getTableCellText(row, header, columnIndex);
+            const normalized = normalizeFilterValue(rawText);
+            if (normalized && !valueMap.has(normalized)) {
+                valueMap.set(normalized, rawText.trim());
+            }
+        });
+
+        const uniqueValues = Array.from(valueMap.entries()).sort((a, b) => a[1].localeCompare(b[1], 'id', { sensitivity: 'base' }));
+
+        activeTableFilter = { table, columnIndex };
+        tableFilterTitle.textContent = `Filter: ${label}`;
+        tableFilterSearch.value = '';
+
+        const selectedValues = state.filters[columnIndex] || new Set();
+        if (!uniqueValues.length) {
+            tableFilterOptions.innerHTML = '<div class="text-sm text-gray-400">Belum ada opsi untuk kolom ini.</div>';
+        } else {
+            tableFilterOptions.innerHTML = uniqueValues.map(([normalized, display]) => `
+                <label class="table-filter-option flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm cursor-pointer">
+                    <input type="checkbox" class="table-filter-checkbox accent-green-700" value="${escapeHtml(normalized)}" ${selectedValues.has(normalized) ? 'checked' : ''}>
+                    <span class="flex-1">${escapeHtml(display)}</span>
+                </label>
+            `).join('');
+        }
+
+        tableFilterModal.classList.remove('hidden');
+    }
+
+    function closeTableFilterModal() {
+        if (tableFilterModal) {
+            tableFilterModal.classList.add('hidden');
+        }
+        activeTableFilter = null;
+    }
+
+    function commitTableFilterSelection() {
+        if (!activeTableFilter) {
+            return;
+        }
+
+        const { table, columnIndex } = activeTableFilter;
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        const checked = Array.from(tableFilterOptions.querySelectorAll('.table-filter-checkbox:checked')).map((checkbox) => normalizeFilterValue(checkbox.value));
+        state.filters[columnIndex] = new Set(checked);
+        scheduleApplyTableEnhancer(table);
+    }
+
+    function clearActiveTableFilter() {
+        if (!activeTableFilter) {
+            return;
+        }
+
+        const { table, columnIndex } = activeTableFilter;
+        const state = tableEnhancers.get(table);
+        if (!state) {
+            return;
+        }
+
+        delete state.filters[columnIndex];
+        closeTableFilterModal();
+        scheduleApplyTableEnhancer(table);
+    }
+
+    function initTableEnhancer(table) {
+        if (tableEnhancers.has(table)) {
+            return;
+        }
+
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        if (!headers.length) {
+            return;
+        }
+
+        const state = {
+            sortColumn: null,
+            sortDirection: null,
+            filters: {},
+            clickTimers: {},
+            observer: null,
+            applyTimer: null,
+        };
+
+        tableEnhancers.set(table, state);
+
+        headers.forEach((header) => {
+            if (header.dataset.sortable === 'false') {
+                return;
+            }
+
+            header.classList.add('table-interactive-header');
+            if (!header.dataset.tooltip) {
+                header.dataset.tooltip = 'Klik sekali untuk sortir kolom dan klik 2 kali untuk filter kolom.';
+            }
+            header.removeAttribute('title');
+        });
+
+        const handleHeaderInteraction = (event, isDoubleClick = false) => {
+            const header = event.target.closest('thead th');
+            if (!header || !table.contains(header)) {
+                return;
+            }
+
+            if (header.dataset.sortable === 'false') {
+                return;
+            }
+
+            if (event.target.closest('button, a, input, label, select, textarea')) {
+                return;
+            }
+
+            const headerIndex = Array.from(table.querySelectorAll('thead th')).indexOf(header);
+            if (headerIndex < 0) {
+                return;
+            }
+
+            if (isDoubleClick) {
+                if (state.clickTimers[headerIndex]) {
+                    clearTimeout(state.clickTimers[headerIndex]);
+                    state.clickTimers[headerIndex] = null;
+                }
+                openTableFilterModal(table, headerIndex);
+                return;
+            }
+
+            if (state.clickTimers[headerIndex]) {
+                clearTimeout(state.clickTimers[headerIndex]);
+            }
+
+            state.clickTimers[headerIndex] = setTimeout(() => {
+                setTableSort(table, headerIndex);
+                state.clickTimers[headerIndex] = null;
+            }, 250);
+        };
+
+        table.addEventListener('click', (event) => handleHeaderInteraction(event, false));
+        table.addEventListener('dblclick', (event) => handleHeaderInteraction(event, true));
+
+        state.observer = new MutationObserver(() => scheduleApplyTableEnhancer(table));
+        table.querySelectorAll('tbody').forEach((tbody) => {
+            state.observer.observe(tbody, { childList: true, subtree: false });
+        });
+
+        scheduleApplyTableEnhancer(table);
+    }
+
+    function initInteractiveTables() {
+        document.querySelectorAll('table').forEach((table) => {
+            if (table.closest('#tableFilterModal')) {
+                return;
+            }
+            initTableEnhancer(table);
+        });
+    }
+
+    window.resetTableEnhancer = function(table) {
+        const state = tableEnhancers.get(table);
+        if (state) {
+            state.filters = {};
+            state.sortColumn = null;
+            state.sortDirection = null;
+            scheduleApplyTableEnhancer(table);
+        }
+    };
+
+    tableFilterSearch?.addEventListener('input', (event) => {
+        window.filterFilterOptions('tableFilterOptions', event.target.value);
+    });
+
+    tableFilterApply?.addEventListener('click', () => {
+        commitTableFilterSelection();
+        closeTableFilterModal();
+    });
+
+    tableFilterClear?.addEventListener('click', clearActiveTableFilter);
+    tableFilterClose?.addEventListener('click', closeTableFilterModal);
+    tableFilterCancel?.addEventListener('click', closeTableFilterModal);
+    tableFilterModal?.addEventListener('click', (event) => {
+        if (event.target === tableFilterModal) {
+            closeTableFilterModal();
+        }
+    });
+
+    if (document.readyState === 'loading') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initInteractiveTables);
+        } else {
+            initInteractiveTables();
+        }
+    } else {
+        initInteractiveTables();
+    }
+
+    const tableEnhancerObserver = new MutationObserver(() => initInteractiveTables());
+    tableEnhancerObserver.observe(document.body, { childList: true, subtree: true });
 
     // Styled Confirmation Modal
     function showConfirm(message, title = 'Konfirmasi') {
@@ -1082,33 +1582,67 @@
     function updateBadgeDotVisibility() {
         const badgeDot = document.getElementById('manager-approval-badge-dot');
         if (!badgeDot) {
-            console.warn('Badge dot element not found');
             return;
         }
         
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) {
-            console.warn('Sidebar element not found');
             return;
         }
         
         const isSidebarCollapsed = sidebar.classList.contains('collapsed');
         const badgeElement = document.getElementById('manager-approval-badge');
         const hasRequests = badgeElement && !badgeElement.classList.contains('hidden');
-        
-        console.log('===Badge Dot Debug===');
-        console.log('Sidebar collapsed:', isSidebarCollapsed);
-        console.log('Has requests:', hasRequests);
-        console.log('Badge element:', badgeElement);
-        console.log('Badge text:', badgeElement?.textContent);
-        
+
         // Show dot only if sidebar collapsed AND has requests
         if (isSidebarCollapsed && hasRequests) {
             badgeDot.style.display = 'block';
-            console.log('Badge dot SHOWN');
         } else {
             badgeDot.style.display = 'none';
-            console.log('Badge dot HIDDEN');
+        }
+
+        const syncBadgeDot = document.getElementById('sync-pending-badge-dot');
+        const syncBadge = document.getElementById('sync-pending-badge');
+        const hasSyncPending = syncBadge && !syncBadge.classList.contains('hidden');
+        if (syncBadgeDot) {
+            syncBadgeDot.style.display = (isSidebarCollapsed && hasSyncPending) ? 'block' : 'none';
+        }
+    }
+
+    function setSyncPendingBadge(pendingTotal) {
+        const badge = document.getElementById('sync-pending-badge');
+        const count = Number(pendingTotal || 0);
+        if (!badge) {
+            return;
+        }
+
+        if (count > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+
+        updateBadgeDotVisibility();
+    }
+
+    window.setSyncPendingBadge = setSyncPendingBadge;
+
+    async function hydrateSyncPendingBadge() {
+        const badge = document.getElementById('sync-pending-badge');
+        if (!badge) {
+            return;
+        }
+
+        try {
+            const res = await apiGet('/api/beranda/hris');
+            if (!(res && res.success === true && res.data && res.data.summary)) {
+                setSyncPendingBadge(0);
+                return;
+            }
+
+            setSyncPendingBadge(res.data.summary.pending_total || 0);
+        } catch (e) {
+            setSyncPendingBadge(0);
         }
     }
 
@@ -1203,7 +1737,6 @@
         const badgeDot = document.getElementById('manager-approval-badge-dot');
         
         if (!badge) {
-            console.warn('manager-approval-badge element not found');
             return;
         }
 
@@ -1252,12 +1785,14 @@
 
     // Initial hydration
     hydrateManagerApprovalBadge();
+    hydrateSyncPendingBadge();
     
     // Update badge dot visibility on init
     updateBadgeDotVisibility();
     
     // Polling interval - update badge every 5 seconds
     setInterval(hydrateManagerApprovalBadge, 5000);
+    setInterval(hydrateSyncPendingBadge, 10000);
     </script>
     @stack('scripts')
 </body>

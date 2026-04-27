@@ -8,12 +8,12 @@
     <table class="table-modern">
       <thead>
         <tr>
-          <th>Employee</th>
-          <th>Behaviour</th>
-          <th>Phase</th>
-          <th>Activity</th>
-          <th>Tanggal</th>
-          <th class="text-right">Aksi</th>
+          <th data-sort-key="employee_name">Employee</th>
+          <th data-sort-key="behaviour">Behaviour</th>
+          <th data-sort-key="phase">Phase</th>
+          <th data-sort-key="activity_description">Activity</th>
+          <th data-sort-key="activity_date">Tanggal</th>
+          <th class="text-right" data-sortable="false">Aksi</th>
         </tr>
       </thead>
       <tbody id="review-body">
@@ -47,6 +47,25 @@
 let pending = [];
 let selected = null;
 
+function escapeHtml(value) {
+  return (value || '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderEmployeeNameLink(row) {
+  const employeeId = row?.employee_id ?? row?.id;
+  const name = escapeHtml(row?.employee_name || '-');
+  if (!employeeId) {
+    return name;
+  }
+
+  return `<a href="/employees/${employeeId}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">${name}</a>`;
+}
+
 async function loadPending() {
   document.getElementById('review-body').innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
   const res = await apiGet('/api/vnb-activities/pending-review');
@@ -62,11 +81,11 @@ function renderPending() {
   }
   tbody.innerHTML = pending.map(p => `
     <tr class="hover:bg-gray-50">
-      <td class="px-4 py-3">${p.employee_name || '-'}</td>
-      <td class="px-4 py-3">${p.behaviour || '-'}</td>
-      <td class="px-4 py-3">${p.phase || '-'}</td>
-      <td class="px-4 py-3">${p.activity_description || '-'}</td>
-      <td class="px-4 py-3">${p.activity_date || '-'}</td>
+      <td class="px-4 py-3" data-column-key="employee_name">${renderEmployeeNameLink(p)}</td>
+      <td class="px-4 py-3" data-column-key="behaviour">${p.behaviour || '-'}</td>
+      <td class="px-4 py-3" data-column-key="phase">${p.phase || '-'}</td>
+      <td class="px-4 py-3" data-column-key="activity_description">${p.activity_description || '-'}</td>
+      <td class="px-4 py-3" data-column-key="activity_date">${p.activity_date || '-'}</td>
       <td class="px-4 py-3 text-right">
         <button onclick="openReviewModal(${p.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Review</button>
       </td>
@@ -79,7 +98,7 @@ function openReviewModal(id) {
   if (!selected) return;
   document.getElementById('revision-notes').value = '';
   document.getElementById('detail-box').innerHTML = `
-    <p><span class="font-semibold">Employee:</span> ${selected.employee_name || '-'}</p>
+    <p><span class="font-semibold">Employee:</span> ${renderEmployeeNameLink(selected)}</p>
     <p><span class="font-semibold">Behaviour:</span> ${selected.behaviour || '-'}</p>
     <p><span class="font-semibold">Phase:</span> ${selected.phase || '-'}</p>
     <p><span class="font-semibold">Rencana:</span> ${selected.plan_description || '-'}</p>

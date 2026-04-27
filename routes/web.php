@@ -24,6 +24,7 @@ Route::middleware('auth')->group(function () {
     
     // /employees - PCX, Intercomm, Manager
     Route::get('/employees', [PageController::class, 'employees'])->name('employees');
+    Route::get('/employees/{employeeId}', [PageController::class, 'employeeDetail'])->name('employees.detail');
     
     // /intercomm - PCX
     Route::get('/intercomm', [PageController::class, 'intercomm'])->name('intercomm');

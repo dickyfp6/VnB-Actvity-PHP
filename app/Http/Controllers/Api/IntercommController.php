@@ -7,54 +7,83 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use App\Traits\HandlesUserProvisioning;
 
 class IntercommController extends Controller
 {
-    private const REQUIRED_DIVISION = 'Human Resource';
-    private const REQUIRED_DEPARTMENT = 'People, Culture, and Experience';
+    use HandlesUserProvisioning;
+
+    private const REQUIRED_DIVISIONS = [
+        'Human Resource',
+        'Human Resources',
+        'HR',
+    ];
+
+    private const REQUIRED_DEPARTMENTS = [
+        'People, Culture, and Experience',
+        'People, Culture, and Experiences',
+    ];
 
     /**
-     * UC001: List intercomm users
+     * UC001: List eligible employees and their Intercomm role status
      * Hanya PCX Manager yang dapat mengakses
      */
     public function index(Request $request): JsonResponse
     {
         abort_unless(auth()->user()->hasRole('pcx_manager'), 403, 'Hanya PCX Manager yang dapat mengelola Intercomm');
-        $query = User::role('intercomm')->with('employee');
+
+        $query = Employee::query()
+            ->with(['division', 'department', 'position', 'user.roles'])
+            ->where('status', 'Aktif')
+            ->whereHas('division', function ($q) {
+                $q->whereRaw(
+                    'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DIVISIONS), '?')) . ')',
+                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
+                );
+            })
+            ->whereHas('department', function ($q) {
+                $q->whereRaw(
+                    'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DEPARTMENTS), '?')) . ')',
+                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
+                );
+            });
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('email', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('employee', function ($employeeQuery) use ($request) {
-                      $employeeQuery->where('name', 'like', '%' . $request->search . '%')
-                          ->orWhere('employee_number', 'like', '%' . $request->search . '%');
-                  });
+                  ->orWhere('employee_number', 'like', '%' . $request->search . '%');
             });
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('employee_status', $request->status);
         }
 
         $rows = $query
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'status', 'employee_id', 'created_at'])
-            ->map(function (User $user): array {
-                $employee = $user->employee;
+            ->get()
+            ->map(function (Employee $employee): array {
+                $user = $employee->user;
+                $hasIntercommRole = (bool) ($user?->roles?->contains('name', 'intercomm'));
 
                 return [
-                    'id' => $user->id,
-                    'employee_id' => $employee?->id,
-                    'employee_number' => $employee?->employee_number,
-                    'name' => $employee?->name ?? $user->name,
-                    'date_joined' => optional($employee?->date_joined)->toDateString(),
-                    'email' => $employee?->email ?? $user->email,
-                    'level' => $employee?->level,
-                    'employee_status' => $employee?->employee_status,
-                    'status' => $user->status,
-                    'assigned_at' => optional($user->created_at)->toDateTimeString(),
+                    'id' => $employee->id,
+                    'employee_id' => $employee->id,
+                    'employee_number' => $employee->employee_number,
+                    'name' => $employee->name,
+                    'date_joined' => optional($employee->date_joined)->toDateString(),
+                    'email' => $employee->email,
+                    'division' => $employee->division?->name,
+                    'department' => $employee->department?->name,
+                    'position' => $employee->position?->name,
+                    'level' => $employee->level,
+                    'employee_status' => $employee->employee_status,
+                    'is_intercomm' => $hasIntercommRole,
+                    'user_id' => $user?->id,
                 ];
             })
             ->values();
@@ -82,10 +111,16 @@ class IntercommController extends Controller
             ->with(['division', 'department'])
             ->where('status', 'Aktif')
             ->whereHas('division', function ($q) {
-                $q->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(self::REQUIRED_DIVISION)]);
+                $q->whereRaw(
+                    'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DIVISIONS), '?')) . ')',
+                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
+                );
             })
             ->whereHas('department', function ($q) {
-                $q->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(self::REQUIRED_DEPARTMENT)]);
+                $q->whereRaw(
+                    'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DEPARTMENTS), '?')) . ')',
+                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
+                );
             })
             ->when(!empty($alreadyAssignedIds), fn ($q) => $q->whereNotIn('id', $alreadyAssignedIds))
             ->orderBy('name')
@@ -110,8 +145,9 @@ class IntercommController extends Controller
     }
 
     /**
-     * UC001 Scenario A: Add Intercomm - create user account with random 6-digit password
+     * UC001 Scenario A: Add Intercomm - assign role to existing employee account
      * Hanya PCX Manager yang dapat menambah Intercomm
+     * Employee sudah punya akun dari sistem HRIS/HRMS
      */
     public function store(Request $request): JsonResponse
     {
@@ -124,64 +160,42 @@ class IntercommController extends Controller
             ->with(['division', 'department', 'user'])
             ->findOrFail((int) $validated['employee_id']);
 
-        $isValidDivision = mb_strtolower(trim((string) ($employee->division?->name ?? ''))) === mb_strtolower(self::REQUIRED_DIVISION);
-        $isValidDepartment = mb_strtolower(trim((string) ($employee->department?->name ?? ''))) === mb_strtolower(self::REQUIRED_DEPARTMENT);
+        $divisionName = mb_strtolower(trim((string) ($employee->division?->name ?? '')));
+        $departmentName = mb_strtolower(trim((string) ($employee->department?->name ?? '')));
+        $isValidDivision = in_array($divisionName, array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS), true);
+        $isValidDepartment = in_array($departmentName, array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS), true);
+        
         if (!$isValidDivision || !$isValidDepartment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Employee tidak memenuhi syarat assignment Intercomm (Human Resource / People, Culture, and Experience).',
+                'message' => 'Employee tidak memenuhi syarat assignment Intercomm (Human Resource + PCX).',
             ], 422);
         }
 
-        $existingIntercomm = User::role('intercomm')->where('employee_id', $employee->id)->exists();
-        if ($existingIntercomm) {
+        if ($this->isEmployeeIntercomm($employee)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Employee ini sudah terdaftar sebagai Intercomm.',
             ], 422);
         }
 
-        $rawPassword = null;
         $user = $employee->user;
+        $tempPassword = null;
 
-        if ($user) {
-            $user->update([
-                'name' => $employee->name,
-                'email' => $employee->email,
-                'status' => 'active',
-                'employee_id' => $employee->id,
-            ]);
-        } else {
-            if (empty($employee->email)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Employee tidak memiliki email, sehingga akun Intercomm tidak dapat dibuat.',
-                ], 422);
-            }
-
-            $rawPassword = (string) random_int(100000, 999999);
-
-            $user = User::create([
-                'name' => $employee->name,
-                'email' => $employee->email,
-                'password' => Hash::make($rawPassword),
-                'status' => 'active',
-                'employee_id' => $employee->id,
-                'email_verified_at' => now(),
-            ]);
+        if (!$user) {
+            $tempPassword = $this->provisionEmployeeUserAccount($employee);
+            $user = $employee->fresh()->user;
         }
 
-        if (!$user->hasRole('intercomm')) {
+        if ($user) {
             $user->assignRole('intercomm');
         }
 
         return response()->json([
             'success' => true,
-            'message' => $rawPassword
-                ? 'Intercomm berhasil di-assign. Akun baru dibuat untuk employee.'
-                : 'Intercomm berhasil di-assign ke akun employee yang sudah ada.',
-            'data' => $user->only('id', 'name', 'email', 'status', 'employee_id'),
-            'temp_password' => $rawPassword,
+            'message' => 'Intercomm berhasil di-assign ke akun employee.',
+            'temp_password' => $tempPassword,
+            'data' => $employee->fresh(['division', 'department', 'user.roles'])->toArray(),
         ], 201);
     }
 
@@ -211,10 +225,16 @@ class IntercommController extends Controller
     public function deactivate(int $id): JsonResponse
     {
         abort_unless(auth()->user()->hasRole('pcx_manager'), 403, 'Hanya PCX Manager yang dapat menonaktifkan Intercomm');
-        $user = User::role('intercomm')->findOrFail($id);
-        $user->update(['status' => 'inactive']);
+        $employee = Employee::query()->with('user.roles')->findOrFail($id);
+        $user = $employee->user;
 
-        return response()->json(['success' => true, 'message' => 'Akun Intercomm berhasil dinonaktifkan']);
+        if (!$user || !$user->hasRole('intercomm')) {
+            return response()->json(['success' => true, 'message' => 'Intercomm sudah nonaktif.']);
+        }
+
+        $user->removeRole('intercomm');
+
+        return response()->json(['success' => true, 'message' => 'Role Intercomm berhasil dicabut.']);
     }
 
     /**
@@ -224,9 +244,37 @@ class IntercommController extends Controller
     public function activate(int $id): JsonResponse
     {
         abort_unless(auth()->user()->hasRole('pcx_manager'), 403, 'Hanya PCX Manager yang dapat mengaktifkan Intercomm');
-        $user = User::role('intercomm')->findOrFail($id);
-        $user->update(['status' => 'active']);
+        $employee = Employee::query()->with(['division', 'department', 'user.roles'])->findOrFail($id);
 
-        return response()->json(['success' => true, 'message' => 'Akun Intercomm berhasil diaktifkan']);
+        $user = $employee->user;
+        $tempPassword = null;
+
+        if (!$user) {
+            $tempPassword = $this->provisionEmployeeUserAccount($employee);
+            $user = $employee->fresh()->user;
+        }
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengaktifkan: Akun user tidak dapat dibuat.',
+            ], 422);
+        }
+
+        if (!$user->hasRole('intercomm')) {
+            $user->assignRole('intercomm');
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Role Intercomm berhasil diaktifkan.',
+            'temp_password' => $tempPassword,
+            'data' => $employee->fresh(['division', 'department', 'user.roles'])->toArray(),
+        ]);
+    }
+
+    private function isEmployeeIntercomm(Employee $employee): bool
+    {
+        return (bool) ($employee->user?->roles?->contains('name', 'intercomm'));
     }
 }

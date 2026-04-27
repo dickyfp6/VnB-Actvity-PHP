@@ -30,15 +30,33 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
+use App\Traits\HandlesUserProvisioning;
 
 class EmployeeController extends Controller
 {
+    use HandlesUserProvisioning;
+
     /**
      * UC-01: View Employee List & Filter
      */
     public function index(Request $request): JsonResponse
     {
         $query = Employee::query();
+        $scopedManager = $this->resolveScopedManagerContext();
+
+        if ($this->isScopedManagerRequest()) {
+            if (!$scopedManager) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
+
+            $query->where(function ($q) use ($scopedManager) {
+                $q->where('manager_functional_id', $scopedManager->id)
+                  ->orWhere('manager_operational_id', $scopedManager->id);
+            });
+        }
 
         $lifecycle = Str::lower(trim((string) $request->input('lifecycle', 'active')));
         if ($lifecycle === 'history' || in_array($lifecycle, ['inactive', 'resigned', 'terminated', 'graduated'], true)) {
@@ -61,6 +79,14 @@ class EmployeeController extends Controller
 
         if ($request->filled('employee_status')) {
             $query->where('employee_status', $request->employee_status);
+        }
+
+        if ($request->filled('manager_id')) {
+            $managerId = (int) $request->input('manager_id');
+            $query->where(function ($q) use ($managerId) {
+                $q->where('manager_functional_id', $managerId)
+                  ->orWhere('manager_operational_id', $managerId);
+            });
         }
 
         if ($request->filled('search')) {
@@ -244,13 +270,48 @@ class EmployeeController extends Controller
      */
     public function show(Employee $employee): JsonResponse
     {
+        if ($this->isScopedManagerRequest()) {
+            $scopedManager = $this->resolveScopedManagerContext();
+            $isOwnedByManager = $scopedManager
+                && ((int) $employee->manager_functional_id === (int) $scopedManager->id
+                    || (int) $employee->manager_operational_id === (int) $scopedManager->id);
+
+            if (!$isOwnedByManager) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Employee tidak ditemukan.',
+                ], 404);
+            }
+        }
+
         $periodStart = $employee->vnb_period_start ?? $employee->induction_date ?? $employee->date_joined;
         $periodEnd = $employee->vnb_period_end ?? ($periodStart ? Carbon::parse($periodStart)->copy()->addYear()->subDay() : null);
         $latestPlan = VnbPlan::query()
             ->where('employee_id', $employee->id)
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->first(['phase_number', 'status']);
+            ->with('items')
+            ->first(['id', 'phase_number', 'status']);
+
+        $progress = 0;
+        if ($latestPlan && $latestPlan->relationLoaded('items') && $latestPlan->items->count() > 0) {
+            $progress = round((float) $latestPlan->items->avg('completion_percentage'), 1);
+        }
+
+        if ($progress === 0.0) {
+            $progress = match ($employee->vnb_status) {
+                'completed' => 100,
+                default => 0,
+            };
+        }
+
+        $isVnbParticipant = (bool) ($employee->user?->vnbActivityAssignments()
+            ->where('is_active', true)
+            ->exists());
+
+        $planningStatus = $latestPlan?->status
+            ? str_replace('_', ' ', (string) $latestPlan->status)
+            : 'draft / belum diajukan';
 
         return response()->json([
             'success' => true,
@@ -258,6 +319,9 @@ class EmployeeController extends Controller
                 ...$employee->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods.plans', 'user'])->toArray(),
                 'career_stage' => $employee->getCareerStage(),
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $latestPlan),
+                'progress' => $progress,
+                'is_vnb_participant' => $isVnbParticipant,
+                'planning_status' => $planningStatus,
                 'account_credential_preview' => $this->buildCredentialPreview($employee->fresh(['user'])),
             ],
         ]);
@@ -844,110 +908,13 @@ class EmployeeController extends Controller
         return $firstName . $suffix;
     }
 
-    private function provisionEmployeeUserAccount(Employee $employee, bool $allowCreate): ?string
-    {
-        $email = trim((string) $employee->email);
-        if ($email === '') {
-            return null;
-        }
+    // Redundant methods removed as they are now provided by handlesUserProvisioning trait.
 
-        $existingByEmployee = User::query()->where('employee_id', $employee->id)->first();
-        $existingByEmail = User::query()->whereRaw('LOWER(email) = ?', [Str::lower($email)])->first();
 
-        if ($existingByEmployee && $existingByEmail && $existingByEmployee->id !== $existingByEmail->id) {
-            throw ValidationException::withMessages([
-                'email' => ['Email sudah digunakan akun lain.'],
-            ]);
-        }
-
-        if ($existingByEmail && (int) ($existingByEmail->employee_id ?? 0) !== (int) $employee->id && $existingByEmail->employee_id !== null) {
-            throw ValidationException::withMessages([
-                'email' => ['Email sudah digunakan akun user yang terhubung ke karyawan lain.'],
-            ]);
-        }
-
-        $user = $existingByEmployee ?: $existingByEmail;
-
-        if (!$user && !$allowCreate) {
-            return null;
-        }
-
-        if ($user) {
-            $user->update([
-                'name' => $employee->name,
-                'email' => $email,
-                'phone' => $employee->whatsapp,
-                'status' => 'active',
-                'employee_id' => $employee->id,
-            ]);
-
-            $employeeRole = $this->resolveEmployeeRoleName();
-            if ($employeeRole !== null && !$user->getRoleNames()->contains($employeeRole)) {
-                $user->syncRoles([$employeeRole]);
-            }
-
-            return null;
-        }
-
-        $rawPassword = $this->buildDefaultPasswordFromEmployee($employee);
-
-        $user = User::create([
-            'name' => $employee->name,
-            'email' => $email,
-            'password' => Hash::make($rawPassword),
-            'temp_password_encrypted' => Crypt::encryptString($rawPassword),
-            'temp_password_generated_at' => now(),
-            'phone' => $employee->whatsapp,
-            'status' => 'active',
-            'employee_id' => $employee->id,
-            'email_verified_at' => now(),
-        ]);
-
-        $employeeRole = $this->resolveEmployeeRoleName();
-        if ($employeeRole !== null) {
-            $user->assignRole($employeeRole);
-        }
-
-        return $rawPassword;
-    }
-
+    // Redundant reset method adjusted to use provision method from trait
     private function resetEmployeeCredential(Employee $employee): ?string
     {
-        $email = trim((string) $employee->email);
-        if ($email === '') {
-            return null;
-        }
-
-        $user = User::query()->where('employee_id', $employee->id)->first();
-
-        if (!$user) {
-            $this->provisionEmployeeUserAccount($employee, true);
-            $user = User::query()->where('employee_id', $employee->id)->first();
-        }
-
-        if (!$user) {
-            return null;
-        }
-
-        $rawPassword = $this->buildDefaultPasswordFromEmployee($employee);
-
-        $user->update([
-            'name' => $employee->name,
-            'email' => $email,
-            'phone' => $employee->whatsapp,
-            'status' => 'active',
-            'employee_id' => $employee->id,
-            'password' => Hash::make($rawPassword),
-            'temp_password_encrypted' => Crypt::encryptString($rawPassword),
-            'temp_password_generated_at' => now(),
-        ]);
-
-        $employeeRole = $this->resolveEmployeeRoleName();
-        if ($employeeRole !== null && !$user->getRoleNames()->contains($employeeRole)) {
-            $user->syncRoles([$employeeRole]);
-        }
-
-        return $rawPassword;
+        return $this->provisionEmployeeUserAccount($employee, true);
     }
 
     private function buildCredentialPreview(Employee $employee): array
@@ -974,15 +941,8 @@ class EmployeeController extends Controller
         ];
     }
 
-    private function resolveEmployeeRoleName(): ?string
-    {
-        $employeeRole = Role::query()->firstOrCreate([
-            'name' => 'employee',
-            'guard_name' => 'web',
-        ]);
+    // Removed resolveEmployeeRoleName and buildDefaultPasswordFromEmployee as they are in the trait
 
-        return $employeeRole->name;
-    }
 
     private function sendEmployeeCredentialEmail(Employee $employee, string $rawPassword): bool
     {
@@ -1817,5 +1777,37 @@ class EmployeeController extends Controller
             'level' => $get(['golongan', 'level']),
             'employee_status' => $this->normalizeEmployeeStatusValue($get(['status pegawai', 'employee_status']) ?? ''),
         ];
+    }
+
+    private function isScopedManagerRequest(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) (
+            $user
+            && $user->hasRole('manager')
+            && !$user->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama'])
+        );
+    }
+
+    private function resolveScopedManagerContext(): ?Manager
+    {
+        if (!$this->isScopedManagerRequest()) {
+            return null;
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        $manager = Manager::query()->where('user_id', $user->id)->first();
+        if ($manager) {
+            return $manager;
+        }
+
+        return Manager::query()
+            ->whereRaw('LOWER(email) = ?', [Str::lower((string) $user->email)])
+            ->first();
     }
 }

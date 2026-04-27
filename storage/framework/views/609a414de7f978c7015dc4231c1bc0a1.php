@@ -49,19 +49,19 @@
             <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
-                        <th>No</th>
-                        <th>NIP</th>
-                        <th>Nama Lengkap</th>
-                        <th>Tanggal Masuk</th>
-                        <th>Email</th>
-                        <th>Whatsapp</th>
-                        <th>Perusahaan</th>
-                        <th>Divisi</th>
-                        <th>Departemen</th>
-                        <th>Jabatan</th>
-                        <th>Penempatan</th>
-                        <th>Golongan</th>
-                        <th class="relative">
+                        <th data-sort-key="row_index">No</th>
+                        <th data-sort-key="employee_number">NIP</th>
+                        <th data-sort-key="name_display">Nama Lengkap</th>
+                        <th data-sort-key="date_joined">Tanggal Masuk</th>
+                        <th data-sort-key="email">Email</th>
+                        <th data-sort-key="whatsapp">Whatsapp</th>
+                        <th data-sort-key="company">Perusahaan</th>
+                        <th data-sort-key="division">Divisi</th>
+                        <th data-sort-key="department">Departemen</th>
+                        <th data-sort-key="position">Jabatan</th>
+                        <th data-sort-key="placement">Penempatan</th>
+                        <th data-sort-key="level">Golongan</th>
+                        <th class="relative" data-sort-key="employee_status">
                             <div class="flex items-center justify-between gap-2">
                                 <span>Status Pegawai</span>
                                 <div class="relative group cursor-pointer">
@@ -74,7 +74,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th>Status Aktif</th>
+                        <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="updated-body" style="white-space: nowrap;">
@@ -89,19 +89,19 @@
             <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
-                        <th>No</th>
-                        <th>NIP</th>
-                        <th>Nama Lengkap</th>
-                        <th>Tanggal Masuk</th>
-                        <th>Email</th>
-                        <th>Whatsapp</th>
-                        <th>Perusahaan</th>
-                        <th>Divisi</th>
-                        <th>Departemen</th>
-                        <th>Jabatan</th>
-                        <th>Penempatan</th>
-                        <th>Golongan</th>
-                        <th class="relative">
+                        <th data-sort-key="row_index">No</th>
+                        <th data-sort-key="employee_number">NIP</th>
+                        <th data-sort-key="name_display">Nama Lengkap</th>
+                        <th data-sort-key="date_joined">Tanggal Masuk</th>
+                        <th data-sort-key="email">Email</th>
+                        <th data-sort-key="whatsapp">Whatsapp</th>
+                        <th data-sort-key="company">Perusahaan</th>
+                        <th data-sort-key="division">Divisi</th>
+                        <th data-sort-key="department">Departemen</th>
+                        <th data-sort-key="position">Jabatan</th>
+                        <th data-sort-key="placement">Penempatan</th>
+                        <th data-sort-key="level">Golongan</th>
+                        <th class="relative" data-sort-key="employee_status">
                             <div class="flex items-center justify-between gap-2">
                                 <span>Status Pegawai</span>
                                 <div class="relative group cursor-pointer">
@@ -114,7 +114,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th>Status Aktif</th>
+                        <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hris-body" style="white-space: nowrap;">
@@ -129,19 +129,19 @@
             <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
-                        <th>No</th>
-                        <th>NIP</th>
-                        <th>Nama Lengkap</th>
-                        <th>Tanggal Masuk</th>
-                        <th>Email</th>
-                        <th>Whatsapp</th>
-                        <th>Perusahaan</th>
-                        <th>Divisi</th>
-                        <th>Departemen</th>
-                        <th>Jabatan</th>
-                        <th>Penempatan</th>
-                        <th>Golongan</th>
-                        <th class="relative">
+                        <th data-sort-key="row_index">No</th>
+                        <th data-sort-key="employee_number">NIP</th>
+                        <th data-sort-key="name_display">Nama Lengkap</th>
+                        <th data-sort-key="date_joined">Tanggal Masuk</th>
+                        <th data-sort-key="email">Email</th>
+                        <th data-sort-key="whatsapp">Whatsapp</th>
+                        <th data-sort-key="company">Perusahaan</th>
+                        <th data-sort-key="division">Divisi</th>
+                        <th data-sort-key="department">Departemen</th>
+                        <th data-sort-key="position">Jabatan</th>
+                        <th data-sort-key="placement">Penempatan</th>
+                        <th data-sort-key="level">Golongan</th>
+                        <th class="relative" data-sort-key="employee_status">
                             <div class="flex items-center justify-between gap-2">
                                 <span>Status Pegawai</span>
                                 <div class="relative group cursor-pointer">
@@ -154,7 +154,7 @@
                                 </div>
                             </div>
                         </th>
-                        <th>Status Aktif</th>
+                        <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hrms-body" style="white-space: nowrap;">
@@ -367,6 +367,16 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
+function renderEmployeeNameLink(row) {
+    const name = escapeHtml(row?.name || '-');
+    const employeeId = row?.id ?? row?.employee_id;
+    if (!employeeId) {
+        return name;
+    }
+
+    return `<a href="/employees/${employeeId}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">${name}</a>`;
+}
+
 function normalize(value) {
     return (value || '').toString().trim().toLowerCase();
 }
@@ -527,6 +537,10 @@ function updateSummary(summary) {
     if (badge) {
         badge.style.display = pendingTotal > 0 ? 'inline-flex' : 'none';
     }
+
+    if (typeof window.setSyncPendingBadge === 'function') {
+        window.setSyncPendingBadge(pendingTotal);
+    }
 }
 
 function formatSyncType(syncType) {
@@ -566,7 +580,7 @@ function renderUpdatedTable() {
         <tr class="${getPendingRowClass(row)} hover:bg-gray-50">
             <td class="px-3 py-2">${idx + 1}</td>
             <td class="px-3 py-2">${escapeHtml(row.employee_number)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.name)}</td>
+            <td class="px-3 py-2">${renderEmployeeNameLink(row)}</td>
             <td class="px-3 py-2">${escapeHtml(row.date_joined)}</td>
             <td class="px-3 py-2">${escapeHtml(row.email)}</td>
             <td class="px-3 py-2">${escapeHtml(row.whatsapp)}</td>
@@ -593,20 +607,20 @@ function renderHrisTable() {
 
     tbody.innerHTML = rows.map((row, idx) => `
         <tr class="hover:bg-gray-50">
-            <td class="px-3 py-2">${idx + 1}</td>
-            <td class="px-3 py-2">${escapeHtml(row.employee_number)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.name)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.date_joined)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.email)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.whatsapp)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.company)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.division)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.department)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.position)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
-            <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
+            <td class="px-3 py-2" data-column-key="row_index">${idx + 1}</td>
+            <td class="px-3 py-2" data-column-key="employee_number">${escapeHtml(row.employee_number)}</td>
+            <td class="px-3 py-2" data-column-key="name_display">${renderEmployeeNameLink(row)}</td>
+            <td class="px-3 py-2" data-column-key="date_joined">${escapeHtml(row.date_joined)}</td>
+            <td class="px-3 py-2" data-column-key="email">${escapeHtml(row.email)}</td>
+            <td class="px-3 py-2" data-column-key="whatsapp">${escapeHtml(row.whatsapp)}</td>
+            <td class="px-3 py-2" data-column-key="company">${escapeHtml(row.company)}</td>
+            <td class="px-3 py-2" data-column-key="division">${escapeHtml(row.division)}</td>
+            <td class="px-3 py-2" data-column-key="department">${escapeHtml(row.department)}</td>
+            <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
+            <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
+            <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
 }
@@ -622,20 +636,20 @@ function renderHrmsTable() {
 
     tbody.innerHTML = rows.map((row, idx) => `
         <tr class="hover:bg-gray-50">
-            <td class="px-3 py-2">${idx + 1}</td>
-            <td class="px-3 py-2">${escapeHtml(row.employee_number)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.name)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.date_joined)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.email)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.whatsapp)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.company)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.division)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.department)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.position)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
-            <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
+            <td class="px-3 py-2" data-column-key="row_index">${idx + 1}</td>
+            <td class="px-3 py-2" data-column-key="employee_number">${escapeHtml(row.employee_number)}</td>
+            <td class="px-3 py-2" data-column-key="name_display">${renderEmployeeNameLink(row)}</td>
+            <td class="px-3 py-2" data-column-key="date_joined">${escapeHtml(row.date_joined)}</td>
+            <td class="px-3 py-2" data-column-key="email">${escapeHtml(row.email)}</td>
+            <td class="px-3 py-2" data-column-key="whatsapp">${escapeHtml(row.whatsapp)}</td>
+            <td class="px-3 py-2" data-column-key="company">${escapeHtml(row.company)}</td>
+            <td class="px-3 py-2" data-column-key="division">${escapeHtml(row.division)}</td>
+            <td class="px-3 py-2" data-column-key="department">${escapeHtml(row.department)}</td>
+            <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
+            <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
+            <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
 }
@@ -729,7 +743,7 @@ function renderSyncPreviewTables() {
             return `
                 <tr class="border-t border-yellow-200">
                     <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
-                    <td class="px-2 py-1">${escapeHtml(row.name)}</td>
+                    <td class="px-2 py-1">${renderEmployeeNameLink(row)}</td>
                     <td class="px-2 py-1">${escapeHtml(note)}</td>
                 </tr>
             `;
@@ -746,7 +760,7 @@ function renderSyncPreviewTables() {
         addBody.innerHTML = newRows.map(row => `
             <tr class="border-t border-green-200">
                 <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
-                <td class="px-2 py-1">${escapeHtml(row.name)}</td>
+                <td class="px-2 py-1">${renderEmployeeNameLink(row)}</td>
             </tr>
         `).join('');
         addContainer.classList.remove('hidden');
@@ -761,7 +775,7 @@ function renderSyncPreviewTables() {
         inactiveBody.innerHTML = inactiveRows.map(row => `
             <tr class="border-t border-red-200">
                 <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
-                <td class="px-2 py-1">${escapeHtml(row.name)}</td>
+                <td class="px-2 py-1">${renderEmployeeNameLink(row)}</td>
             </tr>
         `).join('');
         inactiveContainer.classList.remove('hidden');

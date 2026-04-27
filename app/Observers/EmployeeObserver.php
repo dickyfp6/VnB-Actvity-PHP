@@ -5,18 +5,32 @@ namespace App\Observers;
 use App\Models\Employee;
 use App\Models\Manager;
 use App\Models\User;
+use App\Traits\HandlesUserProvisioning;
 use Illuminate\Support\Facades\Log;
 
 class EmployeeObserver
 {
+    use HandlesUserProvisioning;
+
     /**
-     * Handle the Employee "updated" event.
+     * Handle the Employee "created" event.
+     */
+    public function created(Employee $employee): void
+    {
+        $this->provisionEmployeeUserAccount($employee);
+    }
+
      * 
      * When an employee is assigned as a functional or operational manager,
      * automatically create/update their Manager record and assign them the manager role.
      */
     public function updated(Employee $employee): void
     {
+        // Keep user info in sync
+        if ($employee->wasChanged(['name', 'email', 'whatsapp', 'status'])) {
+            $this->provisionEmployeeUserAccount($employee);
+        }
+
         // Check if manager_functional_id or manager_operational_id changed
         if (!$employee->wasChanged(['manager_functional_id', 'manager_operational_id'])) {
             return;

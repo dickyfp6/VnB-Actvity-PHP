@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','Manager - Approval Request')
-@section('content')
+
+<?php $__env->startSection('title','Manager - Approval Request'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
   <h1 class="text-2xl font-bold text-gray-800">Approval Request</h1>
 
@@ -38,14 +38,14 @@
       <table class="table-modern">
         <thead>
           <tr>
-            <th data-sort-key="type">Jenis</th>
-            <th data-sort-key="employee_name">Employee</th>
-            <th data-sort-key="employee_number">NIP</th>
-            <th data-sort-key="company">Perusahaan</th>
-            <th data-sort-key="title">Judul</th>
-            <th data-sort-key="phase">Tahap</th>
-            <th data-sort-key="submitted_at">Waktu Submit</th>
-            <th class="text-right" data-sortable="false">Aksi</th>
+            <th>Jenis</th>
+            <th>Employee</th>
+            <th>NIP</th>
+            <th>Perusahaan</th>
+            <th>Judul</th>
+            <th>Tahap</th>
+            <th>Waktu Submit</th>
+            <th class="text-right">Aksi</th>
           </tr>
         </thead>
         <tbody id="my-approvals-body">
@@ -64,14 +64,14 @@
       <table class="table-modern">
         <thead>
           <tr>
-            <th data-sort-key="type">Jenis</th>
-            <th data-sort-key="employee_name">Employee</th>
-            <th data-sort-key="employee_number">NIP</th>
-            <th data-sort-key="company">Perusahaan</th>
-            <th data-sort-key="title">Judul</th>
-            <th data-sort-key="phase">Tahap</th>
-            <th data-sort-key="submitted_at">Waktu Submit</th>
-            <th class="text-right" data-sortable="false">Aksi</th>
+            <th>Jenis</th>
+            <th>Employee</th>
+            <th>NIP</th>
+            <th>Perusahaan</th>
+            <th>Judul</th>
+            <th>Tahap</th>
+            <th>Waktu Submit</th>
+            <th class="text-right">Aksi</th>
           </tr>
         </thead>
         <tbody id="monitoring-body">
@@ -82,7 +82,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let myApprovalsRows = [];
 let monitoringRows = [];
@@ -159,21 +159,17 @@ function renderMyApprovals() {
 
   tbody.innerHTML = myApprovalsRows.map(row => `
     <tr class="hover:bg-gray-50">
-      <td class="px-4 py-3" data-column-key="type">
+      <td class="px-4 py-3">
         <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.type === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
           ${row.type === 'planning' ? 'Planning' : 'Activity'}
         </span>
       </td>
-      <td class="px-4 py-3" data-column-key="employee_name">
-        <a href="/manager/employees/${row.employee_id}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">
-          ${row.employee_name || '-'}
-        </a>
-      </td>
-      <td class="px-4 py-3" data-column-key="employee_number">${row.employee_number || '-'}</td>
-      <td class="px-4 py-3" data-column-key="company">${row.company || '-'}</td>
-      <td class="px-4 py-3" data-column-key="title">${row.title || '-'}</td>
-      <td class="px-4 py-3" data-column-key="phase">${row.phase || '-'}</td>
-      <td class="px-4 py-3" data-column-key="submitted_at">${row.submitted_at || '-'}</td>
+      <td class="px-4 py-3">${row.employee_name || '-'}</td>
+      <td class="px-4 py-3">${row.employee_number || '-'}</td>
+      <td class="px-4 py-3">${row.company || '-'}</td>
+      <td class="px-4 py-3">${row.title || '-'}</td>
+      <td class="px-4 py-3">${row.phase || '-'}</td>
+      <td class="px-4 py-3">${row.submitted_at || '-'}</td>
       <td class="px-4 py-3 text-right">
         <a href="/manager/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
           <i class="fas fa-arrow-right"></i> Lihat Detail
@@ -192,21 +188,17 @@ function renderMonitoring() {
 
   tbody.innerHTML = monitoringRows.map(row => `
     <tr class="hover:bg-gray-50 opacity-75">
-      <td class="px-4 py-3" data-column-key="type">
+      <td class="px-4 py-3">
         <span class="px-2 py-0.5 rounded-full text-xs font-medium ${row.type === 'planning' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}">
           ${row.type === 'planning' ? 'Planning' : 'Activity'}
         </span>
       </td>
-      <td class="px-4 py-3" data-column-key="employee_name">
-        <a href="/manager/employees/${row.employee_id}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">
-          ${row.employee_name || '-'}
-        </a>
-      </td>
-      <td class="px-4 py-3" data-column-key="employee_number">${row.employee_number || '-'}</td>
-      <td class="px-4 py-3" data-column-key="company">${row.company || '-'}</td>
-      <td class="px-4 py-3" data-column-key="title">${row.title || '-'}</td>
-      <td class="px-4 py-3" data-column-key="phase">${row.phase || '-'}</td>
-      <td class="px-4 py-3" data-column-key="submitted_at">${row.submitted_at || '-'}</td>
+      <td class="px-4 py-3">${row.employee_name || '-'}</td>
+      <td class="px-4 py-3">${row.employee_number || '-'}</td>
+      <td class="px-4 py-3">${row.company || '-'}</td>
+      <td class="px-4 py-3">${row.title || '-'}</td>
+      <td class="px-4 py-3">${row.phase || '-'}</td>
+      <td class="px-4 py-3">${row.submitted_at || '-'}</td>
       <td class="px-4 py-3 text-right">
         <a href="/manager/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
           <i class="fas fa-eye"></i> Pantau
@@ -218,6 +210,8 @@ function renderMonitoring() {
 
 loadRequests();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/manager-approval/index.blade.php ENDPATH**/ ?>

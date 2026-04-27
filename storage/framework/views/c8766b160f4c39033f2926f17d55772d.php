@@ -1,6 +1,6 @@
-@extends('layouts.app')
-@section('title','Manager - Employee')
-@section('content')
+
+<?php $__env->startSection('title','Manager - Employee'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-gray-800">Employee</h1>
@@ -21,17 +21,17 @@
       <table class="table-modern">
         <thead>
           <tr>
-            <th data-sort-key="row_index">No</th>
-            <th data-sort-key="employee_number">NIP</th>
-            <th data-sort-key="name">Nama Employee</th>
-            <th data-sort-key="date_joined">Tanggal Masuk</th>
-            <th data-sort-key="induction_date">Tanggal Induction</th>
-            <th data-sort-key="email">Email</th>
-            <th data-sort-key="whatsapp">Whatsapp</th>
-            <th data-sort-key="vnb_period_start">Periode Awal</th>
-            <th data-sort-key="vnb_period_end">Periode Akhir</th>
-            <th data-sort-key="career_stage">Career Stage</th>
-            <th class="relative" data-sort-key="phase">
+            <th>No</th>
+            <th>NIP</th>
+            <th>Nama Employee</th>
+            <th>Tanggal Masuk</th>
+            <th>Tanggal Induction</th>
+            <th>Email</th>
+            <th>Whatsapp</th>
+            <th>Periode Awal</th>
+            <th>Periode Akhir</th>
+            <th>Career Stage</th>
+            <th class="relative">
               <div class="flex items-center justify-between gap-2">
                 <span>Fase</span>
                 <div class="relative group cursor-pointer">
@@ -48,17 +48,17 @@
                 </div>
               </div>
             </th>
-            <th data-sort-key="progress">Progress</th>
-            <th data-sort-key="manager_functional">Manager Fungsional</th>
-            <th data-sort-key="manager_operational">Manager Operasional</th>
-            <th data-sort-key="company">Perusahaan</th>
-            <th data-sort-key="division">Divisi</th>
-            <th data-sort-key="department">Departemen</th>
-            <th data-sort-key="position">Jabatan</th>
-            <th data-sort-key="placement">Penempatan</th>
-            <th data-sort-key="level">Golongan</th>
-            <th data-sort-key="employee_status">Status Pegawai</th>
-            <th data-sort-key="status">Status Lifecycle</th>
+            <th>Progress</th>
+            <th>Manager Fungsional</th>
+            <th>Manager Operasional</th>
+            <th>Perusahaan</th>
+            <th>Divisi</th>
+            <th>Departemen</th>
+            <th>Jabatan</th>
+            <th>Penempatan</th>
+            <th>Golongan</th>
+            <th>Status Pegawai</th>
+            <th>Status Lifecycle</th>
           </tr>
         </thead>
         <tbody id="rows-body">
@@ -69,7 +69,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let allRows = [];
 let filteredRows = [];
@@ -142,9 +142,9 @@ function renderRows() {
 
   tbody.innerHTML = filteredRows.map((row, idx) => `
     <tr class="hover:bg-gray-50">
-      <td class="px-4 py-3" data-column-key="row_index">${idx + 1}</td>
-      <td class="px-4 py-3" data-column-key="employee_number">${row.employee_number || '-'}</td>
-      <td class="px-4 py-3 font-medium" data-column-key="name">
+      <td class="px-4 py-3">${idx + 1}</td>
+      <td class="px-4 py-3">${row.employee_number || '-'}</td>
+      <td class="px-4 py-3 font-medium">
         <div class="flex items-center gap-2">
           <span>${row.name || '-'}</span>
           <a href="/manager/employees/${row.id}" class="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700" title="Lihat Detail">
@@ -152,25 +152,25 @@ function renderRows() {
           </a>
         </div>
       </td>
-      <td class="px-4 py-3" data-column-key="date_joined">${row.date_joined || '-'}</td>
-      <td class="px-4 py-3" data-column-key="induction_date">${row.induction_date || '-'}</td>
-      <td class="px-4 py-3" data-column-key="email">${row.email || '-'}</td>
-      <td class="px-4 py-3" data-column-key="whatsapp">${row.whatsapp || '-'}</td>
-      <td class="px-4 py-3" data-column-key="vnb_period_start">${row.vnb_period_start || '-'}</td>
-      <td class="px-4 py-3" data-column-key="vnb_period_end">${row.vnb_period_end || '-'}</td>
-      <td class="px-4 py-3" data-column-key="career_stage">${row.career_stage || '-'}</td>
-      <td class="px-4 py-3" data-column-key="phase">${row.phase || '-'}</td>
-      <td class="px-4 py-3 font-semibold" data-column-key="progress">${row.progress || 0}%</td>
-      <td class="px-4 py-3" data-column-key="manager_functional">${row.manager_functional || '-'}</td>
-      <td class="px-4 py-3" data-column-key="manager_operational">${row.manager_operational || '-'}</td>
-      <td class="px-4 py-3" data-column-key="company">${row.company || '-'}</td>
-      <td class="px-4 py-3" data-column-key="division">${row.division || '-'}</td>
-      <td class="px-4 py-3" data-column-key="department">${row.department || '-'}</td>
-      <td class="px-4 py-3" data-column-key="position">${row.position || '-'}</td>
-      <td class="px-4 py-3" data-column-key="placement">${row.placement || '-'}</td>
-      <td class="px-4 py-3" data-column-key="level">${row.level || '-'}</td>
-      <td class="px-4 py-3" data-column-key="employee_status">${row.employee_status || '-'}</td>
-      <td class="px-4 py-3" data-column-key="status">
+      <td class="px-4 py-3">${row.date_joined || '-'}</td>
+      <td class="px-4 py-3">${row.induction_date || '-'}</td>
+      <td class="px-4 py-3">${row.email || '-'}</td>
+      <td class="px-4 py-3">${row.whatsapp || '-'}</td>
+      <td class="px-4 py-3">${row.vnb_period_start || '-'}</td>
+      <td class="px-4 py-3">${row.vnb_period_end || '-'}</td>
+      <td class="px-4 py-3">${row.career_stage || '-'}</td>
+      <td class="px-4 py-3">${row.phase || '-'}</td>
+      <td class="px-4 py-3 font-semibold">${row.progress || 0}%</td>
+      <td class="px-4 py-3">${row.manager_functional || '-'}</td>
+      <td class="px-4 py-3">${row.manager_operational || '-'}</td>
+      <td class="px-4 py-3">${row.company || '-'}</td>
+      <td class="px-4 py-3">${row.division || '-'}</td>
+      <td class="px-4 py-3">${row.department || '-'}</td>
+      <td class="px-4 py-3">${row.position || '-'}</td>
+      <td class="px-4 py-3">${row.placement || '-'}</td>
+      <td class="px-4 py-3">${row.level || '-'}</td>
+      <td class="px-4 py-3">${row.employee_status || '-'}</td>
+      <td class="px-4 py-3">
         <span class="inline-block px-2 py-1 rounded text-xs font-medium ${
           row.status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
         }">
@@ -183,5 +183,7 @@ function renderRows() {
 
 loadRows();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/manager-employees/index.blade.php ENDPATH**/ ?>

@@ -1,6 +1,6 @@
-﻿@extends('layouts.app')
-@section('title','Manage Manager')
-@section('content')
+﻿
+<?php $__env->startSection('title','Manage Manager'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-800">Manage Manager</h1>
@@ -34,7 +34,7 @@
   </div>
 </div>
 
-{{-- Modal Detail Manager --}}
+
 <div id="modal-detail" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
     <div class="flex items-center justify-between mb-4">
@@ -50,7 +50,7 @@
   </div>
 </div>
 
-{{-- Modal Add/Edit --}}
+
 <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
     <h2 id="modal-title" class="text-lg font-bold text-gray-800 mb-4">Tambah Manager</h2>
@@ -87,7 +87,7 @@
   </div>
 </div>
 
-{{-- Modal Account Credential --}}
+
 <div id="modal-credential" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
     <div class="text-4xl mb-3" style="color: #37AA05;"><i class="fas fa-check-circle"></i></div>
@@ -100,7 +100,7 @@
   </div>
 </div>
 
-{{-- Modal Employee List --}}
+
 <div id="modal-hires" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
   <div class="bg-white rounded-xl p-6 w-full max-w-3xl shadow-xl">
     <div class="flex items-center justify-between mb-4">
@@ -129,7 +129,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let managers = [];
 let companyOptions = [];
@@ -392,5 +392,7 @@ function closeCredentialModal() {
 loadManagers();
 loadMasterOptions();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/managers/index.blade.php ENDPATH**/ ?>

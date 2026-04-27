@@ -23,8 +23,33 @@ class PageController extends Controller
 
     public function employees(Request $request)
     {
-        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager', 'manager']);
         return view('employees.index');
+    }
+
+    public function employeeDetail(Request $request, int $employeeId)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager', 'manager']);
+
+        $query = http_build_query([
+            'manager_id' => $request->query('manager_id'),
+        ]);
+
+        $backUrl = '/employees' . ($query ? ('?' . $query) : '');
+
+        return view('employees.detail', compact('employeeId', 'backUrl'));
+    }
+
+    public function managerEmployees(Request $request)
+    {
+        $this->ensureActiveRole($request, ['manager']);
+
+        $managerId = auth()->user()?->manager?->id;
+        if ($managerId) {
+            return redirect('/employees?manager_id=' . $managerId);
+        }
+
+        return view('manager-employees.index');
     }
 
     public function vnbPlans(Request $request)
@@ -84,12 +109,6 @@ class PageController extends Controller
     {
         $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
         return view('master-data.index');
-    }
-
-    public function managerEmployees(Request $request)
-    {
-        $this->ensureActiveRole($request, ['manager']);
-        return view('manager-employees.index');
     }
 
     public function managerEmployeeDetail(Request $request, int $employeeId)
