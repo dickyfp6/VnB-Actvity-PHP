@@ -1,11 +1,12 @@
 @extends('layouts.app')
 @section('title','Detail Employee')
+@section('page_title','Detail Employee')
+@section('page_subtitle','Lihat detail profil dan status kemajuan VnB untuk satu employee.')
 @section('content')
 <div class="space-y-6">
     <div class="card-glass rounded-xl p-6 md:p-8">
         <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
             <div class="flex-1">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Detail Employee</h1>
                 <p class="text-gray-600 mb-4">Informasi profile dan status kemajuan VnB employee</p>
             </div>
             <div class="flex gap-2 flex-shrink-0">

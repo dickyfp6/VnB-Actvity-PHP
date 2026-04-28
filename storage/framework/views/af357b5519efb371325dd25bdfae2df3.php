@@ -1,55 +1,173 @@
 
-<?php $__env->startSection('title','V&B Framework'); ?>
+<?php $__env->startSection('title','VnB Framework'); ?>
+<?php $__env->startSection('page_title','VnB Framework'); ?>
+<?php $__env->startSection('page_subtitle','Bangun behaviour, career stage, dan peta golongan dalam satu ruang kerja yang ringkas.'); ?>
 <?php $__env->startSection('content'); ?>
-<div class="py-2 space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-900">V&B Framework</h1>
-  </div>
+<style>
+  .fw-card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(55,170,5,0.12);
+    border-radius: 1rem;
+    padding: 1.75rem;
+    box-shadow: 0 4px 24px rgba(31,38,135,0.06);
+    transition: box-shadow .25s ease, transform .25s ease;
+  }
+  .fw-card:hover { box-shadow: 0 8px 32px rgba(31,38,135,0.1); }
+  .fw-card-title {
+    font-size: 1.1rem; font-weight: 700; color: var(--color-neutral-900);
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .fw-card-title i { color: var(--color-primary); font-size: .95rem; }
+  .fw-card-desc { font-size: .82rem; color: var(--color-neutral-600); margin-top: .25rem; }
+  .fw-btn {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .55rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 600;
+    border: none; cursor: pointer; transition: all .2s ease;
+  }
+  .fw-btn-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    color: #fff; box-shadow: 0 3px 12px rgba(55,170,5,0.25);
+  }
+  .fw-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(55,170,5,0.35); }
+  .fw-btn-outline {
+    background: transparent; color: var(--color-neutral-700);
+    border: 1px solid var(--color-neutral-300);
+  }
+  .fw-btn-outline:hover { background: rgba(55,170,5,0.06); border-color: var(--color-primary); color: var(--color-primary-dark); }
+  .fw-empty-icon {
+    width: 4.5rem; height: 4.5rem; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(55,170,5,0.12), rgba(95,196,46,0.08));
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .fw-empty-icon i { font-size: 1.8rem; color: var(--color-primary); }
+  .fw-select {
+    border: 1.5px solid var(--color-neutral-300); border-radius: .6rem;
+    padding: .45rem .75rem; font-size: .82rem; font-weight: 500;
+    transition: border-color .2s ease, box-shadow .2s ease; background: #fff;
+  }
+  .fw-select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(55,170,5,0.1); }
+  .fw-badge-dirty {
+    font-size: .72rem; padding: .25rem .6rem; border-radius: 999px;
+    background: rgba(234,179,8,0.12); color: #a16207; font-weight: 600;
+  }
+  .fw-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .fw-stage-card {
+    border: 1px solid rgba(55,170,5,0.15); border-radius: .75rem;
+    padding: 1.25rem; background: rgba(255,255,255,0.6);
+    transition: border-color .2s ease;
+  }
+  .fw-stage-card:hover { border-color: rgba(55,170,5,0.35); }
+  .fw-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px); z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 1.5rem;
+  }
+  .fw-modal-overlay.open { display: flex; }
+  /* Inline setup mode: render modal content inline in page instead of popup */
+  body.inline-setup .fw-modal-overlay.open {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    inset: auto !important;
+    padding: 0 !important;
+  }
+  body.inline-setup .fw-modal {
+    box-shadow: none; max-width: none; width: 100%; padding: 1rem 1.25rem; border-radius: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .fw-modal {
+    background: #fff; border-radius: 1.25rem; width: 100%; max-width: 52rem;
+    padding: 2rem; max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    animation: fwSlideUp .3s ease-out;
+  }
+  @keyframes fwSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .fw-input {
+    width: 100%; border: 1.5px solid var(--color-neutral-300); border-radius: .5rem;
+    padding: .5rem .75rem; font-size: .82rem; transition: border-color .2s ease;
+  }
+  .fw-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(55,170,5,0.08); }
+  .fw-section-num {
+    width: 1.6rem; height: 1.6rem; border-radius: 50%; font-size: .72rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); color: #fff;
+  }
+  .stage-card.drag-over,
+  #editor-level-pool.drag-over {
+    border-color: var(--color-primary);
+    background: rgba(55,170,5,0.04);
+    box-shadow: 0 0 0 3px rgba(55,170,5,0.08);
+  }
+</style>
 
-  <section id="framework-empty" class="hidden bg-white border border-gray-200 rounded-xl p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-2">Belum dibuat.</h2>
-    <p class="text-sm text-gray-600 mb-4">Yuk siapkan VnB Framework kamu!</p>
-    <button id="btn-open-setup" class="px-4 py-2 rounded-lg text-white text-sm" style="background-color:#144600;">Buat Framework</button>
+<div class="py-2 space-y-5 animate-fade-in">
+
+  
+  <section id="framework-empty" class="hidden fw-card text-center py-10">
+    <div class="fw-empty-icon"><i class="fas fa-layer-group"></i></div>
+    <h2 class="text-lg font-bold text-gray-900 mb-1">Framework Belum Dibuat</h2>
+    <p class="text-sm text-gray-500 mb-5">Mulai dengan membuat kerangka VnB Framework untuk organisasi kamu.</p>
+    <button id="btn-open-setup" class="fw-btn fw-btn-primary"><i class="fas fa-plus"></i> Buat Framework</button>
   </section>
 
-  <section id="framework-config" class="hidden bg-white border border-gray-200 rounded-xl p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Pengaturan Detail Framework</h2>
-    <p class="text-sm text-gray-600 mb-4">Atur fase (durasi bulan) dan batas maksimal integrasi aktivitas untuk tiap career stage.</p>
+  
+  <section id="framework-config" class="hidden fw-card">
+    <div class="fw-card-title"><i class="fas fa-sliders-h"></i> Pengaturan Detail Framework</div>
+    <p class="fw-card-desc mb-4">Atur fase (durasi bulan) dan batas maksimal integrasi aktivitas untuk tiap career stage.</p>
     <div id="stage-config-list" class="space-y-4"></div>
   </section>
 
-  <section id="framework-preview" class="hidden bg-white border border-gray-200 rounded-xl p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Preview Kerangka Framework</h2>
-    <div class="overflow-x-auto">
-      <table class="table-modern w-full">
-        <thead>
-          <tr>
-            <th>Career Stage</th>
-            <th>Behaviour</th>
-            <th>Phase</th>
-          </tr>
-        </thead>
-        <tbody id="framework-preview-body"></tbody>
-      </table>
-    </div>
-  </section>
+  
 
-  <section id="framework-integrations" class="hidden bg-white border border-gray-200 rounded-xl p-6">
-    <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+  
+  <section id="framework-integrations" class="hidden fw-card">
+    <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">Integrasi Aktivitas</h2>
-        <p class="text-sm text-gray-600">Isi detail integrasi per behaviour dan fase sesuai batas maksimum stage.</p>
+        <div class="fw-card-title"><i class="fas fa-puzzle-piece"></i> Integrasi Aktivitas</div>
+        <p class="fw-card-desc">Susun integrasi per career stage, mulai dari konfigurasi fase lalu isi integrasi pengukuran.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm text-gray-700">Career Stage</label>
-        <select id="integrations-stage-select" class="border border-gray-300 rounded-lg px-3 py-2 text-sm"></select>
-        <span id="integrations-dirty-badge" class="hidden text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">Perubahan belum disimpan</span>
-        <button id="discard-local-draft-btn" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">Buang Draft Lokal</button>
-        <button id="copy-prev-phase-btn" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">Copy dari Fase Sebelumnya</button>
-        <button id="reset-template-btn" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">Reset ke Template</button>
-        <button id="save-integrations-btn" class="px-4 py-2 rounded-lg text-white text-sm" style="background-color:#144600;">Simpan Integrasi</button>
+      <div class="fw-toolbar">
+        <button id="btn-edit-career-stage" class="fw-btn fw-btn-outline"><i class="fas fa-pen"></i> Edit Career Stage</button>
+        <span id="integrations-dirty-badge" class="hidden fw-badge-dirty">⚠ Belum disimpan</span>
       </div>
     </div>
+
+    <div id="integrations-stage-tabs" class="flex flex-wrap gap-2 mb-4"></div>
+
+    <div class="border border-gray-200 rounded-xl p-4 bg-white mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-bold text-gray-800">Konfigurasi Stage Aktif</h4>
+        <span id="stage-autosave-indicator" class="text-xs text-gray-500">Auto-save aktif</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="stage-max-integrations" class="text-xs font-semibold text-gray-500 block mb-1.5">Jumlah Integrasi (minimal 1)</label>
+          <input id="stage-max-integrations" type="number" min="1" max="20" value="1" class="w-28 fw-input text-center">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 block mb-1.5">Jumlah Fase & Durasi (bulan)</label>
+          <div id="stage-phase-list" class="space-y-2"></div>
+          <button id="btn-add-phase" type="button" class="fw-btn fw-btn-outline text-xs mt-2"><i class="fas fa-plus"></i> Tambah Fase</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+        <button id="btn-save-stage-config" class="fw-btn fw-btn-primary"><i class="fas fa-save"></i> Simpan</button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+      <div class="text-sm font-semibold text-gray-800">Integrasi Pengukuran (VnB Activity)</div>
+      <div class="fw-toolbar">
+        <button id="btn-edit-vnb-activity" class="fw-btn fw-btn-outline"><i class="fas fa-pen"></i> Edit VnB Activity</button>
+        <button id="btn-clone-stage" class="fw-btn fw-btn-outline"><i class="fas fa-clone"></i> Clone</button>
+        <button id="save-integrations-btn" class="fw-btn fw-btn-primary"><i class="fas fa-save"></i> Simpan Integrasi</button>
+      </div>
+    </div>
+
     <div class="overflow-x-auto">
       <table class="table-modern w-full">
         <thead id="integrations-head"></thead>
@@ -59,39 +177,48 @@
   </section>
 </div>
 
-<div id="setup-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
-  <div class="bg-white rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-bold text-gray-900">Buat Kerangka VnB Framework</h3>
-      <button type="button" id="btn-close-setup" class="text-gray-500"><i class="fas fa-times"></i></button>
+
+<div id="framework-setup-editor" class="fw-card hidden">
+  <div class="flex items-center justify-between mb-4">
+    <div class="fw-card-title"><i class="fas fa-tools"></i> Buat Kerangka VnB Framework</div>
+    <div class="flex items-center gap-2">
+      <button id="btn-save-draft" class="fw-btn fw-btn-outline">Simpan Draft</button>
+      <button id="btn-create-framework" class="fw-btn fw-btn-primary">Buat Framework</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Behaviours -->
+    <div class="md:col-span-1">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="fw-section-num">1</span>
+        <h4 class="text-sm font-bold text-gray-800">Behaviour</h4>
+      </div>
+      <div id="editor-behaviour-list" class="space-y-2 mb-3"></div>
+      <button type="button" id="editor-add-behaviour" class="fw-btn fw-btn-outline text-xs"><i class="fas fa-plus"></i> Tambah Behaviour</button>
     </div>
 
-    <div class="space-y-6">
-      <div>
-        <div class="flex items-center justify-between mb-2 gap-3 flex-wrap">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">1. Behaviour</label>
-            <p class="text-xs text-gray-500">Satu behaviour per baris. Tambah baris jika ingin menambah behaviour.</p>
-          </div>
-          <button type="button" id="btn-add-behaviour" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">+ Tambah Behaviour</button>
-        </div>
-        <div id="behaviour-list" class="space-y-2"></div>
+    <!-- Career Stages -->
+    <div class="md:col-span-2">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="fw-section-num">2</span>
+        <h4 class="text-sm font-bold text-gray-800">Career Stage</h4>
       </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2 gap-3 flex-wrap">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">2. Klasifikasi Career Stage</label>
-            <p class="text-xs text-gray-500">Satu golongan hanya boleh berada di satu career stage. Semua golongan harus kebagian stage.</p>
-          </div>
-          <button type="button" id="btn-add-stage" class="px-3 py-2 rounded-lg border border-gray-300 text-sm">+ Tambah Stage</button>
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <div id="editor-stage-list" class="space-y-3 mb-4"></div>
+          <button type="button" id="editor-add-stage" class="fw-btn fw-btn-outline text-xs mb-3"><i class="fas fa-plus"></i> Tambah Career Stage</button>
         </div>
-        <div id="stage-editor-list" class="space-y-3"></div>
-      </div>
-
-      <div class="flex justify-end gap-2">
-        <button type="button" id="btn-cancel-setup" class="px-4 py-2 rounded-lg border border-gray-300 text-sm">Batal</button>
-        <button type="button" id="btn-save-setup" class="px-4 py-2 rounded-lg text-white text-sm" style="background-color:#144600;">Simpan Kerangka</button>
+        <div class="w-1/3">
+          <div class="border border-gray-200 rounded-lg bg-white p-3">
+            <h5 class="text-sm font-semibold text-gray-700 mb-2">Pool Golongan</h5>
+            <div id="editor-level-pool" class="flex flex-wrap gap-2 min-h-[56px]"></div>
+            <p class="mt-2 text-xs text-gray-500 leading-relaxed">
+              Seret golongan ke career stage yang sesuai untuk menerapkan pembagian.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -101,7 +228,8 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
 let setupPayload = null;
-let setupDraft = { behaviours: [], stages: [] };
+let behaviourDraft = [];
+let stageDraft = [];
 let stageConfigs = [];
 let currentStage = 'manage_self_non_staff';
 let integrationRows = [];
@@ -109,160 +237,218 @@ let integrationDraft = {};
 let integrationDirty = false;
 const integrationDraftStoragePrefix = 'vnb_framework_integration_draft_v1';
 let stageLabelMap = {};
+let draggedLevelId = null;
+let draggedLevelOrigin = null;
+let stageConfigDraft = { max_integrations: 1, phases: [{ duration_months: 1 }] };
+let stageConfigAutosaveTimer = null;
+let integrationEditEnabled = true;
 
-function ensureSetupDraft(payload) {
-  const behaviours = Array.isArray(payload?.behaviours) ? payload.behaviours : [];
-  const stages = Array.isArray(payload?.stages) ? payload.stages : [];
-
-  setupDraft = {
-    behaviours: behaviours.length ? behaviours.map((value) => (typeof value === 'string' ? value : (value?.name || ''))) : [''],
-    stages: stages.length
-      ? stages.map((stage) => ({
-          label: stage.label || '',
-          position_ids: Array.isArray(stage.position_ids) ? stage.position_ids.map((id) => Number(id)) : [],
-        }))
-      : [{ label: '', position_ids: [] }],
-  };
-}
-
-function renderSetupEditor() {
-  const behaviourList = document.getElementById('behaviour-list');
-  const stageList = document.getElementById('stage-editor-list');
-  const positions = setupPayload?.positions || [];
-
-  behaviourList.innerHTML = setupDraft.behaviours.map((value, index) => `
+// ===== STEP 1: BEHAVIOUR MANAGEMENT =====
+function renderBehaviourList() {
+  const container = document.getElementById('editor-behaviour-list');
+  container.innerHTML = behaviourDraft.map((value, index) => `
     <div class="flex items-center gap-2">
-      <input type="text" class="setup-behaviour-input flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm" data-index="${index}" value="${String(value || '').replace(/"/g, '&quot;')}" placeholder="Tulis satu behaviour">
-      <button type="button" class="remove-behaviour-btn px-3 py-2 rounded-lg border border-gray-300 text-sm" data-index="${index}">Hapus</button>
+      <input type="text" class="behaviour-input flex-1 fw-input" data-index="${index}" value="${String(value || '').replace(/"/g, '&quot;')}" placeholder="Nama behaviour">
+      <button type="button" class="remove-behaviour-btn fw-btn fw-btn-outline" style="color:#dc2626;border-color:rgba(239,68,68,0.3)"><i class="fas fa-trash-alt"></i></button>
     </div>
   `).join('');
 
-  stageList.innerHTML = setupDraft.stages.map((stage, index) => {
-    const selectedIds = new Set((stage.position_ids || []).map((id) => Number(id)));
-    const selectedNames = positions.filter((pos) => selectedIds.has(Number(pos.id))).map((pos) => pos.name);
-    const checkboxList = positions.map((pos) => `
-      <label class="flex items-center gap-2 text-sm text-gray-700 py-1">
-        <input type="checkbox" class="setup-stage-position" data-stage-index="${index}" value="${pos.id}" ${selectedIds.has(Number(pos.id)) ? 'checked' : ''}>
-        <span>${pos.name}</span>
-      </label>
-    `).join('');
-
-    return `
-      <div class="border border-gray-200 rounded-lg p-4 stage-card" data-stage-index="${index}">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Career Stage</label>
-            <input type="text" class="setup-stage-label w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" data-index="${index}" value="${String(stage.label || '').replace(/"/g, '&quot;')}" placeholder="Contoh: Manage Self (Non-Staff)">
-          </div>
-          <button type="button" class="remove-stage-btn px-3 py-2 rounded-lg border border-gray-300 text-sm" data-index="${index}">Hapus Stage</button>
-        </div>
-        <div class="mt-3">
-          <button type="button" class="toggle-stage-positions px-3 py-2 rounded-lg border border-gray-300 text-sm" data-index="${index}">
-            Pilih Golongan (${selectedIds.size})
-          </button>
-          <div class="stage-position-panel hidden mt-3 border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div class="max-h-48 overflow-y-auto">${checkboxList}</div>
-          </div>
-          <div class="text-xs text-gray-500 mt-2">Dipilih: ${selectedNames.length ? selectedNames.join(', ') : 'Belum ada golongan'}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  document.querySelectorAll('.setup-behaviour-input').forEach((input) => {
+  document.querySelectorAll('.behaviour-input').forEach((input) => {
     input.addEventListener('input', (event) => {
       const index = Number(event.target.dataset.index);
-      setupDraft.behaviours[index] = event.target.value;
+      behaviourDraft[index] = event.target.value;
     });
   });
 
   document.querySelectorAll('.remove-behaviour-btn').forEach((button) => {
     button.addEventListener('click', () => {
-      const index = Number(button.dataset.index);
-      setupDraft.behaviours.splice(index, 1);
-      if (!setupDraft.behaviours.length) {
-        setupDraft.behaviours.push('');
+      const row = button.parentElement;
+      const index = Number(row.querySelector('.behaviour-input').dataset.index);
+      behaviourDraft.splice(index, 1);
+      if (!behaviourDraft.length) {
+        behaviourDraft.push('');
       }
-      renderSetupEditor();
+      renderBehaviourList();
+    });
+  });
+}
+
+function showFrameworkSetupEditor(useCurrentDraft = false) {
+  if (!useCurrentDraft) {
+    // initialize drafts from server payload or local draft
+    behaviourDraft = Array.isArray(setupPayload?.behaviours) ? setupPayload.behaviours.map((v) => String(v)) : [];
+    if (!behaviourDraft.length) behaviourDraft = [''];
+
+    // stages draft - try to load saved draft first
+    const local = loadEditorDraft();
+    if (local) {
+      behaviourDraft = Array.isArray(local.behaviours) && local.behaviours.length ? local.behaviours : behaviourDraft;
+      stageDraft = Array.isArray(local.stages) && local.stages.length ? local.stages : [{ label: '', level_ids: [] }];
+    } else {
+      stageDraft = [{ label: '', level_ids: [] }];
+    }
+  }
+
+  renderBehaviourList();
+  renderStageList();
+  document.getElementById('framework-setup-editor').classList.remove('hidden');
+  document.getElementById('framework-empty').classList.add('hidden');
+  document.getElementById('framework-config').classList.add('hidden');
+  const previewEl = document.getElementById('framework-preview');
+  if (previewEl) previewEl.classList.add('hidden');
+  document.getElementById('framework-integrations').classList.add('hidden');
+}
+
+function hideFrameworkSetupEditor() {
+  document.getElementById('framework-setup-editor').classList.add('hidden');
+}
+
+// ===== STEP 2: CAREER STAGE MANAGEMENT =====
+function renderStageList() {
+  const container = document.getElementById('editor-stage-list');
+  const levels = setupPayload?.levels || [];
+
+  container.innerHTML = stageDraft.map((stage, stageIndex) => {
+    const assignedIds = new Set((stage.level_ids || []).map((id) => String(id)));
+    const assignedPills = (stage.level_ids || []).map((id) => {
+      const lvl = (levels || []).find((l) => String(l.id) === String(id));
+      const name = lvl ? lvl.name : id;
+      return `<span class="level-pill assigned inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-sm cursor-grab" draggable="true" data-level-id="${id}" data-stage-index="${stageIndex}">${name}</span>`;
+    }).join('');
+
+    return `
+      <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 stage-card" data-stage-index="${stageIndex}">
+        <div class="flex items-center gap-2 mb-3">
+          <input type="text" class="stage-label fw-input text-sm" style="max-width:420px" data-index="${stageIndex}" value="${String(stage.label || '').replace(/"/g, '&quot;')}" placeholder="Nama career stage">
+          <button type="button" class="remove-stage-btn fw-btn fw-btn-outline" style="color:#dc2626;border-color:rgba(239,68,68,0.3);padding:0.4rem 0.8rem"><i class="fas fa-trash-alt text-xs"></i></button>
+        </div>
+        <div class="mb-2">
+          <div class="stage-pills flex flex-wrap gap-2">${assignedPills}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.querySelectorAll('.stage-card').forEach((card) => {
+    card.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      card.classList.add('drag-over');
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', (event) => {
+      event.preventDefault();
+      card.classList.remove('drag-over');
+      const levelId = String(draggedLevelId || event.dataTransfer.getData('text/plain') || '');
+      if (!levelId) return;
+
+      stageDraft.forEach((stage) => {
+        stage.level_ids = (stage.level_ids || []).filter((id) => String(id) !== levelId);
+      });
+      const targetIndex = Number(card.dataset.stageIndex);
+      if (!stageDraft[targetIndex].level_ids) stageDraft[targetIndex].level_ids = [];
+      if (!stageDraft[targetIndex].level_ids.includes(levelId)) {
+        stageDraft[targetIndex].level_ids.push(levelId);
+      }
+      draggedLevelId = null;
+      draggedLevelOrigin = null;
+      renderStageList();
     });
   });
 
-  document.querySelectorAll('.setup-stage-label').forEach((input) => {
+  document.querySelectorAll('.stage-label').forEach((input) => {
     input.addEventListener('input', (event) => {
       const index = Number(event.target.dataset.index);
-      setupDraft.stages[index].label = event.target.value;
+      stageDraft[index].label = event.target.value;
     });
   });
 
   document.querySelectorAll('.remove-stage-btn').forEach((button) => {
-    button.addEventListener('click', () => {
-      const index = Number(button.dataset.index);
-      setupDraft.stages.splice(index, 1);
-      if (!setupDraft.stages.length) {
-        setupDraft.stages.push({ label: '', position_ids: [] });
-      }
-      renderSetupEditor();
-    });
-  });
-
-  document.querySelectorAll('.toggle-stage-positions').forEach((button) => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (ev) => {
+      ev.stopPropagation();
       const card = button.closest('.stage-card');
-      const panel = card.querySelector('.stage-position-panel');
-      panel.classList.toggle('hidden');
+      const index = Number(card.dataset.stageIndex);
+      stageDraft.splice(index, 1);
+      if (!stageDraft.length) stageDraft.push({ label: '', level_ids: [] });
+      renderStageList();
     });
   });
 
-  document.querySelectorAll('.setup-stage-position').forEach((checkbox) => {
-    checkbox.addEventListener('change', (event) => {
-      const stageIndex = Number(event.target.dataset.stageIndex);
-      const positionId = Number(event.target.value);
+  document.querySelectorAll('.level-pill.assigned').forEach((pill) => {
+    pill.addEventListener('dragstart', (event) => {
+      draggedLevelId = String(pill.dataset.levelId);
+      draggedLevelOrigin = 'stage';
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', draggedLevelId);
+    });
 
-      setupDraft.stages.forEach((stage, index) => {
-        if (!Array.isArray(stage.position_ids)) {
-          stage.position_ids = [];
-        }
+    pill.addEventListener('dragend', () => {
+      draggedLevelId = null;
+      draggedLevelOrigin = null;
+      document.querySelectorAll('.stage-card, #editor-level-pool').forEach((el) => el.classList.remove('drag-over'));
+    });
 
-        if (index !== stageIndex) {
-          stage.position_ids = stage.position_ids.filter((id) => Number(id) !== positionId);
-          return;
-        }
+    pill.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+    });
+  });
 
-        if (event.target.checked) {
-          if (!stage.position_ids.includes(positionId)) {
-            stage.position_ids.push(positionId);
-          }
-        } else {
-          stage.position_ids = stage.position_ids.filter((id) => Number(id) !== positionId);
-        }
-      });
+  renderLevelPool();
+}
 
-      renderSetupEditor();
+function renderLevelPool() {
+  const pool = document.getElementById('editor-level-pool');
+  const levels = setupPayload?.levels || [];
+  const assigned = new Set(stageDraft.flatMap((s) => (s.level_ids || []).map((id) => String(id))));
+
+  pool.innerHTML = levels.map((lvl) => {
+    const id = String(lvl.id);
+    if (assigned.has(id)) return '';
+    return `<span class="level-pill pool inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border text-sm cursor-grab" draggable="true" data-level-id="${id}">${lvl.name}</span>`;
+  }).join('');
+
+  pool.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    pool.classList.add('drag-over');
+  });
+
+  pool.addEventListener('dragleave', () => {
+    pool.classList.remove('drag-over');
+  });
+
+  pool.addEventListener('drop', (event) => {
+    event.preventDefault();
+    pool.classList.remove('drag-over');
+    const levelId = String(draggedLevelId || event.dataTransfer.getData('text/plain') || '');
+    if (!levelId) return;
+    stageDraft.forEach((s) => {
+      s.level_ids = (s.level_ids || []).filter((id) => String(id) !== levelId);
+    });
+    draggedLevelId = null;
+    draggedLevelOrigin = null;
+    renderStageList();
+  });
+
+  document.querySelectorAll('#editor-level-pool .level-pill.pool').forEach((pill) => {
+    pill.addEventListener('dragstart', (event) => {
+      draggedLevelId = String(pill.dataset.levelId);
+      draggedLevelOrigin = 'pool';
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', draggedLevelId);
+    });
+
+    pill.addEventListener('dragend', () => {
+      draggedLevelId = null;
+      draggedLevelOrigin = null;
+      document.querySelectorAll('.stage-card, #editor-level-pool').forEach((el) => el.classList.remove('drag-over'));
     });
   });
 }
 
-function collectSetupPayload() {
-  const behaviours = setupDraft.behaviours.map((value) => String(value || '').trim()).filter(Boolean);
-  const stages = setupDraft.stages
-    .map((stage) => ({
-      label: String(stage.label || '').trim(),
-      position_ids: Array.isArray(stage.position_ids) ? stage.position_ids.map((id) => Number(id)).filter((id) => Number.isInteger(id)) : [],
-    }))
-    .filter((stage) => stage.label);
-
-  return { behaviours, stages };
-}
-
-function openSetupModal() {
-  document.getElementById('setup-modal').classList.remove('hidden');
-  document.getElementById('setup-modal').classList.add('flex');
-}
-
-function closeSetupModal() {
-  document.getElementById('setup-modal').classList.remove('flex');
-  document.getElementById('setup-modal').classList.add('hidden');
-}
+// editor uses renderStageList() and is shown via showFrameworkSetupEditor()
 
 function renderStageDetailCards(stages) {
   const container = document.getElementById('stage-config-list');
@@ -273,25 +459,29 @@ function renderStageDetailCards(stages) {
 
     const phaseInputs = phaseRows.map((phase, idx) => `
       <div class="flex items-center gap-2 mb-2">
-        <span class="text-sm text-gray-600 w-20">Fase ${idx + 1}</span>
-        <input type="number" min="1" max="60" value="${phase.duration_months}" data-stage="${stage.career_stage}" data-phase-index="${idx}" class="phase-duration w-28 border border-gray-300 rounded px-2 py-1 text-sm">
-        <span class="text-sm text-gray-500">bulan</span>
+        <span class="text-xs font-semibold text-gray-500 w-16">Fase ${idx + 1}</span>
+        <input type="number" min="1" max="60" value="${phase.duration_months}" data-stage="${stage.career_stage}" data-phase-index="${idx}" class="phase-duration w-24 fw-input text-center">
+        <span class="text-xs text-gray-400">bulan</span>
       </div>
     `).join('');
 
     return `
-      <div class="border border-gray-200 rounded-lg p-4">
-        <div class="font-semibold text-gray-900 mb-3">${stage.label}</div>
-        <div class="mb-3">
-          <label class="text-sm text-gray-700 block mb-1">Maksimal Integrasi Aktivitas</label>
-          <input type="number" min="1" max="20" value="${stage.max_integrations || 2}" data-stage="${stage.career_stage}" class="max-integrations w-28 border border-gray-300 rounded px-2 py-1 text-sm">
+      <div class="fw-stage-card">
+        <div class="font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-bookmark text-green-500 text-xs"></i> ${stage.label}</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 block mb-1.5">Maks. Integrasi Aktivitas</label>
+            <input type="number" min="1" max="20" value="${stage.max_integrations || 2}" data-stage="${stage.career_stage}" class="max-integrations w-24 fw-input text-center">
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 block mb-1.5">Durasi per Fase</label>
+            ${phaseInputs}
+            <button type="button" class="add-phase text-xs text-green-600 hover:text-green-800 font-semibold mt-1" data-stage="${stage.career_stage}"><i class="fas fa-plus"></i> Tambah fase</button>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="text-sm text-gray-700 block mb-1">Fase Activity (durasi per fase)</label>
-          ${phaseInputs}
-          <button type="button" class="add-phase text-xs text-blue-600" data-stage="${stage.career_stage}">+ Tambah fase</button>
+        <div class="mt-4 pt-3 border-t border-gray-100">
+          <button type="button" class="save-stage fw-btn fw-btn-primary text-xs" data-stage="${stage.career_stage}"><i class="fas fa-save"></i> Simpan Stage</button>
         </div>
-        <button type="button" class="save-stage px-3 py-2 rounded-lg text-white text-sm" style="background-color:#144600;" data-stage="${stage.career_stage}">Simpan Stage</button>
       </div>
     `;
   }).join('');
@@ -303,7 +493,7 @@ function bindStageCardEvents() {
   document.querySelectorAll('.add-phase').forEach((button) => {
     button.addEventListener('click', () => {
       const stage = button.dataset.stage;
-      const card = button.closest('div.border');
+      const card = button.closest('.fw-stage-card');
       const anchor = button;
       const currentCount = card.querySelectorAll(`.phase-duration[data-stage="${stage}"]`).length;
       const wrapper = document.createElement('div');
@@ -348,28 +538,149 @@ function bindStageCardEvents() {
   });
 }
 
-function renderPreview(rows) {
-  const body = document.getElementById('framework-preview-body');
-  if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-gray-400">Belum ada item framework.</td></tr>';
-    return;
-  }
+// Preview removed — function deleted per user request
 
-  body.innerHTML = rows.map((row) => `
-    <tr>
-      <td>${stageLabelMap[row.career_stage] || row.career_stage}</td>
-      <td>${row.behaviour}</td>
-      <td>${row.phase}</td>
-    </tr>
-  `).join('');
+function getStageConfigByCode(stageCode) {
+  return (stageConfigs || []).find((s) => s.career_stage === stageCode) || null;
 }
 
-function initIntegrationsSelect(stages) {
-  const select = document.getElementById('integrations-stage-select');
-  select.innerHTML = stages.map((stage) => {
-    return `<option value="${stage.career_stage}">${stage.label}</option>`;
+function normalizeStagePhases(phases) {
+  const rows = (phases || [])
+    .map((row) => Number(row?.duration_months || 0))
+    .filter((value) => value > 0)
+    .map((duration_months) => ({ duration_months }));
+  return rows.length ? rows : [{ duration_months: 1 }];
+}
+
+function setStageAutosaveIndicator(message, tone = 'muted') {
+  const el = document.getElementById('stage-autosave-indicator');
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove('text-gray-500', 'text-green-600', 'text-red-600');
+  if (tone === 'success') el.classList.add('text-green-600');
+  else if (tone === 'error') el.classList.add('text-red-600');
+  else el.classList.add('text-gray-500');
+}
+
+function renderStageTabs(stages) {
+  const container = document.getElementById('integrations-stage-tabs');
+  container.innerHTML = (stages || []).map((stage) => {
+    const isActive = stage.career_stage === currentStage;
+    return `<button type="button" class="px-3 py-1.5 rounded-full text-sm font-semibold border ${isActive ? 'bg-green-100 text-green-800 border-green-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}" data-stage-tab="${stage.career_stage}">${stage.label}</button>`;
   }).join('');
-  select.value = currentStage;
+
+  container.querySelectorAll('[data-stage-tab]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const stageCode = button.dataset.stageTab;
+      if (!stageCode || stageCode === currentStage) return;
+
+      if (integrationDirty) {
+        const confirmed = window.confirm('Ada perubahan integrasi yang belum disimpan. Tetap pindah career stage?');
+        if (!confirmed) return;
+      }
+
+      currentStage = stageCode;
+      renderStageTabs(stageConfigs);
+      renderActiveStageConfig();
+      await loadStageItems(currentStage);
+    });
+  });
+}
+
+function renderActiveStageConfig() {
+  const cfg = getStageConfigByCode(currentStage) || {};
+  stageConfigDraft.max_integrations = Math.max(1, Number(cfg.max_integrations || 1));
+  stageConfigDraft.phases = normalizeStagePhases(cfg.phases);
+
+  const maxInput = document.getElementById('stage-max-integrations');
+  if (maxInput) {
+    maxInput.value = stageConfigDraft.max_integrations;
+  }
+
+  const phaseList = document.getElementById('stage-phase-list');
+  if (phaseList) {
+    phaseList.innerHTML = stageConfigDraft.phases.map((phase, index) => `
+      <div class="flex items-center gap-2" data-phase-row="${index}">
+        <span class="text-xs font-semibold text-gray-500 w-14">Fase ${index + 1}</span>
+        <input type="number" min="1" max="60" class="fw-input w-24 text-center stage-phase-input" data-phase-index="${index}" value="${phase.duration_months}">
+        <span class="text-xs text-gray-400">bulan</span>
+      </div>
+    `).join('');
+
+    phaseList.querySelectorAll('.stage-phase-input').forEach((input) => {
+      input.addEventListener('input', () => {
+        const idx = Number(input.dataset.phaseIndex);
+        const value = Math.max(1, Number(input.value || 1));
+        stageConfigDraft.phases[idx].duration_months = value;
+        scheduleStageConfigAutosave();
+      });
+    });
+  }
+
+  setStageAutosaveIndicator('Auto-save aktif');
+}
+
+function getCurrentStageConfigPayload() {
+  const maxIntegrations = Math.max(1, Number(document.getElementById('stage-max-integrations')?.value || 1));
+  const durations = Array.from(document.querySelectorAll('.stage-phase-input'))
+    .map((el) => Math.max(1, Number(el.value || 1)))
+    .map((duration_months) => ({ duration_months }));
+
+  return {
+    career_stage: currentStage,
+    max_integrations: maxIntegrations,
+    phases: durations.length ? durations : [{ duration_months: 1 }],
+  };
+}
+
+async function saveStageConfig(options = { silent: false }) {
+  const payload = getCurrentStageConfigPayload();
+  const res = await apiPost('/api/vnb-framework/stage-details', payload);
+
+  if (!res.success) {
+    setStageAutosaveIndicator('Auto-save gagal', 'error');
+    if (!options.silent) {
+      showAlert(res.message || 'Gagal menyimpan konfigurasi stage.', 'error');
+    }
+    return false;
+  }
+
+  // update local stageConfigs snapshot
+  const idx = stageConfigs.findIndex((s) => s.career_stage === currentStage);
+  if (idx >= 0) {
+    stageConfigs[idx].max_integrations = payload.max_integrations;
+    stageConfigs[idx].phases = payload.phases.map((phase, i) => ({ phase_order: i + 1, duration_months: phase.duration_months }));
+  }
+
+  setStageAutosaveIndicator('Auto-saved', 'success');
+  return true;
+}
+
+function scheduleStageConfigAutosave() {
+  setStageAutosaveIndicator('Menyimpan...', 'muted');
+  if (stageConfigAutosaveTimer) {
+    clearTimeout(stageConfigAutosaveTimer);
+  }
+  stageConfigAutosaveTimer = setTimeout(async () => {
+    await saveStageConfig({ silent: true });
+    await loadStageItems(currentStage);
+  }, 650);
+}
+
+function setIntegrationEditEnabled(enabled) {
+  integrationEditEnabled = !!enabled;
+  const button = document.getElementById('btn-edit-vnb-activity');
+  if (button) {
+    button.innerHTML = integrationEditEnabled
+      ? '<i class="fas fa-pen"></i> Edit VnB Activity'
+      : '<i class="fas fa-check"></i> Selesai Edit VnB Activity';
+  }
+
+  document.querySelectorAll('.integration-input').forEach((input) => {
+    input.disabled = !integrationEditEnabled;
+    input.classList.toggle('bg-gray-100', !integrationEditEnabled);
+    input.classList.toggle('cursor-not-allowed', !integrationEditEnabled);
+  });
 }
 
 function setIntegrationDirty(isDirty) {
@@ -505,7 +816,7 @@ function renderIntegrationsTable(stageConfig, rows) {
       const baseValue = normalizeIntegrationValue((row.integrations || [])[idx]);
       const isDirtyCell = normalizeIntegrationValue(value) !== baseValue;
       const dirtyClass = isDirtyCell ? ' border-yellow-500 bg-yellow-50 ring-1 ring-yellow-300' : '';
-      return `<td><textarea data-item-id="${row.id}" data-idx="${idx}" rows="2" class="integration-input w-full border border-gray-300 rounded px-2 py-1 text-sm${dirtyClass}">${value}</textarea></td>`;
+      return `<td><textarea data-item-id="${row.id}" data-idx="${idx}" rows="2" class="integration-input w-full border border-gray-300 rounded px-2 py-1 text-sm${dirtyClass}" ${integrationEditEnabled ? '' : 'disabled'}>${value}</textarea></td>`;
     }).join('');
 
     return `<tr><td>${row.behaviour}</td><td>${row.phase}</td>${integrationCells}</tr>`;
@@ -532,6 +843,8 @@ function renderIntegrationsTable(stageConfig, rows) {
       refreshIntegrationDirtyState(currentStage, max);
     });
   });
+
+  setIntegrationEditEnabled(integrationEditEnabled);
 }
 
 async function loadStageItems(stageCode) {
@@ -548,8 +861,20 @@ async function loadStageItems(stageCode) {
   const maxIntegrations = Number(((res.stages || []).find((s) => s.career_stage === stageCode)?.max_integrations) || 2);
   loadDraftFromLocalStorage(stageCode, maxIntegrations);
   refreshIntegrationDirtyState(stageCode, maxIntegrations);
-  renderPreview(integrationRows);
   const cfg = (res.stages || []).find((s) => s.career_stage === stageCode) || null;
+
+  // Only allow editing/filling integrations after stage configuration (max_integrations & phases) exists.
+  const hasStageConfig = cfg && Number(cfg.max_integrations || 0) > 0 && Array.isArray(cfg.phases) && cfg.phases.length > 0;
+
+  // enable/disable integration editor and control buttons
+  setIntegrationEditEnabled(hasStageConfig);
+  const saveBtn = document.getElementById('save-integrations-btn');
+  const cloneBtn = document.getElementById('btn-clone-stage');
+  const editActivityBtn = document.getElementById('btn-edit-vnb-activity');
+  if (saveBtn) saveBtn.disabled = !hasStageConfig;
+  if (cloneBtn) cloneBtn.disabled = !hasStageConfig;
+  if (editActivityBtn) editActivityBtn.disabled = !hasStageConfig;
+
   renderIntegrationsTable(cfg, integrationRows);
 }
 
@@ -564,62 +889,102 @@ async function loadFrameworkPage() {
   stageLabelMap = Object.fromEntries((res.stages || []).map((stage) => [stage.career_stage, stage.label]));
 
   if (res.setup_required) {
-    document.getElementById('framework-empty').classList.remove('hidden');
-    document.getElementById('framework-config').classList.add('hidden');
-    document.getElementById('framework-preview').classList.add('hidden');
-    document.getElementById('framework-integrations').classList.add('hidden');
+    // show inline setup editor so user can fill behaviours + stages on the page
+    showFrameworkSetupEditor();
     return;
   }
 
   stageConfigs = res.stages || [];
   currentStage = res.career_stage || (stageConfigs[0]?.career_stage || 'manage_self_non_staff');
+  hideFrameworkSetupEditor();
   document.getElementById('framework-empty').classList.add('hidden');
-  document.getElementById('framework-config').classList.remove('hidden');
-  document.getElementById('framework-preview').classList.remove('hidden');
+  document.getElementById('framework-config').classList.add('hidden');
+  const previewEl2 = document.getElementById('framework-preview');
+  if (previewEl2) previewEl2.classList.remove('hidden');
   document.getElementById('framework-integrations').classList.remove('hidden');
 
-  renderStageDetailCards(stageConfigs);
-  initIntegrationsSelect(stageConfigs);
+  renderStageTabs(stageConfigs);
+  renderActiveStageConfig();
+  setIntegrationEditEnabled(true);
   await loadStageItems(currentStage);
 }
 
+// Setup editor event bindings
 document.getElementById('btn-open-setup').addEventListener('click', () => {
-  ensureSetupDraft(setupPayload || { behaviours: [], stages: [] });
-  renderSetupEditor();
-  openSetupModal();
+  showFrameworkSetupEditor(false);
 });
 
-document.getElementById('btn-close-setup').addEventListener('click', closeSetupModal);
-document.getElementById('btn-cancel-setup').addEventListener('click', closeSetupModal);
+// add behaviour in editor
+document.getElementById('editor-add-behaviour').addEventListener('click', () => {
+  behaviourDraft.push('');
+  renderBehaviourList();
+});
 
-document.getElementById('btn-save-setup').addEventListener('click', async () => {
-  const payload = collectSetupPayload();
-  if (!payload.behaviours.length) {
-    showAlert('Behaviour wajib diisi minimal 1.', 'error');
-    return;
+// add stage in editor
+document.getElementById('editor-add-stage').addEventListener('click', () => {
+  stageDraft.push({ label: '', level_ids: [] });
+  renderStageList();
+});
+
+// save draft locally
+function getEditorDraftStorageKey() { return 'vnb_framework_editor_draft_v1'; }
+function saveEditorDraft() {
+  try {
+    const payload = {
+      behaviours: behaviourDraft.map((v) => String(v || '').trim()).filter(Boolean),
+      stages: stageDraft.map((s) => ({ label: String(s.label || '').trim(), level_ids: Array.isArray(s.level_ids) ? s.level_ids : [] })),
+    };
+    window.localStorage.setItem(getEditorDraftStorageKey(), JSON.stringify(payload));
+    showAlert('Draft tersimpan di browser.', 'success');
+  } catch (e) {
+    showAlert('Gagal menyimpan draft lokal.', 'error');
   }
-  if (!payload.stages.length) {
+}
+
+function loadEditorDraft() {
+  try {
+    const raw = window.localStorage.getItem(getEditorDraftStorageKey());
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (e) { return null; }
+}
+
+document.getElementById('btn-save-draft').addEventListener('click', () => {
+  saveEditorDraft();
+});
+
+// create framework (finalize)
+document.getElementById('btn-create-framework').addEventListener('click', async () => {
+  const stages = stageDraft
+    .map((stage) => ({ label: String(stage.label || '').trim(), level_ids: Array.isArray(stage.level_ids) ? stage.level_ids : [] }))
+    .filter((stage) => stage.label);
+
+  if (!stages.length) {
     showAlert('Tambahkan minimal satu career stage.', 'error');
     return;
   }
 
-  const allPositions = (setupPayload?.positions || []).map((position) => Number(position.id));
-  const selectedPositionIds = payload.stages.flatMap((stage) => stage.position_ids);
-  const uniqueSelected = Array.from(new Set(selectedPositionIds));
+  const allLevels = (setupPayload?.levels || []).map((lvl) => String(lvl.id));
+  const selectedLevelIds = stages.flatMap((stage) => stage.level_ids).map((id) => String(id));
+  const uniqueSelected = Array.from(new Set(selectedLevelIds));
 
-  if (uniqueSelected.length !== selectedPositionIds.length) {
+  if (uniqueSelected.length !== selectedLevelIds.length) {
     showAlert('Satu golongan tidak boleh berada di beberapa career stage.', 'error');
     return;
   }
 
-  const missingPositionIds = allPositions.filter((id) => !uniqueSelected.includes(Number(id)));
-  if (missingPositionIds.length) {
-    const missingNames = (setupPayload?.positions || [])
-      .filter((position) => missingPositionIds.includes(Number(position.id)))
-      .map((position) => position.name);
+  const missingLevelIds = allLevels.filter((id) => !uniqueSelected.includes(id));
+  if (missingLevelIds.length) {
+    const missingNames = (setupPayload?.levels || []).filter((lvl) => missingLevelIds.includes(String(lvl.id))).map((lvl) => lvl.name);
     showAlert(`Semua golongan harus kebagian stage. Yang belum dipilih: ${missingNames.join(', ')}`, 'error');
     return;
   }
+
+  const payload = {
+    behaviours: behaviourDraft.map((v) => String(v).trim()).filter(Boolean),
+    stages: stages,
+  };
 
   const res = await apiPost('/api/vnb-framework/setup-initialize', payload);
   if (!res.success) {
@@ -627,21 +992,117 @@ document.getElementById('btn-save-setup').addEventListener('click', async () => 
     return;
   }
 
-  showAlert(res.message || 'Kerangka awal berhasil dibuat.');
-  closeSetupModal();
+  showAlert(res.message || 'Framework berhasil dibuat!');
+  try { window.localStorage.removeItem('vnb_framework_editor_draft_v1'); } catch (e) {}
   await loadFrameworkPage();
 });
 
-document.getElementById('integrations-stage-select').addEventListener('change', async (event) => {
-  const stageCode = event.target.value;
-  if (stageCode !== currentStage && integrationDirty) {
-    const confirmed = window.confirm('Ada perubahan integrasi yang belum disimpan. Tetap pindah stage?');
-    if (!confirmed) {
-      event.target.value = currentStage;
-      return;
-    }
+document.getElementById('btn-edit-career-stage').addEventListener('click', () => {
+  behaviourDraft = Array.isArray(setupPayload?.behaviours)
+    ? setupPayload.behaviours.map((v) => String(v || ''))
+    : [''];
+
+  stageDraft = (stageConfigs || []).map((stage) => ({
+    label: String(stage.label || ''),
+    level_ids: Array.isArray(stage.level_ids) ? stage.level_ids.map((id) => String(id)) : [],
+  }));
+
+  if (!stageDraft.length) {
+    stageDraft = [{ label: '', level_ids: [] }];
   }
-  await loadStageItems(stageCode);
+
+  showFrameworkSetupEditor(true);
+});
+
+document.getElementById('stage-max-integrations').addEventListener('input', () => {
+  const input = document.getElementById('stage-max-integrations');
+  input.value = String(Math.max(1, Number(input.value || 1)));
+  scheduleStageConfigAutosave();
+});
+
+document.getElementById('btn-add-phase').addEventListener('click', () => {
+  const nextIndex = document.querySelectorAll('.stage-phase-input').length + 1;
+  const phaseList = document.getElementById('stage-phase-list');
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2';
+  row.dataset.phaseRow = String(nextIndex - 1);
+  row.innerHTML = `
+    <span class="text-xs font-semibold text-gray-500 w-14">Fase ${nextIndex}</span>
+    <input type="number" min="1" max="60" class="fw-input w-24 text-center stage-phase-input" data-phase-index="${nextIndex - 1}" value="1">
+    <span class="text-xs text-gray-400">bulan</span>
+  `;
+  phaseList.appendChild(row);
+
+  row.querySelector('.stage-phase-input').addEventListener('input', () => {
+    scheduleStageConfigAutosave();
+  });
+
+  scheduleStageConfigAutosave();
+});
+
+// Preview button and handler removed per user request
+
+document.getElementById('btn-save-stage-config').addEventListener('click', async () => {
+  const ok = await saveStageConfig({ silent: false });
+  if (!ok) return;
+  showAlert('Konfigurasi stage berhasil disimpan.', 'success');
+  await loadStageItems(currentStage);
+});
+
+document.getElementById('btn-edit-vnb-activity').addEventListener('click', () => {
+  setIntegrationEditEnabled(!integrationEditEnabled);
+});
+
+document.getElementById('btn-clone-stage').addEventListener('click', async () => {
+  const options = (stageConfigs || []).filter((s) => s.career_stage !== currentStage);
+  if (!options.length) {
+    showAlert('Tidak ada career stage lain untuk clone.', 'warning');
+    return;
+  }
+
+  const targetPrompt = options.map((s, idx) => `${idx + 1}. ${s.label}`).join('\n');
+  const picked = window.prompt(`Clone ke career stage mana?\n${targetPrompt}\n\nMasukkan nomor target:`);
+  if (!picked) return;
+  const targetIndex = Number(picked) - 1;
+  if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= options.length) {
+    showAlert('Pilihan target tidak valid.', 'error');
+    return;
+  }
+
+  const targetStage = options[targetIndex];
+  const targetRes = await apiGet(`/api/vnb-framework?career_stage=${targetStage.career_stage}`);
+  if (!targetRes.success || targetRes.setup_required) {
+    showAlert('Gagal memuat data target career stage.', 'error');
+    return;
+  }
+
+  const sourceCfg = getStageConfigByCode(currentStage);
+  const targetCfg = (targetRes.stages || []).find((s) => s.career_stage === targetStage.career_stage) || targetStage;
+  const maxIntegrations = Number(targetCfg?.max_integrations || sourceCfg?.max_integrations || 1);
+
+  const sourceMap = {};
+  (integrationRows || []).forEach((row) => {
+    const key = `${String(row.behaviour || '').trim()}||${String(row.phase || '').trim()}`;
+    const sourceValues = integrationDraft[row.id] || row.integrations || [];
+    sourceMap[key] = Array.from({ length: maxIntegrations }, (_, idx) => String(sourceValues[idx] || ''));
+  });
+
+  const items = (targetRes.data || []).map((row) => {
+    const key = `${String(row.behaviour || '').trim()}||${String(row.phase || '').trim()}`;
+    const values = sourceMap[key] || [];
+    return {
+      id: row.id,
+      integrations: Array.from({ length: maxIntegrations }, (_, idx) => String(values[idx] || '')),
+    };
+  });
+
+  const saveRes = await apiPost('/api/vnb-framework/integrations', { items });
+  if (!saveRes.success) {
+    showAlert(saveRes.message || 'Gagal clone integrasi.', 'error');
+    return;
+  }
+
+  showAlert(`Integrasi berhasil di-clone ke ${targetStage.label}.`, 'success');
 });
 
 document.getElementById('save-integrations-btn').addEventListener('click', async () => {
@@ -673,91 +1134,6 @@ document.getElementById('save-integrations-btn').addEventListener('click', async
   clearDraftFromLocalStorage(currentStage);
   setIntegrationDirty(false);
   showAlert(res.message || 'Integrasi aktivitas berhasil disimpan.');
-  await loadStageItems(currentStage);
-});
-
-document.getElementById('copy-prev-phase-btn').addEventListener('click', () => {
-  if (!integrationRows.length) {
-    showAlert('Belum ada data untuk di-copy.', 'warning');
-    return;
-  }
-
-  const stageConfig = stageConfigs.find((s) => s.career_stage === currentStage);
-  const maxIntegrations = Number(stageConfig?.max_integrations || 2);
-
-  const grouped = {};
-  integrationRows.forEach((row) => {
-    if (!grouped[row.behaviour]) grouped[row.behaviour] = [];
-    grouped[row.behaviour].push(row);
-  });
-
-  Object.values(grouped).forEach((rows) => {
-    rows.sort((a, b) => extractPhaseOrder(a.phase) - extractPhaseOrder(b.phase));
-
-    for (let i = 1; i < rows.length; i++) {
-      const prev = rows[i - 1];
-      const current = rows[i];
-      const prevDraft = integrationDraft[prev.id] || (Array.isArray(prev.integrations) ? [...prev.integrations] : []);
-
-      integrationDraft[current.id] = Array.from({ length: maxIntegrations }, (_, idx) => {
-        return (prevDraft[idx] || '').toString();
-      });
-    }
-  });
-
-  refreshIntegrationDirtyState(currentStage, maxIntegrations);
-  const cfg = stageConfigs.find((s) => s.career_stage === currentStage) || null;
-  renderIntegrationsTable(cfg, integrationRows);
-  showAlert('Integrasi berhasil di-copy dari fase sebelumnya. Klik Simpan Integrasi untuk menyimpan.', 'success');
-});
-
-document.getElementById('discard-local-draft-btn').addEventListener('click', () => {
-  if (!currentStage) {
-    showAlert('Career stage tidak valid.', 'error');
-    return;
-  }
-
-  const hasDraftInMemory = Object.keys(integrationDraft).length > 0;
-  const hasDraftInStorage = !!(window.localStorage && window.localStorage.getItem(getIntegrationDraftStorageKey(currentStage)));
-  if (!hasDraftInMemory && !hasDraftInStorage) {
-    showAlert('Tidak ada draft lokal untuk dibuang.', 'warning');
-    return;
-  }
-
-  const confirmed = window.confirm('Draft lokal stage ini akan dihapus. Lanjutkan?');
-  if (!confirmed) return;
-
-  integrationDraft = {};
-  clearDraftFromLocalStorage(currentStage);
-  setIntegrationDirty(false);
-
-  const cfg = stageConfigs.find((s) => s.career_stage === currentStage) || null;
-  renderIntegrationsTable(cfg, integrationRows);
-  showAlert('Draft lokal berhasil dibuang.', 'success');
-});
-
-document.getElementById('reset-template-btn').addEventListener('click', async () => {
-  if (!currentStage) {
-    showAlert('Career stage tidak valid.', 'error');
-    return;
-  }
-
-  const confirmed = window.confirm('Reset akan mengembalikan semua integrasi stage ini ke template default. Lanjutkan?');
-  if (!confirmed) return;
-
-  const res = await apiPost('/api/vnb-framework/reset-stage-template', {
-    career_stage: currentStage,
-  });
-
-  if (!res.success) {
-    showAlert(res.message || 'Gagal reset template.', 'error');
-    return;
-  }
-
-  integrationDraft = {};
-  clearDraftFromLocalStorage(currentStage);
-  setIntegrationDirty(false);
-  showAlert(res.message || 'Template stage berhasil di-reset.');
   await loadStageItems(currentStage);
 });
 

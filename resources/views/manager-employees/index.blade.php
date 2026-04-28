@@ -1,11 +1,9 @@
 @extends('layouts.app')
 @section('title','Manager - Employee')
+@section('page_title','Manager - Employee')
+@section('page_subtitle','Lihat employee yang berada di bawah pengawasan manager beserta lifecycle mereka.')
 @section('content')
 <div class="px-4 space-y-4">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Employee</h1>
-  </div>
-
   <div class="bg-white rounded-xl shadow-sm p-4">
     <div class="flex gap-4 border-b border-gray-200 pb-3">
       <button id="btn-lifecycle-active" onclick="setLifecycleTab('active')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">Employee Active</button>

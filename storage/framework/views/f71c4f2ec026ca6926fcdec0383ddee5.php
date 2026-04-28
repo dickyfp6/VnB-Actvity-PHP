@@ -264,27 +264,60 @@
 
         .top-navbar {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
+            gap: 1rem;
             position: sticky;
-            top: 1rem;
+            top: 0.75rem;
             z-index: 35;
+            pointer-events: none;
+        }
+
+        .top-navbar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            min-width: 0;
+            padding-top: 0.15rem;
+        }
+
+        .top-navbar-title {
+            font-size: 1.15rem;
+            line-height: 1.1;
+            font-weight: 800;
+            color: var(--color-neutral-900);
+            letter-spacing: -0.02em;
+        }
+
+        .top-navbar-subtitle {
+            font-size: 0.78rem;
+            color: var(--color-neutral-600);
+            max-width: 52rem;
+        }
+
+        .top-navbar-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            flex-shrink: 0;
+            pointer-events: auto;
         }
 
         .top-profile-btn {
             display: inline-flex;
             align-items: center;
             gap: 0.625rem;
-            border: 1px solid rgba(17, 24, 39, 0.1);
-            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(17, 24, 39, 0.08);
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(12px);
             color: var(--color-neutral-900);
             border-radius: 999px;
             padding: 0.5rem 0.8rem;
             font-size: 0.8rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+            box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
         }
 
         .top-profile-btn .meta {
@@ -329,6 +362,12 @@
             box-shadow: 0 20px 40px rgba(17, 24, 39, 0.14);
             padding: 0.55rem;
             z-index: 70;
+        }
+
+        .top-navbar-shell {
+            position: relative;
+            min-height: 4.5rem;
+            padding-right: 0.25rem;
         }
 
         .top-profile-menu-item {
@@ -839,7 +878,7 @@
 
     <!-- Main Content -->
     <main id="mainContent" class="main-content px-4 py-4 sm:px-6 lg:px-8 flex-grow max-w-full">
-        <div class="top-navbar">
+        <div class="top-navbar-shell">
             <?php
                 $roleLabels = [
                     'direktur_utama' => 'Direktur Utama',
@@ -848,53 +887,72 @@
                     'manager' => 'Manager',
                     'employee' => 'Employee',
                 ];
+                $topbarTitle = trim($__env->yieldContent('page_title'));
+                if ($topbarTitle === '') {
+                    $topbarTitle = trim(strip_tags($__env->yieldContent('title')));
+                }
+                $topbarSubtitle = trim($__env->yieldContent('page_subtitle'));
+                if ($topbarSubtitle === '') {
+                    $topbarSubtitle = 'Kelola data dan pengaturan pada halaman ini.';
+                }
             ?>
-            <div id="topProfileMenuWrapper" class="relative">
-                <button id="topProfileMenuBtn" class="top-profile-btn" type="button" aria-haspopup="menu" aria-expanded="false">
-                    <span class="avatar"><i class="fas fa-user"></i></span>
-                    <span class="meta hidden sm:inline">
-                        <span class="name"><?php echo e(Auth::user()->name); ?></span>
-                        <small><?php echo e($roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?></small>
-                    </span>
-                    <i class="fas fa-chevron-down text-xs"></i>
-                </button>
-
-                <div id="topProfileMenu" class="top-profile-menu hidden">
-                    <div class="px-2 pb-2 mb-2 border-b border-gray-100">
-                        <p class="text-xs font-bold text-gray-900"><?php echo e(Auth::user()->name); ?></p>
-                        <p class="mt-0.5 text-xs font-semibold text-emerald-700">
-                            <?php echo e($roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?>
-
-                        </p>
-                    </div>
-
-                    <?php if(count($availableRoles) > 1): ?>
-                    <form action="<?php echo e(route('switch-role')); ?>" method="POST" class="px-2 py-1">
-                        <?php echo csrf_field(); ?>
-                        <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses (Role)</label>
-                        <select name="role" onchange="this.form.submit()" class="top-role-select">
-                            <?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $roleOption): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($roleOption); ?>" <?php echo e($activeRole === $roleOption ? 'selected' : ''); ?>>
-                                <?php echo e($roleLabels[$roleOption] ?? ucwords(str_replace('_', ' ', $roleOption))); ?>
-
-                            </option>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </select>
-                    </form>
+            <div class="top-navbar">
+                <div class="top-navbar-left">
+                    <div class="top-navbar-title"><?php echo e($topbarTitle ?: 'VnB Platform'); ?></div>
+                    <?php if($topbarSubtitle !== ''): ?>
+                    <div class="top-navbar-subtitle"><?php echo e($topbarSubtitle); ?></div>
                     <?php endif; ?>
+                </div>
 
-                    <a href="/profile/details" class="top-profile-menu-item">
-                        <i class="fas fa-user-circle"></i>
-                        <span>Profil Saya</span>
-                    </a>
-
-                    <form action="<?php echo e(route('logout')); ?>" method="POST" class="pt-1 mt-1 border-t border-gray-100">
-                        <?php echo csrf_field(); ?>
-                        <button type="submit" class="top-profile-menu-item">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
+                <div class="top-navbar-right">
+                    <div id="topProfileMenuWrapper" class="relative">
+                        <button id="topProfileMenuBtn" class="top-profile-btn" type="button" aria-haspopup="menu" aria-expanded="false">
+                            <span class="avatar"><i class="fas fa-user"></i></span>
+                            <span class="meta hidden sm:inline">
+                                <span class="name"><?php echo e(Auth::user()->name); ?></span>
+                                <small><?php echo e($roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?></small>
+                            </span>
+                            <i class="fas fa-chevron-down text-xs"></i>
                         </button>
-                    </form>
+
+                        <div id="topProfileMenu" class="top-profile-menu hidden">
+                            <div class="px-2 pb-2 mb-2 border-b border-gray-100">
+                                <p class="text-xs font-bold text-gray-900"><?php echo e(Auth::user()->name); ?></p>
+                                <p class="mt-0.5 text-xs font-semibold text-emerald-700">
+                                    <?php echo e($roleLabels[$activeRole ?? ''] ?? ucwords(str_replace('_', ' ', $activeRole ?? '-'))); ?>
+
+                                </p>
+                            </div>
+
+                            <?php if(count($availableRoles) > 1): ?>
+                            <form action="<?php echo e(route('switch-role')); ?>" method="POST" class="px-2 py-1">
+                                <?php echo csrf_field(); ?>
+                                <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses (Role)</label>
+                                <select name="role" onchange="this.form.submit()" class="top-role-select">
+                                    <?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $roleOption): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($roleOption); ?>" <?php echo e($activeRole === $roleOption ? 'selected' : ''); ?>>
+                                        <?php echo e($roleLabels[$roleOption] ?? ucwords(str_replace('_', ' ', $roleOption))); ?>
+
+                                    </option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                            </form>
+                            <?php endif; ?>
+
+                            <a href="/profile/details" class="top-profile-menu-item">
+                                <i class="fas fa-user-circle"></i>
+                                <span>Profil Saya</span>
+                            </a>
+
+                            <form action="<?php echo e(route('logout')); ?>" method="POST" class="pt-1 mt-1 border-t border-gray-100">
+                                <?php echo csrf_field(); ?>
+                                <button type="submit" class="top-profile-menu-item">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

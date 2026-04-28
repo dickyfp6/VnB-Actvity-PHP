@@ -1,9 +1,10 @@
 @extends('layouts.app')
 @section('title','Manager - Planning History')
+@section('page_title','Planning Approved & History')
+@section('page_subtitle','Lihat planning yang sudah disetujui beserta riwayat revisi per employee.')
 @section('content')
 <div class="px-4 space-y-4">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-gray-800">Planning Approved & History</h1>
+  <div class="flex items-center justify-end">
     <a id="back-detail-link" href="#" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Kembali ke Detail Employee</a>
   </div>
 

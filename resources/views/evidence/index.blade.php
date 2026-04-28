@@ -1,12 +1,13 @@
 @extends('layouts.app')
 
 @section('title', 'Bukti VnB - VnB Platform')
+@section('page_title', 'Bukti VnB')
+@section('page_subtitle', 'Unggah dan kelola bukti pendukung aktivitas VnB dalam satu galeri.')
 
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold text-gray-900">Bukti VnB</h1>
         <button onclick="showUploadModal()" class="text-white px-4 py-2 rounded-lg flex items-center transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
             <i class="fas fa-upload mr-2"></i> Upload Bukti
         </button>

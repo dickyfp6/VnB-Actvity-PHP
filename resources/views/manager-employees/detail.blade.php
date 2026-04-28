@@ -1,12 +1,13 @@
 @extends('layouts.app')
 @section('title','Manager - Detail Employee')
+@section('page_title','VnB Plan Review')
+@section('page_subtitle','Review rencana pengembangan employee per fase dan lihat riwayatnya.')
 @section('content')
 <div class="space-y-6">
   <!-- Header Section -->
   <div class="card-glass rounded-xl p-6 md:p-8">
     <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
       <div class="flex-1">
-        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">VnB Plan Review</h1>
         <p class="text-gray-600 mb-4">Review rencana pengembangan karyawan per fase</p>
       </div>
       <div class="flex gap-2 flex-shrink-0">

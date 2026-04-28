@@ -20,6 +20,8 @@ class EmployeeObserver
         $this->provisionEmployeeUserAccount($employee);
     }
 
+    /**
+     * Handle the Employee "updated" event.
      * 
      * When an employee is assigned as a functional or operational manager,
      * automatically create/update their Manager record and assign them the manager role.

@@ -1,11 +1,9 @@
 @extends('layouts.app')
 @section('title','Manajemen Intercomm')
+@section('page_title','Manajemen Intercomm')
+@section('page_subtitle','Kelola akun Intercomm dan status akses employee yang terlibat di modul ini.')
 @section('content')
 <div class="px-4">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Manajemen Intercomm</h1>
-  </div>
-
   <div class="table-container">
     <table class="table-modern">
       <thead>

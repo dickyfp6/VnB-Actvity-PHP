@@ -1,11 +1,9 @@
 
 <?php $__env->startSection('title','Manajemen Intercomm'); ?>
+<?php $__env->startSection('page_title','Manajemen Intercomm'); ?>
+<?php $__env->startSection('page_subtitle','Kelola akun Intercomm dan status akses employee yang terlibat di modul ini.'); ?>
 <?php $__env->startSection('content'); ?>
 <div class="px-4">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Manajemen Intercomm</h1>
-  </div>
-
   <div class="table-container">
     <table class="table-modern">
       <thead>

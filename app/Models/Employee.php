@@ -135,13 +135,14 @@ class Employee extends Model
 
     /**
      * CAREER STAGE MAPPING (VnB System)
-     * Automatically determined by position/golongan and stored in database
+     * Career stage is now determined directly from the employee's level (from HRIS)
      * 
-     * - Manage Self (Non-Staff) = Non-Staff
-     * - Manage Self (Staff) = Staff, Supervisor
-     * - Manage Others = Manager, Tim Leader
-     * - Manage Managers = General Manager
-     * - Manage Function = Kepala Divisi, Direktur, Director, Head of Division
+     * Level -> Career Stage Mapping:
+     * - Non-Staff, Contract, Intern → Manage Self (Non-Staff)
+     * - Staff, Supervisor → Manage Self (Staff dan Supervisor)
+     * - Manager, Tim Leader → Manage Other (Manager)
+     * - General Manager → Manage Manager (Direktur)
+     * - Kepala Divisi, Director, Head of Division → Manage Function
      */
     public function getCareerStage(): ?string
     {
@@ -150,17 +151,20 @@ class Employee extends Model
             return $this->career_stage;
         }
 
-        $frameworkStage = $this->resolveFrameworkCareerStage();
-        if ($frameworkStage) {
-            return $frameworkStage['label'];
+        // Get career stage from HRIS level (new approach - integrated with HRIS)
+        if ($this->level) {
+            $careerStage = $this->mapLevelToCareerStage($this->level);
+            if ($careerStage) {
+                return $careerStage;
+            }
         }
 
-        // Fallback: compute from position for safety when framework has not been configured yet
-        if (!$this->position) {
-            return null;
+        // Fallback: compute from position for safety when level is not available
+        if ($this->position) {
+            return $this->mapPositionToCareerStage($this->position->name);
         }
 
-        return $this->mapPositionToCareerStage($this->position->name);
+        return null;
     }
 
     /**
@@ -169,11 +173,6 @@ class Employee extends Model
      */
     public function getCareerStageCode(): string
     {
-        $frameworkStage = $this->resolveFrameworkCareerStage();
-        if ($frameworkStage) {
-            return $frameworkStage['code'];
-        }
-
         $stage = $this->getCareerStage();
 
         $stageCodeMap = [
@@ -181,13 +180,78 @@ class Employee extends Model
             'Manage Self (Staff dan Supervisor)' => 'manage_self_staff',
             'Manage Other (Manager)' => 'manage_others',
             'Manage Manager (Direktur)' => 'manage_managers',
+            'Manage Function' => 'manage_function',
         ];
 
         return $stageCodeMap[$stage] ?? 'manage_self_non_staff';
     }
 
     /**
-     * Determine career stage from position name (for queries/comparisons)
+     * Map HRIS level directly to career stage (no master_levels dependency)
+     * This is the primary mapping source when integrated with HRIS
+     */
+    private function mapLevelToCareerStage(string $level): ?string
+    {
+        if (!$level) {
+            return null;
+        }
+
+        $levelLower = strtolower(trim($level));
+
+        // Non-Staff levels (Contract, Intern, etc)
+        if (
+            str_contains($levelLower, 'non-staff') ||
+            str_contains($levelLower, 'non staff') ||
+            str_contains($levelLower, 'contract') ||
+            str_contains($levelLower, 'intern') ||
+            str_contains($levelLower, 'harian') ||
+            str_contains($levelLower, 'mingguan') ||
+            str_contains($levelLower, 'borongan')
+        ) {
+            return 'Manage Self (Non-Staff)';
+        }
+
+        // Staff & Supervisor levels
+        if (
+            str_contains($levelLower, 'staff') ||
+            str_contains($levelLower, 'supervisor')
+        ) {
+            return 'Manage Self (Staff dan Supervisor)';
+        }
+
+        // Manager levels
+        if (
+            str_contains($levelLower, 'manager') ||
+            str_contains($levelLower, 'tim leader') ||
+            str_contains($levelLower, 'lead')
+        ) {
+            return 'Manage Other (Manager)';
+        }
+
+        // General Manager / Direktur level (but not Kepala Divisi)
+        if (
+            (str_contains($levelLower, 'general manager') ||
+             str_contains($levelLower, 'direktur')) &&
+            !str_contains($levelLower, 'kepala')
+        ) {
+            return 'Manage Manager (Direktur)';
+        }
+
+        // Function/Division head levels
+        if (
+            str_contains($levelLower, 'kepala divisi') ||
+            str_contains($levelLower, 'kepala') ||
+            str_contains($levelLower, 'director') ||
+            str_contains($levelLower, 'head of division')
+        ) {
+            return 'Manage Function';
+        }
+
+        return null;
+    }
+
+    /**
+     * Determine career stage from position name (fallback for safety)
      */
     private function mapPositionToCareerStage(string $position): ?string
     {
@@ -219,27 +283,5 @@ class Employee extends Model
         }
 
         return null;
-    }
-
-    private function resolveFrameworkCareerStage(): ?array
-    {
-        if (!$this->position_id || !Schema::hasTable('vnb_framework_stage_position_maps') || !Schema::hasTable('vnb_framework_stage_configs')) {
-            return null;
-        }
-
-        $stage = DB::table('vnb_framework_stage_position_maps as maps')
-            ->join('vnb_framework_stage_configs as configs', 'configs.id', '=', 'maps.stage_config_id')
-            ->where('maps.position_id', $this->position_id)
-            ->select('configs.career_stage as code', 'configs.label as label')
-            ->first();
-
-        if (!$stage) {
-            return null;
-        }
-
-        return [
-            'code' => (string) $stage->code,
-            'label' => (string) $stage->label,
-        ];
     }
 }

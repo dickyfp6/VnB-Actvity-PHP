@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Feedback Plan VnB - VnB Platform')
+@section('page_title', 'Feedback Plan VnB')
+@section('page_subtitle', 'Review hasil approval dan revisi dari manager atas rencana VnB Anda.')
 
 @section('content')
 <div class="space-y-6">
@@ -8,7 +10,6 @@
     <div class="card-glass rounded-xl p-6 md:p-8">
         <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
             <div class="flex-1">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Feedback Rencana VnB</h1>
                 <p class="text-gray-600 mb-4">Review hasil approval dan revisi dari manager atas rencana VnB Anda</p>
             </div>
         </div>

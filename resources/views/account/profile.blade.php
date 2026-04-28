@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title','Profil Akun - VnB Platform')
+@section('page_title','Profil Akun')
+@section('page_subtitle','Lihat informasi personal dan detail akun yang sedang digunakan.')
 
 @php
     /** @var \App\Models\User $user */
@@ -18,7 +20,6 @@
                 <i class="fas fa-user text-white text-2xl"></i>
             </div>
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Profil Akun</h1>
                 <p class="text-gray-600 text-sm mt-1">Informasi personal dan akun Anda</p>
             </div>
         </div>
@@ -52,15 +53,15 @@
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Divisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->division?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ data_get($manager, 'division.name', data_get($manager, 'division', '-')) }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Departemen</p>
-                    <p class="font-medium text-gray-900">{{ $manager->department?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ data_get($manager, 'department.name', data_get($manager, 'department', '-')) }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Posisi</p>
-                    <p class="font-medium text-gray-900">{{ $manager->position?->name ?? '-' }}</p>
+                    <p class="font-medium text-gray-900">{{ data_get($manager, 'position.name', data_get($manager, 'position', '-')) }}</p>
                 </div>
                 <div>
                     <p class="text-gray-500 mb-1">Level</p>

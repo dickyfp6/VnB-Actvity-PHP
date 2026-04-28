@@ -1,9 +1,9 @@
 @extends('layouts.app')
 @section('title','Manager - Approval Request')
+@section('page_title','Manager Approval Request')
+@section('page_subtitle','Review dan setujui permintaan yang masuk dari employee dalam satu dashboard.')
 @section('content')
 <div class="px-4 space-y-4">
-  <h1 class="text-2xl font-bold text-gray-800">Approval Request</h1>
-
   <!-- Tab Navigation -->
   <div class="flex gap-2 border-b border-gray-200">
     <button id="tab-my-approvals" onclick="switchTab('my_approvals')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">

@@ -1,9 +1,9 @@
 @extends('layouts.app')
 @section('title','Review Aktivitas')
+@section('page_title','Review Aktivitas')
+@section('page_subtitle','Tinjau aktivitas employee sebelum memberi approval atau revisi.')
 @section('content')
 <div class="px-4">
-  <h1 class="text-2xl font-bold text-gray-800 mb-6">Review Aktivitas Employee</h1>
-
   <div class="table-container">
     <table class="table-modern">
       <thead>

@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Rencana VnB - VnB Platform')
+@section('page_title', 'Rencana VnB')
+@section('page_subtitle', 'Susun rencana pengembangan nilai dan perilaku untuk periode berjalan.')
 
 @section('content')
 <div class="space-y-6">
@@ -8,8 +10,6 @@
     <div class="card-glass rounded-xl p-6 md:p-8">
         <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
             <div class="flex-1">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Rencana VnB</h1>
-                <p class="text-gray-600 mb-4">Perencanaan pengembangan nilai dan perilaku Wismilak</p>
                 <div id="career-stage-info" class="mt-3" style="display: none;"></div>
                 <div id="deadline-info" class="mt-2" style="display: none;"></div>
             </div>

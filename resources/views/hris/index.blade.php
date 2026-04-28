@@ -1,34 +1,30 @@
 @extends('layouts.app')
 
 @section('title', 'Sinkronisasi Data - VnB Platform')
+@section('page_title', 'Sinkronisasi Data')
+@section('page_subtitle', 'Sinkronisasi Employee dari HRIS, HRMS, dan Updated Data ke Employees.')
 
 @section('content')
 <div class="px-4 space-y-4">
-    <div class="flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Sinkronisasi Data</h1>
-            <p class="text-sm text-gray-500 mt-1">Sinkronisasi Employee dari HRIS, HRMS, dan Updated Data ke Employees.</p>
-        </div>
-    </div>
 
     <div class="bg-white rounded-xl shadow-sm p-4">
-        <div class="flex flex-wrap gap-3 border-b border-gray-200 pb-3 items-center">
-            <button id="tab-updated" onclick="switchTab('updated')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">
-                Update Data
-                <span id="pending-badge" class="inline-flex items-center justify-center ml-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white" style="background-color: #dc2626; display: none;">
-                    <i class="fas fa-sync-alt mr-1"></i>
-                    <span id="pending-badge-count">0</span>
-                </span>
-            </button>
-            <button id="tab-hris" onclick="switchTab('hris')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">
-                HRIS
-            </button>
-            <button id="tab-hrms" onclick="switchTab('hrms')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">
-                HRMS
-            </button>
-        </div>
+        <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
+            <div class="flex gap-3">
+                <button id="tab-updated" onclick="switchTab('updated')" class="px-4 py-2 font-medium transition-colors" style="color: #144600; border-bottom: 2px solid #144600;">
+                    Update Data
+                    <span id="pending-badge" class="inline-flex items-center justify-center ml-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white" style="background-color: #dc2626; display: none;">
+                        <i class="fas fa-sync-alt mr-1"></i>
+                        <span id="pending-badge-count">0</span>
+                    </span>
+                </button>
+                <button id="tab-hris" onclick="switchTab('hris')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">
+                    HRIS
+                </button>
+                <button id="tab-hrms" onclick="switchTab('hrms')" class="px-4 py-2 font-medium transition-colors text-gray-500 hover:text-gray-700">
+                    HRMS
+                </button>
+            </div>
 
-        <div id="filters-bar" class="pt-3">
             <div id="updated-actions" class="flex justify-end">
                 <button
                     id="btn-open-sync-modal"

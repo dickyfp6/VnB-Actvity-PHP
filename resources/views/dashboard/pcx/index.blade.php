@@ -1,11 +1,12 @@
 @extends('layouts.app')
+@section('page_title','Dashboard PCX & Intercomm')
+@section('page_subtitle','Visualisasi data onboarding dan progres kerja untuk analisa strategis.')
 
 @section('content')
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">Dashboard PCX & Intercomm</h1>
             <p class="text-gray-600">Visualisasi data onboarding V&B secara holistik untuk analisa strategis</p>
         </div>
 

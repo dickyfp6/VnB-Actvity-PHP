@@ -1,11 +1,12 @@
 @extends('layouts.app')
 @section('title','Ganti Password')
+@section('page_title','Keamanan Akun')
+@section('page_subtitle','Perbarui password dan jaga keamanan akses akun Anda.')
 @section('content')
 <div class="px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Header Section -->
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Keamanan Akun</h1>
             <p class="text-gray-600">Kelola pengaturan keamanan dan privasi akun Anda</p>
         </div>
 

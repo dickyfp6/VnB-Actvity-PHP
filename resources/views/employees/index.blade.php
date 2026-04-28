@@ -1,13 +1,15 @@
 @extends('layouts.app')
 @section('title','Manage Employee')
+@section('page_title','Manage Employee')
+@section('page_subtitle','Kelola data employee, status lifecycle, dan proses penambahan atau impor data.')
 @section('content')
 <div class="px-4 space-y-4">
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-800">Manage Employee</h1>
-        @php
+    @php
             $canManageEmployee = auth()->user()?->hasAnyRole(['intercomm', 'pcx_manager']);
-        @endphp
-        @if($canManageEmployee)
+            // Temporary toggle: keep feature code, hide buttons from UI for now.
+            $showEmployeeActionButtons = false;
+    @endphp
+    @if($canManageEmployee && $showEmployeeActionButtons)
         <div class="flex items-center gap-2">
             <button onclick="openImportModal()" class="px-4 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50">
                 <i class="fas fa-file-import mr-1"></i> Import Employee
@@ -16,8 +18,7 @@
                 <i class="fas fa-plus mr-1"></i> Add Employee
             </button>
         </div>
-        @endif
-    </div>
+    @endif
 
     <div class="bg-white rounded-xl shadow-sm p-4 mb-4 md:mb-0">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">

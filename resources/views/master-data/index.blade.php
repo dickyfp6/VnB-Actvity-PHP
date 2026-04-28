@@ -1,9 +1,10 @@
 @extends('layouts.app')
 @section('title','Master Data')
+@section('page_title','Master Data')
+@section('page_subtitle','Kelola master referensi seperti perusahaan, divisi, jabatan, penempatan, dan golongan.')
 @section('content')
 <div class="px-4">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Master Data</h1>
+  <div class="flex items-center justify-end mb-6">
     <div class="flex items-center gap-2">
       <button onclick="openBulkModal()" class="px-4 py-2 rounded text-sm transition border border-gray-300 text-gray-700 hover:bg-gray-50" style="cursor: pointer;">
         <i class="fas fa-list mr-1"></i> Tambah Massal

@@ -1,5 +1,7 @@
 @extends('layouts.app')
 @section('title','Aktivitas VnB') 
+@section('page_title','Aktivitas VnB')
+@section('page_subtitle','Pantau dan kerjakan aktivitas pengembangan setelah rencana disetujui.')
 @section('content')
 <div class="space-y-6">
   <!-- Plan Status Check Container -->
@@ -9,7 +11,6 @@
   <div id="activity-content" style="display: none;">
     <!-- Header -->
     <div class="card-glass rounded-xl p-6 md:p-8 mb-6">
-      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Aktivitas VnB</h1>
       <p class="text-gray-600">Pelacakan pelaksanaan aktivitas pengembangan nilai dan perilaku</p>
     </div>
 

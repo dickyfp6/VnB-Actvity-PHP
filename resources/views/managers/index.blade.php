@@ -1,9 +1,10 @@
 ﻿@extends('layouts.app')
 @section('title','Manage Manager')
+@section('page_title','Manage Manager')
+@section('page_subtitle','Pantau daftar manager, akses akun, dan hubungan employee yang mereka kelola.')
 @section('content')
 <div class="px-4">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Manage Manager</h1>
+  <div class="flex items-center justify-end mb-6">
     <button onclick="openAddModal()" class="text-white px-4 py-2 rounded-lg text-sm transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
       <i class="fas fa-plus mr-1"></i> Tambah Manager
     </button>

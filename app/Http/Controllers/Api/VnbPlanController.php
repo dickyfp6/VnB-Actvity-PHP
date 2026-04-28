@@ -17,41 +17,81 @@ use Illuminate\Support\Facades\DB;
 class VnbPlanController extends Controller
 {
     /**
-     * Map employee level to career stage
+     * Map employee level (from HRIS) to career stage code
+     * Uses the same logic as Employee::mapLevelToCareerStage() 
+     * Returns the underscore-format code for framework lookups
      */
-    private function mapLevelToCareerStage($level): string
+    private function mapLevelToCareerStageCode($level): string
     {
         if (!$level) {
             return 'manage_self_non_staff';
         }
 
-        $level = strtolower($level);
-        
-        // Extract primary role (before "/" if compound role)
-        $primaryRole = explode('/', $level)[0];
-        $primaryRole = strtolower(trim($primaryRole));
-        
-        // Check for Non-Staff FIRST (before generic "staff" check)
-        if (str_contains($primaryRole, 'non-staff') || str_contains($primaryRole, 'non staff')) {
+        $levelLower = strtolower(trim($level));
+
+        // Non-Staff levels (Contract, Intern, etc)
+        if (
+            str_contains($levelLower, 'non-staff') ||
+            str_contains($levelLower, 'non staff') ||
+            str_contains($levelLower, 'contract') ||
+            str_contains($levelLower, 'intern') ||
+            str_contains($levelLower, 'harian') ||
+            str_contains($levelLower, 'mingguan') ||
+            str_contains($levelLower, 'borongan')
+        ) {
             return 'manage_self_non_staff';
         }
-        
-        // Check Manager/Kepala
-        if (str_contains($primaryRole, 'manager') || str_contains($primaryRole, 'kepala')) {
-            return 'manage_managers';
-        }
-        
-        // Check Staff (primary role) - now won't match non-staff
-        if (str_contains($primaryRole, 'staff')) {
+
+        // Staff & Supervisor levels
+        if (
+            str_contains($levelLower, 'staff') &&
+            !str_contains($levelLower, 'non-staff') &&
+            !str_contains($levelLower, 'non staff')
+        ) {
             return 'manage_self_staff';
         }
-        
-        // Check Supervisor/Lead (primary role) 
-        if (str_contains($primaryRole, 'supervisor') || str_contains($primaryRole, 'lead')) {
+
+        // Supervisor
+        if (str_contains($levelLower, 'supervisor')) {
+            return 'manage_self_staff';
+        }
+
+        // Manager levels (but not General Manager or Kepala Divisi)
+        if (
+            str_contains($levelLower, 'manager') &&
+            !str_contains($levelLower, 'general manager') &&
+            !str_contains($levelLower, 'kepala')
+        ) {
             return 'manage_others';
         }
-        
-        // Default
+
+        // Tim Leader / Lead
+        if (
+            str_contains($levelLower, 'tim leader') ||
+            (str_contains($levelLower, 'lead') && !str_contains($levelLower, 'manager'))
+        ) {
+            return 'manage_others';
+        }
+
+        // General Manager / Direktur level (but not Kepala Divisi)
+        if (
+            (str_contains($levelLower, 'general manager') ||
+             str_contains($levelLower, 'direktur')) &&
+            !str_contains($levelLower, 'kepala')
+        ) {
+            return 'manage_managers';
+        }
+
+        // Function/Division head levels
+        if (
+            str_contains($levelLower, 'kepala divisi') ||
+            str_contains($levelLower, 'kepala') ||
+            str_contains($levelLower, 'director') ||
+            str_contains($levelLower, 'head of division')
+        ) {
+            return 'manage_function';
+        }
+
         return 'manage_self_non_staff';
     }
 

@@ -18,29 +18,59 @@ class VnbFrameworkController extends Controller
         'manage_managers' => 'Manage Manager (Direktur)',
     ];
 
-    private function getFrameworkPositions()
+    private function getFrameworkLevels()
     {
-        if (Schema::hasTable('employees') && Schema::hasTable('master_positions')) {
-            $positions = DB::table('employees as e')
-                ->join('master_positions as mp', 'mp.id', '=', 'e.position_id')
-                ->select('mp.id', 'mp.name')
-                ->distinct()
-                ->orderBy('mp.name')
-                ->get();
+        // Query distinct levels from employees table (HRIS integration)
+        // Each unique level from employees becomes a selectable option in framework setup
+        return DB::table('employees')
+            ->select('level')
+            ->whereNotNull('level')
+            ->where('level', '!=', '')
+            ->distinct()
+            ->orderBy('level')
+            ->get()
+            ->map(function ($row) {
+                $level = (string) $row->level;
+                return [
+                    'id' => $level,
+                    'name' => $level,
+                ];
+            })
+            ->values();
+    }
 
-            if ($positions->isNotEmpty()) {
-                return $positions;
-            }
-        }
+    public function saveBehaviours(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'behaviours' => 'required|array|min:1',
+            'behaviours.*' => 'required|string|max:120|distinct',
+        ]);
 
-        if (!Schema::hasTable('master_positions')) {
-            return collect();
-        }
+        $now = now();
+        $behaviourNames = collect($validated['behaviours'])
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique(fn ($value) => mb_strtolower($value))
+            ->values();
 
-        return DB::table('master_positions')
-            ->select('id', 'name')
-            ->orderBy('name')
-            ->get();
+        DB::transaction(function () use ($behaviourNames, $now): void {
+            // Clear existing behaviours and related data
+            DB::table('vnb_framework_stage_behaviours')->delete();
+            DB::table('vnb_framework_behaviours')->delete();
+
+            // Insert new behaviours
+            $behaviourRows = $behaviourNames->map(fn ($name) => [
+                'name' => $name,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->all();
+            DB::table('vnb_framework_behaviours')->insert($behaviourRows);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Behaviour berhasil disimpan. Lanjut ke step 2 untuk setup career stage.',
+        ]);
     }
 
     private function getStageConfigs()
@@ -48,12 +78,6 @@ class VnbFrameworkController extends Controller
         $stageRows = DB::table('vnb_framework_stage_configs')->orderBy('id')->get();
 
         return $stageRows->map(function ($row) {
-            $positions = DB::table('vnb_framework_stage_position_maps as maps')
-                ->join('master_positions as mp', 'mp.id', '=', 'maps.position_id')
-                ->where('maps.stage_config_id', $row->id)
-                ->orderBy('mp.name')
-                ->get(['mp.id', 'mp.name']);
-
             $phases = DB::table('vnb_framework_stage_phases')
                 ->where('stage_config_id', $row->id)
                 ->orderBy('phase_order')
@@ -64,8 +88,6 @@ class VnbFrameworkController extends Controller
                 'career_stage' => (string) $row->career_stage,
                 'label' => (string) $row->label,
                 'max_integrations' => (int) $row->max_integrations,
-                'position_ids' => $positions->pluck('id')->map(fn ($id) => (int) $id)->values(),
-                'position_names' => $positions->pluck('name')->values(),
                 'phases' => $phases,
             ];
         })->values();
@@ -105,17 +127,21 @@ class VnbFrameworkController extends Controller
     {
         $careerStage = (string) $request->get('career_stage', 'manage_self_non_staff');
         $stageConfigs = $this->getStageConfigs();
-        $positions = $this->getFrameworkPositions();
+        $levels = $this->getFrameworkLevels();
         $globalBehaviours = DB::table('vnb_framework_behaviours')->orderBy('name')->pluck('name')->values();
 
         if ($stageConfigs->isEmpty()) {
+            // Check if behaviours exist (Step 1 complete, waiting for Step 2)
+            $hasBehaviours = $globalBehaviours->isNotEmpty();
+            
             return response()->json([
                 'success' => true,
                 'setup_required' => true,
-                'message' => 'Belum dibuat. Yuk siapkan VnB Framework kamu!',
+                'setup_step' => $hasBehaviours ? 'step_2_pending' : 'step_1_pending',
+                'message' => $hasBehaviours ? 'Lanjut setup career stage' : 'Belum dibuat. Yuk siapkan VnB Framework kamu!',
                 'stages' => [],
                 'behaviours' => $globalBehaviours,
-                'positions' => $positions,
+                'levels' => $levels,
             ]);
         }
 
@@ -133,11 +159,12 @@ class VnbFrameworkController extends Controller
         return response()->json([
             'success' => true,
             'setup_required' => false,
+            'setup_step' => 'complete',
             'career_stage' => $selectedStageCode,
             'career_stage_label' => $selectedStageLabel,
             'behaviours' => $behaviours,
             'stages' => $stageConfigs,
-            'positions' => $positions,
+            'levels' => $levels,
             'data' => $items,
         ]);
     }
@@ -149,51 +176,19 @@ class VnbFrameworkController extends Controller
             'behaviours.*' => 'required|string|max:120',
             'stages' => 'required|array|min:1',
             'stages.*.label' => 'required|string|max:120',
-            'stages.*.position_ids' => 'required|array|min:1',
-            'stages.*.position_ids.*' => 'required|integer|exists:master_positions,id',
         ]);
 
-        $availablePositionIds = $this->getFrameworkPositions()->pluck('id')->map(fn ($id) => (int) $id)->values();
-        $selectedPositionIds = collect($validated['stages'])
-            ->flatMap(fn ($row) => $row['position_ids'])
-            ->map(fn ($id) => (int) $id)
-            ->values();
-
-        if ($selectedPositionIds->count() !== $selectedPositionIds->unique()->count()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Satu golongan tidak boleh masuk ke beberapa career stage.',
-            ], 422);
-        }
-
-        $missingPositionIds = $availablePositionIds->diff($selectedPositionIds)->values();
-        if ($missingPositionIds->isNotEmpty()) {
-            $missingLabels = $this->getFrameworkPositions()
-                ->whereIn('id', $missingPositionIds->all())
-                ->pluck('name')
-                ->values();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Semua golongan harus kebagian stage. Golongan yang belum dipilih: ' . $missingLabels->implode(', '),
-            ], 422);
-        }
-
         DB::transaction(function () use ($validated): void {
-            DB::table('vnb_framework_stage_position_maps')->delete();
+            // Keep existing behaviours - don't delete them
+            // Only reset stage-related configs
+            DB::table('vnb_framework_stage_level_maps')->delete();
             DB::table('vnb_framework_stage_behaviours')->delete();
             DB::table('vnb_framework_stage_phases')->delete();
             DB::table('vnb_framework_stage_configs')->delete();
-            DB::table('vnb_framework_behaviours')->delete();
             DB::table('vnb_framework_items')->delete();
 
             $now = now();
-            $behaviourNames = collect($validated['behaviours'])
-                ->map(fn ($value) => trim((string) $value))
-                ->filter()
-                ->unique(fn ($value) => mb_strtolower($value))
-                ->values();
-
+            
             $stageCodes = [];
             $stagePayloads = [];
             foreach (array_values($validated['stages']) as $index => $stageInput) {
@@ -203,17 +198,10 @@ class VnbFrameworkController extends Controller
                 $stagePayloads[] = [
                     'label' => $label,
                     'career_stage' => $code,
-                    'position_ids' => collect($stageInput['position_ids'])->map(fn ($id) => (int) $id)->values()->all(),
                 ];
             }
 
-            $behaviourRows = $behaviourNames->map(fn ($name) => [
-                'name' => $name,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ])->all();
-            DB::table('vnb_framework_behaviours')->insert($behaviourRows);
-
+            // Get existing behaviours (already saved in Step 1)
             $behaviours = DB::table('vnb_framework_behaviours')->get(['id']);
 
             foreach ($stagePayloads as $mapping) {
@@ -233,14 +221,6 @@ class VnbFrameworkController extends Controller
                     'updated_at' => $now,
                 ])->all();
                 DB::table('vnb_framework_stage_behaviours')->insert($stageBehaviourRows);
-
-                $positionRows = collect($mapping['position_ids'])->map(fn ($positionId) => [
-                    'stage_config_id' => $stageId,
-                    'position_id' => (int) $positionId,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ])->all();
-                DB::table('vnb_framework_stage_position_maps')->insert($positionRows);
             }
         });
 
@@ -253,7 +233,7 @@ class VnbFrameworkController extends Controller
     public function saveStageDetails(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'career_stage' => 'required|string|in:manage_self_non_staff,manage_self_staff,manage_others,manage_managers',
+            'career_stage' => 'required|string|exists:vnb_framework_stage_configs,career_stage',
             'max_integrations' => 'required|integer|min:1|max:20',
             'phases' => 'required|array|min:1',
             'phases.*.duration_months' => 'required|integer|min:1|max:60',
@@ -338,7 +318,7 @@ class VnbFrameworkController extends Controller
     public function resetStageTemplate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'career_stage' => 'required|string|in:manage_self_non_staff,manage_self_staff,manage_others,manage_managers',
+            'career_stage' => 'required|string|exists:vnb_framework_stage_configs,career_stage',
         ]);
 
         $stage = DB::table('vnb_framework_stage_configs')
