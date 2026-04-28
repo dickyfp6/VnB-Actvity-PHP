@@ -20,20 +20,54 @@ class VnbFrameworkController extends Controller
 
     private function getFrameworkLevels()
     {
-        // Query distinct levels from employees table (HRIS integration)
-        // Each unique level from employees becomes a selectable option in framework setup
-        return DB::table('employees')
+        // 1. Get unique level strings from employees table
+        $employeeLevels = DB::table('employees')
             ->select('level')
             ->whereNotNull('level')
             ->where('level', '!=', '')
             ->distinct()
             ->orderBy('level')
+            ->pluck('level')
+            ->map(fn($v) => trim((string)$v))
+            ->filter()
+            ->values();
+
+        if ($employeeLevels->isEmpty()) {
+            return collect();
+        }
+
+        $now = now();
+        
+        // 2. Ensure each level string exists in master_levels (auto-sync)
+        foreach ($employeeLevels as $name) {
+            $exists = DB::table('master_levels')
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                ->exists();
+
+            if (!$exists) {
+                DB::table('master_levels')->insert([
+                    'name' => $name,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        // 3. Return the mapped objects from master_levels
+        // Include both current employee levels AND levels already mapped to stages
+        $mappedLevelIds = DB::table('vnb_framework_stage_level_maps')->pluck('level_id');
+        $activeNames = collect($employeeLevels)->map(fn($n) => mb_strtolower($n))->toArray();
+
+        return DB::table('master_levels')
+            ->whereIn('name', $employeeLevels)
+            ->orWhereIn('id', $mappedLevelIds)
+            ->whereNull('deleted_at')
             ->get()
-            ->map(function ($row) {
-                $level = (string) $row->level;
+            ->map(function ($row) use ($activeNames) {
                 return [
-                    'id' => $level,
-                    'name' => $level,
+                    'id' => (int) $row->id,
+                    'name' => (string) $row->name,
+                    'is_active' => in_array(mb_strtolower($row->name), $activeNames, true),
                 ];
             })
             ->values();
@@ -58,9 +92,10 @@ class VnbFrameworkController extends Controller
             DB::table('vnb_framework_stage_behaviours')->delete();
             DB::table('vnb_framework_behaviours')->delete();
 
-            // Insert new behaviours
-            $behaviourRows = $behaviourNames->map(fn ($name) => [
+            // Insert new behaviours with sort order
+            $behaviourRows = $behaviourNames->map(fn ($name, $index) => [
                 'name' => $name,
+                'sort_order' => $index + 1,
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all();
@@ -75,7 +110,7 @@ class VnbFrameworkController extends Controller
 
     private function getStageConfigs()
     {
-        $stageRows = DB::table('vnb_framework_stage_configs')->orderBy('id')->get();
+        $stageRows = DB::table('vnb_framework_stage_configs')->orderBy('sort_order')->orderBy('id')->get();
 
         return $stageRows->map(function ($row) {
             $phases = DB::table('vnb_framework_stage_phases')
@@ -83,12 +118,19 @@ class VnbFrameworkController extends Controller
                 ->orderBy('phase_order')
                 ->get(['phase_order', 'duration_months']);
 
+            $levelIds = DB::table('vnb_framework_stage_level_maps')
+                ->where('stage_config_id', $row->id)
+                ->pluck('level_id')
+                ->map(fn($id) => (int)$id)
+                ->values();
+
             return [
                 'id' => (int) $row->id,
                 'career_stage' => (string) $row->career_stage,
                 'label' => (string) $row->label,
                 'max_integrations' => (int) $row->max_integrations,
                 'phases' => $phases,
+                'level_ids' => $levelIds,
             ];
         })->values();
     }
@@ -128,7 +170,11 @@ class VnbFrameworkController extends Controller
         $careerStage = (string) $request->get('career_stage', 'manage_self_non_staff');
         $stageConfigs = $this->getStageConfigs();
         $levels = $this->getFrameworkLevels();
-        $globalBehaviours = DB::table('vnb_framework_behaviours')->orderBy('name')->pluck('name')->values();
+        $globalBehaviours = DB::table('vnb_framework_behaviours')
+            ->orderByRaw('CASE WHEN sort_order IS NULL OR sort_order = 0 THEN 999999 ELSE sort_order END')
+            ->orderBy('id')
+            ->pluck('name')
+            ->values();
 
         if ($stageConfigs->isEmpty()) {
             // Check if behaviours exist (Step 1 complete, waiting for Step 2)
@@ -156,10 +202,29 @@ class VnbFrameworkController extends Controller
             ->orderBy('phase')
             ->get();
 
+        // Check if framework is incomplete (new levels added to company but not assigned to a stage)
+        $employeeLevels = DB::table('employees')
+            ->whereNotNull('level')
+            ->where('level', '!=', '')
+            ->distinct()
+            ->pluck('level');
+
+        $activeLevelIds = DB::table('master_levels')
+            ->whereIn('name', $employeeLevels)
+            ->pluck('id');
+
+        $assignedLevelsCount = DB::table('vnb_framework_stage_level_maps')
+            ->whereIn('level_id', $activeLevelIds)
+            ->distinct('level_id')
+            ->count();
+
+        $frameworkIncomplete = ($activeLevelIds->count() > $assignedLevelsCount);
+
         return response()->json([
             'success' => true,
             'setup_required' => false,
             'setup_step' => 'complete',
+            'framework_incomplete' => $frameworkIncomplete,
             'career_stage' => $selectedStageCode,
             'career_stage_label' => $selectedStageLabel,
             'behaviours' => $behaviours,
@@ -176,18 +241,39 @@ class VnbFrameworkController extends Controller
             'behaviours.*' => 'required|string|max:120',
             'stages' => 'required|array|min:1',
             'stages.*.label' => 'required|string|max:120',
+            'stages.*.level_ids' => 'required|array|min:1',
+            'stages.*.level_ids.*' => 'required|integer|exists:master_levels,id',
         ]);
 
-        DB::transaction(function () use ($validated): void {
-            // Keep existing behaviours - don't delete them
+        $now = now();
+
+        DB::transaction(function () use ($validated, $now): void {
+            // Rebuild behaviour ordering from submitted payload so the UI keeps the entered sequence.
+            DB::table('vnb_framework_stage_behaviours')->delete();
+            DB::table('vnb_framework_behaviours')->delete();
+
+            $behaviourRows = collect($validated['behaviours'])
+                ->map(fn ($value, $index) => trim((string) $value))
+                ->filter()
+                ->unique(fn ($value) => mb_strtolower($value))
+                ->values()
+                ->map(fn ($name, $index) => [
+                    'name' => $name,
+                    'sort_order' => $index + 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])
+                ->all();
+
+            if (!empty($behaviourRows)) {
+                DB::table('vnb_framework_behaviours')->insert($behaviourRows);
+            }
+
             // Only reset stage-related configs
             DB::table('vnb_framework_stage_level_maps')->delete();
-            DB::table('vnb_framework_stage_behaviours')->delete();
             DB::table('vnb_framework_stage_phases')->delete();
             DB::table('vnb_framework_stage_configs')->delete();
             DB::table('vnb_framework_items')->delete();
-
-            $now = now();
             
             $stageCodes = [];
             $stagePayloads = [];
@@ -201,18 +287,34 @@ class VnbFrameworkController extends Controller
                 ];
             }
 
-            // Get existing behaviours (already saved in Step 1)
-            $behaviours = DB::table('vnb_framework_behaviours')->get(['id']);
+            // Use behaviours in the same order the user submitted.
+            $behaviours = DB::table('vnb_framework_behaviours')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get(['id']);
 
-            foreach ($stagePayloads as $mapping) {
+            foreach ($stagePayloads as $index => $mapping) {
                 $code = (string) $mapping['career_stage'];
                 $stageId = DB::table('vnb_framework_stage_configs')->insertGetId([
                     'career_stage' => $code,
                     'label' => $mapping['label'],
+                    'sort_order' => $index + 1,
                     'max_integrations' => 2,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
+
+                // Save level mappings
+                $inputStage = $validated['stages'][$index] ?? null;
+                if ($inputStage && !empty($inputStage['level_ids'])) {
+                    $levelMapRows = collect($inputStage['level_ids'])->map(fn($lvlId) => [
+                        'stage_config_id' => $stageId,
+                        'level_id' => (int)$lvlId,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ])->all();
+                    DB::table('vnb_framework_stage_level_maps')->insert($levelMapRows);
+                }
 
                 $stageBehaviourRows = $behaviours->map(fn ($behaviour) => [
                     'stage_config_id' => $stageId,
@@ -283,8 +385,13 @@ class VnbFrameworkController extends Controller
 
             $itemsToInsert = [];
             foreach ($behaviours as $behaviour) {
-                foreach ($phaseRows as $phaseRow) {
-                    $phaseLabel = 'F' . $phaseRow['phase_order'] . ' (' . $phaseRow['duration_months'] . ' bulan)';
+                $currentMonth = 1;
+                foreach ($phaseRows as $idx => $phaseRow) {
+                    // Use human-friendly phase label: "Fase {n} ({duration} Bulan)"
+                    $phaseOrder = ($phaseRow['phase_order'] ?? ($idx + 1));
+                    $duration = (int) ($phaseRow['duration_months'] ?? 1);
+                    $phaseLabel = sprintf('Fase %d (%d Bulan)', $phaseOrder, $duration);
+
                     $integrationTemplates = $this->buildIntegrationTemplates(
                         (string) $behaviour,
                         $phaseLabel,
@@ -301,6 +408,8 @@ class VnbFrameworkController extends Controller
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
+
+                    $currentMonth = $currentMonth + $duration;
                 }
             }
 
@@ -428,6 +537,47 @@ class VnbFrameworkController extends Controller
             'items.*.integrations' => 'required|array|min:1',
             'items.*.integrations.*' => 'nullable|string',
         ]);
+        // Additional server-side business validation:
+        // - integration_1 (index 0) must be non-empty for every item
+        // - integration_2 (index 1) is optional per item, but each career_stage must have at least one non-empty integration_2
+        $stageGroups = [];
+        foreach ($validated['items'] as $row) {
+            $item = VnbFrameworkItem::find($row['id']);
+            if (!$item) continue;
+            $stage = $item->career_stage;
+            $stageGroups[$stage][] = [
+                'item' => $item,
+                'integrations' => is_array($row['integrations']) ? $row['integrations'] : [],
+            ];
+        }
+
+        foreach ($stageGroups as $stage => $rows) {
+            $hasIntegrasi2 = false;
+            foreach ($rows as $r) {
+                $normalized = array_map(fn($v) => trim((string)$v), $r['integrations']);
+                // ensure integration_1 exists
+                if (!isset($normalized[0]) || $normalized[0] === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Integrasi 1 wajib diisi untuk semua baris sebelum menyimpan.',
+                    ], 422);
+                }
+                if (isset($normalized[1]) && $normalized[1] !== '') {
+                    $hasIntegrasi2 = true;
+                }
+            }
+
+            if (!$hasIntegrasi2) {
+                // If the stage supports at least 2 integrations (max_integrations >= 2), require one filled integration_2
+                $maxIntegrations = (int) DB::table('vnb_framework_stage_configs')->where('career_stage', $stage)->value('max_integrations');
+                if ($maxIntegrations >= 2) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Setidaknya satu Integrasi 2 harus diisi untuk stage {$stage}.",
+                    ], 422);
+                }
+            }
+        }
 
         DB::transaction(function () use ($validated): void {
             foreach ($validated['items'] as $row) {

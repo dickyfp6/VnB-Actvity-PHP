@@ -100,6 +100,25 @@
     background: rgba(55,170,5,0.04);
     box-shadow: 0 0 0 3px rgba(55,170,5,0.08);
   }
+  .fw-drag-handle {
+    cursor: grab;
+    padding: 0.5rem 0.25rem;
+    color: var(--color-neutral-400);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fw-drag-handle:hover { color: var(--color-primary); }
+  .fw-drag-handle:active { cursor: grabbing; }
+  .dragging-item {
+    opacity: 0.4;
+    border: 2px dashed var(--color-primary) !important;
+    background: rgba(55,170,5,0.02) !important;
+  }
+  .drag-over-sort {
+    border-top: 2px solid var(--color-primary) !important;
+  }
 </style>
 
 <div class="py-2 space-y-5 animate-fade-in">
@@ -122,24 +141,21 @@
   {{-- Preview removed per request --}}
 
   {{-- Integrations --}}
-  <section id="framework-integrations" class="hidden fw-card">
-    <div class="flex items-start justify-between mb-4 gap-4 flex-wrap">
-      <div>
-        <div class="fw-card-title"><i class="fas fa-puzzle-piece"></i> Integrasi Aktivitas</div>
-        <p class="fw-card-desc">Susun integrasi per career stage, mulai dari konfigurasi fase lalu isi integrasi pengukuran.</p>
-      </div>
-      <div class="fw-toolbar">
-        <button id="btn-edit-career-stage" class="fw-btn fw-btn-outline"><i class="fas fa-pen"></i> Edit Career Stage</button>
-        <span id="integrations-dirty-badge" class="hidden fw-badge-dirty">⚠ Belum disimpan</span>
+  <section id="framework-integrations" class="hidden">
+    <div class="flex items-end justify-between border-b border-gray-200 mb-6 px-1">
+      <div id="integrations-stage-tabs" class="flex gap-6"></div>
+      <div class="flex items-center gap-3 pb-2">
+        <button id="btn-edit-career-stage" class="fw-btn fw-btn-outline text-xs"><i class="fas fa-pen"></i> Edit Career Stage</button>
       </div>
     </div>
 
-    <div id="integrations-stage-tabs" class="flex flex-wrap gap-2 mb-4"></div>
-
-    <div class="border border-gray-200 rounded-xl p-4 bg-white mb-4">
+    <div id="active-stage-config-container" class="border border-gray-200 rounded-xl p-4 bg-white mb-4">
       <div class="flex items-center justify-between mb-3">
         <h4 class="text-sm font-bold text-gray-800">Konfigurasi Stage Aktif</h4>
-        <span id="stage-autosave-indicator" class="text-xs text-gray-500">Auto-save aktif</span>
+        <div class="flex items-center gap-3">
+          <span id="stage-autosave-indicator" class="text-xs text-gray-500 hidden">Auto-save aktif</span>
+          <button id="btn-close-config" class="text-gray-400 hover:text-gray-600 hidden"><i class="fas fa-times"></i></button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -155,25 +171,43 @@
       </div>
 
       <div class="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
-        <button id="btn-save-stage-config" class="fw-btn fw-btn-primary"><i class="fas fa-save"></i> Simpan</button>
+        <button id="btn-save-stage-config" class="fw-btn fw-btn-primary"><i class="fas fa-save"></i> Simpan & Lanjutkan</button>
       </div>
     </div>
 
-    <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-      <div class="text-sm font-semibold text-gray-800">Integrasi Pengukuran (VnB Activity)</div>
-      <div class="fw-toolbar">
-        <button id="btn-edit-vnb-activity" class="fw-btn fw-btn-outline"><i class="fas fa-pen"></i> Edit VnB Activity</button>
-        <button id="btn-clone-stage" class="fw-btn fw-btn-outline"><i class="fas fa-clone"></i> Clone</button>
-        <button id="save-integrations-btn" class="fw-btn fw-btn-primary"><i class="fas fa-save"></i> Simpan Integrasi</button>
+    <div id="integrations-table-container" class="hidden">
+      <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div class="text-sm font-semibold text-gray-800">Integrasi Pengukuran (Activity VnB)</div>
+        <div class="fw-toolbar">
+          <button id="btn-open-config" class="fw-btn fw-btn-outline text-xs"><i class="fas fa-cog"></i> Konfigurasi Stage</button>
+          <button id="btn-clone-stage" class="fw-btn fw-btn-outline"><i class="fas fa-clone"></i> Clone</button>
+          <button id="btn-edit-vnb-activity" class="fw-btn fw-btn-primary"><i class="fas fa-pen"></i> Edit Integrasi</button>
+          <span id="integrations-dirty-badge" class="hidden fw-badge-dirty">⚠ Belum disimpan</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="table-modern w-full">
+          <thead id="integrations-head"></thead>
+          <tbody id="integrations-body"></tbody>
+        </table>
       </div>
     </div>
+  </section>
 
-    <div class="overflow-x-auto">
-      <table class="table-modern w-full">
-        <thead id="integrations-head"></thead>
-        <tbody id="integrations-body"></tbody>
-      </table>
+  {{-- Framework Incomplete Blocking --}}
+  <section id="framework-incomplete" class="hidden fw-card text-center py-12">
+    <div class="fw-empty-icon" style="background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.08));">
+      <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i>
     </div>
+    <h2 class="text-lg font-bold text-gray-900 mb-2">Framework Perlu Diperbarui</h2>
+    <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+      Terdapat golongan karyawan yang belum terpetakan ke dalam Career Stage. 
+      Anda harus melengkapi pemetaan ini sebelum dapat mengelola integrasi aktivitas.
+    </p>
+    <button id="btn-fix-framework" class="fw-btn fw-btn-primary">
+      <i class="fas fa-tools"></i> Perbarui Pemetaan Sekarang
+    </button>
   </section>
 </div>
 
@@ -223,6 +257,21 @@
     </div>
   </div>
 </div>
+
+{{-- Clone modal (dynamic, populated from stageConfigs) --}}
+<div id="clone-stage-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeCloneModal()"></div>
+  <div class="max-w-md mx-auto mt-24 bg-white rounded-lg shadow-lg relative p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-semibold">Clone ke career stage mana?</h3>
+      <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeCloneModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="clone-stage-options" class="space-y-2">Loading…</div>
+    <div class="mt-4 flex justify-end">
+      <button type="button" class="fw-btn fw-btn-outline" onclick="closeCloneModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -247,11 +296,36 @@ let integrationEditEnabled = true;
 function renderBehaviourList() {
   const container = document.getElementById('editor-behaviour-list');
   container.innerHTML = behaviourDraft.map((value, index) => `
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 behaviour-row" draggable="true" data-index="${index}">
+      <div class="fw-drag-handle"><i class="fas fa-grip-vertical"></i></div>
       <input type="text" class="behaviour-input flex-1 fw-input" data-index="${index}" value="${String(value || '').replace(/"/g, '&quot;')}" placeholder="Nama behaviour">
       <button type="button" class="remove-behaviour-btn fw-btn fw-btn-outline" style="color:#dc2626;border-color:rgba(239,68,68,0.3)"><i class="fas fa-trash-alt"></i></button>
     </div>
   `).join('');
+
+  container.querySelectorAll('.behaviour-row').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', row.dataset.index);
+      row.classList.add('dragging-item');
+    });
+    row.addEventListener('dragend', () => row.classList.remove('dragging-item'));
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      row.classList.add('drag-over-sort');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over-sort'));
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('drag-over-sort');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = parseInt(row.dataset.index);
+      if (fromIdx === toIdx) return;
+      
+      const item = behaviourDraft.splice(fromIdx, 1)[0];
+      behaviourDraft.splice(toIdx, 0, item);
+      renderBehaviourList();
+    });
+  });
 
   document.querySelectorAll('.behaviour-input').forEach((input) => {
     input.addEventListener('input', (event) => {
@@ -317,8 +391,9 @@ function renderStageList() {
     }).join('');
 
     return `
-      <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 stage-card" data-stage-index="${stageIndex}">
+      <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 stage-card" draggable="true" data-stage-index="${stageIndex}">
         <div class="flex items-center gap-2 mb-3">
+          <div class="fw-drag-handle"><i class="fas fa-grip-vertical"></i></div>
           <input type="text" class="stage-label fw-input text-sm" style="max-width:420px" data-index="${stageIndex}" value="${String(stage.label || '').replace(/"/g, '&quot;')}" placeholder="Nama career stage">
           <button type="button" class="remove-stage-btn fw-btn fw-btn-outline" style="color:#dc2626;border-color:rgba(239,68,68,0.3);padding:0.4rem 0.8rem"><i class="fas fa-trash-alt text-xs"></i></button>
         </div>
@@ -330,18 +405,42 @@ function renderStageList() {
   }).join('');
 
   document.querySelectorAll('.stage-card').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      if (draggedLevelId) return; // ignore if dragging level pill
+      e.dataTransfer.setData('text/stage-index', card.dataset.stageIndex);
+      card.classList.add('dragging-item');
+    });
+
+    card.addEventListener('dragend', () => card.classList.remove('dragging-item'));
+
     card.addEventListener('dragover', (event) => {
       event.preventDefault();
-      card.classList.add('drag-over');
+      if (draggedLevelId) {
+        card.classList.add('drag-over');
+      } else {
+        card.classList.add('drag-over-sort');
+      }
     });
 
     card.addEventListener('dragleave', () => {
-      card.classList.remove('drag-over');
+      card.classList.remove('drag-over', 'drag-over-sort');
     });
 
     card.addEventListener('drop', (event) => {
       event.preventDefault();
-      card.classList.remove('drag-over');
+      card.classList.remove('drag-over', 'drag-over-sort');
+      
+      const stageFromIdx = event.dataTransfer.getData('text/stage-index');
+      if (stageFromIdx !== "") {
+        const fromIdx = parseInt(stageFromIdx);
+        const toIdx = parseInt(card.dataset.stageIndex);
+        if (fromIdx === toIdx) return;
+        const item = stageDraft.splice(fromIdx, 1)[0];
+        stageDraft.splice(toIdx, 0, item);
+        renderStageList();
+        return;
+      }
+
       const levelId = String(draggedLevelId || event.dataTransfer.getData('text/plain') || '');
       if (!levelId) return;
 
@@ -407,6 +506,7 @@ function renderLevelPool() {
   pool.innerHTML = levels.map((lvl) => {
     const id = String(lvl.id);
     if (assigned.has(id)) return '';
+    if (!lvl.is_active) return '';
     return `<span class="level-pill pool inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border text-sm cursor-grab" draggable="true" data-level-id="${id}">${lvl.name}</span>`;
   }).join('');
 
@@ -454,19 +554,20 @@ function renderStageDetailCards(stages) {
   const container = document.getElementById('stage-config-list');
   container.innerHTML = stages.map((stage) => {
     const phaseRows = stage.phases && stage.phases.length
-      ? stage.phases
-      : [{ phase_order: 1, duration_months: 3 }, { phase_order: 2, duration_months: 3 }, { phase_order: 3, duration_months: 6 }];
+      ? // respect server-configured phases
+        stage.phases
+      : // default to a single phase only
+        [{ phase_order: 1, duration_months: 3 }];
 
     const phaseInputs = phaseRows.map((phase, idx) => `
       <div class="flex items-center gap-2 mb-2">
         <span class="text-xs font-semibold text-gray-500 w-16">Fase ${idx + 1}</span>
         <input type="number" min="1" max="60" value="${phase.duration_months}" data-stage="${stage.career_stage}" data-phase-index="${idx}" class="phase-duration w-24 fw-input text-center">
         <span class="text-xs text-gray-400">bulan</span>
-      </div>
-    `).join('');
-
-    return `
-      <div class="fw-stage-card">
+          <div>
+          <label class="text-xs font-semibold text-gray-500 block mb-1.5">Durasi per Fase</label>
+          ${phaseInputs}
+        </div>
         <div class="font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-bookmark text-green-500 text-xs"></i> ${stage.label}</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -566,7 +667,21 @@ function renderStageTabs(stages) {
   const container = document.getElementById('integrations-stage-tabs');
   container.innerHTML = (stages || []).map((stage) => {
     const isActive = stage.career_stage === currentStage;
-    return `<button type="button" class="px-3 py-1.5 rounded-full text-sm font-semibold border ${isActive ? 'bg-green-100 text-green-800 border-green-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}" data-stage-tab="${stage.career_stage}">${stage.label}</button>`;
+    if (isActive) {
+      return `
+        <button type="button" 
+          class="px-1 py-3 font-bold transition-colors border-b-2 -mb-[2px] text-sm" 
+          style="color: var(--color-primary-dark); border-color: var(--color-primary-dark);" 
+          data-stage-tab="${stage.career_stage}">
+          ${stage.label}
+        </button>`;
+    }
+    return `
+      <button type="button" 
+        class="px-1 py-3 font-medium transition-colors text-gray-500 hover:text-gray-700 text-sm border-b-2 border-transparent -mb-[2px]" 
+        data-stage-tab="${stage.career_stage}">
+        ${stage.label}
+      </button>`;
   }).join('');
 
   container.querySelectorAll('[data-stage-tab]').forEach((button) => {
@@ -612,12 +727,11 @@ function renderActiveStageConfig() {
         const idx = Number(input.dataset.phaseIndex);
         const value = Math.max(1, Number(input.value || 1));
         stageConfigDraft.phases[idx].duration_months = value;
-        scheduleStageConfigAutosave();
       });
     });
   }
 
-  setStageAutosaveIndicator('Auto-save aktif');
+  setStageAutosaveIndicator('');
 }
 
 function getCurrentStageConfigPayload() {
@@ -652,28 +766,42 @@ async function saveStageConfig(options = { silent: false }) {
     stageConfigs[idx].phases = payload.phases.map((phase, i) => ({ phase_order: i + 1, duration_months: phase.duration_months }));
   }
 
-  setStageAutosaveIndicator('Auto-saved', 'success');
+  setStageAutosaveIndicator('Tersimpan', 'success');
+  
+  if (!options.silent) {
+    toggleStageConfig(false);
+  }
+  
   return true;
 }
 
-function scheduleStageConfigAutosave() {
-  setStageAutosaveIndicator('Menyimpan...', 'muted');
-  if (stageConfigAutosaveTimer) {
-    clearTimeout(stageConfigAutosaveTimer);
+function toggleStageConfig(showConfig) {
+  const configContainer = document.getElementById('active-stage-config-container');
+  const tableContainer = document.getElementById('integrations-table-container');
+  const closeBtn = document.getElementById('btn-close-config');
+
+  if (showConfig) {
+    configContainer.classList.remove('hidden');
+    tableContainer.classList.add('hidden');
+    
+    // show close button only if it's already configured (meaning user can go back to table)
+    const cfg = getStageConfigByCode(currentStage);
+    const hasConfig = cfg && Number(cfg.max_integrations || 0) > 0;
+    closeBtn.classList.toggle('hidden', !hasConfig);
+  } else {
+    configContainer.classList.add('hidden');
+    tableContainer.classList.remove('hidden');
   }
-  stageConfigAutosaveTimer = setTimeout(async () => {
-    await saveStageConfig({ silent: true });
-    await loadStageItems(currentStage);
-  }, 650);
 }
+
 
 function setIntegrationEditEnabled(enabled) {
   integrationEditEnabled = !!enabled;
   const button = document.getElementById('btn-edit-vnb-activity');
   if (button) {
     button.innerHTML = integrationEditEnabled
-      ? '<i class="fas fa-pen"></i> Edit VnB Activity'
-      : '<i class="fas fa-check"></i> Selesai Edit VnB Activity';
+      ? '<i class="fas fa-save"></i> Simpan Integrasi'
+      : '<i class="fas fa-pen"></i> Edit Integrasi';
   }
 
   document.querySelectorAll('.integration-input').forEach((input) => {
@@ -686,15 +814,67 @@ function setIntegrationEditEnabled(enabled) {
 function setIntegrationDirty(isDirty) {
   integrationDirty = !!isDirty;
   const badge = document.getElementById('integrations-dirty-badge');
-  const saveBtn = document.getElementById('save-integrations-btn');
 
   if (integrationDirty) {
     badge.classList.remove('hidden');
-    saveBtn.textContent = 'Simpan Integrasi*';
   } else {
     badge.classList.add('hidden');
-    saveBtn.textContent = 'Simpan Integrasi';
   }
+}
+
+async function saveCurrentIntegrations() {
+  const stageConfig = stageConfigs.find((s) => s.career_stage === currentStage);
+  const maxIntegrations = Number(stageConfig?.max_integrations || 2);
+
+  const items = integrationRows.map((row) => {
+    const base = Array.isArray(row.integrations) ? [...row.integrations] : [];
+    const draft = integrationDraft[row.id] || base;
+    const normalized = Array.from({ length: maxIntegrations }, (_, idx) => (draft[idx] || '').toString());
+    return {
+      id: row.id,
+      integrations: normalized,
+    };
+  });
+
+  if (!items.length) {
+    showAlert('Belum ada item yang bisa disimpan.', 'warning');
+    return false;
+  }
+
+  // Frontend validation rules:
+  // - Integrasi 1 (index 0) is mandatory for every row
+  // - Integrasi 2 (index 1) is optional per row, but at least one row in this stage must have Integrasi 2 filled
+  const missingIntegrasi1 = items.find((it) => !(String(it.integrations[0] || '').trim()));
+  if (missingIntegrasi1) {
+    showAlert('Integrasi 1 wajib diisi untuk semua baris sebelum menyimpan.', 'error');
+    // highlight the first offending textarea if present
+    const el = document.querySelector(`textarea.integration-input[data-item-id="${missingIntegrasi1.id}"][data-idx="0"]`);
+    if (el) {
+      el.classList.add('border-red-500', 'ring-1', 'ring-red-300');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => el.classList.remove('border-red-500', 'ring-1', 'ring-red-300'), 4000);
+    }
+    return false;
+  }
+
+  const hasAnyIntegrasi2 = items.some((it) => String(it.integrations[1] || '').trim());
+  if (!hasAnyIntegrasi2 && maxIntegrations >= 2) {
+    showAlert('Setidaknya satu Integrasi 2 harus diisi untuk stage ini.', 'error');
+    return false;
+  }
+
+  const res = await apiPost('/api/vnb-framework/integrations', { items });
+  if (!res.success) {
+    showAlert(res.message || 'Gagal menyimpan integrasi.', 'error');
+    return false;
+  }
+
+  integrationDraft = {};
+  clearDraftFromLocalStorage(currentStage);
+  setIntegrationDirty(false);
+  showAlert(res.message || 'Integrasi aktivitas berhasil disimpan.');
+  await loadStageItems(currentStage);
+  return true;
 }
 
 function normalizeIntegrationValue(value) {
@@ -790,7 +970,7 @@ function warnBeforeUnload(event) {
 }
 
 function extractPhaseOrder(phaseLabel) {
-  const match = /^F(\d+)/i.exec((phaseLabel || '').toString().trim());
+  const match = /^F(?:ase)?\s*(\d+)/i.exec((phaseLabel || '').toString().trim());
   if (!match) return 9999;
   return Number(match[1] || 9999);
 }
@@ -857,7 +1037,13 @@ async function loadStageItems(stageCode) {
   stageLabelMap = Object.fromEntries((res.stages || []).map((stage) => [stage.career_stage, stage.label]));
 
   currentStage = stageCode;
-  integrationRows = res.data || [];
+  const behaviorOrder = setupPayload?.behaviours || [];
+  integrationRows = (res.data || []).sort((a, b) => {
+    const idxA = behaviorOrder.indexOf(a.behaviour);
+    const idxB = behaviorOrder.indexOf(b.behaviour);
+    if (idxA !== idxB) return idxA - idxB;
+    return extractPhaseOrder(a.phase) - extractPhaseOrder(b.phase);
+  });
   const maxIntegrations = Number(((res.stages || []).find((s) => s.career_stage === stageCode)?.max_integrations) || 2);
   loadDraftFromLocalStorage(stageCode, maxIntegrations);
   refreshIntegrationDirtyState(stageCode, maxIntegrations);
@@ -866,15 +1052,14 @@ async function loadStageItems(stageCode) {
   // Only allow editing/filling integrations after stage configuration (max_integrations & phases) exists.
   const hasStageConfig = cfg && Number(cfg.max_integrations || 0) > 0 && Array.isArray(cfg.phases) && cfg.phases.length > 0;
 
-  // enable/disable integration editor and control buttons
-  setIntegrationEditEnabled(hasStageConfig);
-  const saveBtn = document.getElementById('save-integrations-btn');
+  // start in read mode; the button switches to edit mode on demand
+  setIntegrationEditEnabled(false);
   const cloneBtn = document.getElementById('btn-clone-stage');
   const editActivityBtn = document.getElementById('btn-edit-vnb-activity');
-  if (saveBtn) saveBtn.disabled = !hasStageConfig;
   if (cloneBtn) cloneBtn.disabled = !hasStageConfig;
   if (editActivityBtn) editActivityBtn.disabled = !hasStageConfig;
 
+  toggleStageConfig(!hasStageConfig);
   renderIntegrationsTable(cfg, integrationRows);
 }
 
@@ -897,15 +1082,22 @@ async function loadFrameworkPage() {
   stageConfigs = res.stages || [];
   currentStage = res.career_stage || (stageConfigs[0]?.career_stage || 'manage_self_non_staff');
   hideFrameworkSetupEditor();
+  
   document.getElementById('framework-empty').classList.add('hidden');
   document.getElementById('framework-config').classList.add('hidden');
-  const previewEl2 = document.getElementById('framework-preview');
-  if (previewEl2) previewEl2.classList.remove('hidden');
+  document.getElementById('framework-integrations').classList.add('hidden');
+  document.getElementById('framework-incomplete').classList.add('hidden');
+
+  if (res.framework_incomplete) {
+    document.getElementById('framework-incomplete').classList.remove('hidden');
+    return;
+  }
+
   document.getElementById('framework-integrations').classList.remove('hidden');
 
   renderStageTabs(stageConfigs);
   renderActiveStageConfig();
-  setIntegrationEditEnabled(true);
+  setIntegrationEditEnabled(false);
   await loadStageItems(currentStage);
 }
 
@@ -983,7 +1175,10 @@ document.getElementById('btn-create-framework').addEventListener('click', async 
 
   const payload = {
     behaviours: behaviourDraft.map((v) => String(v).trim()).filter(Boolean),
-    stages: stages,
+    stages: stages.map(s => ({
+      label: s.label,
+      level_ids: s.level_ids.map(id => parseInt(id))
+    })),
   };
 
   const res = await apiPost('/api/vnb-framework/setup-initialize', payload);
@@ -1017,7 +1212,6 @@ document.getElementById('btn-edit-career-stage').addEventListener('click', () =>
 document.getElementById('stage-max-integrations').addEventListener('input', () => {
   const input = document.getElementById('stage-max-integrations');
   input.value = String(Math.max(1, Number(input.value || 1)));
-  scheduleStageConfigAutosave();
 });
 
 document.getElementById('btn-add-phase').addEventListener('click', () => {
@@ -1032,12 +1226,6 @@ document.getElementById('btn-add-phase').addEventListener('click', () => {
     <span class="text-xs text-gray-400">bulan</span>
   `;
   phaseList.appendChild(row);
-
-  row.querySelector('.stage-phase-input').addEventListener('input', () => {
-    scheduleStageConfigAutosave();
-  });
-
-  scheduleStageConfigAutosave();
 });
 
 // Preview button and handler removed per user request
@@ -1050,34 +1238,71 @@ document.getElementById('btn-save-stage-config').addEventListener('click', async
 });
 
 document.getElementById('btn-edit-vnb-activity').addEventListener('click', () => {
-  setIntegrationEditEnabled(!integrationEditEnabled);
+  if (!integrationEditEnabled) {
+    setIntegrationEditEnabled(true);
+    return;
+  }
+
+  saveCurrentIntegrations().then((saved) => {
+    if (saved) {
+      setIntegrationEditEnabled(false);
+    }
+  });
 });
 
 document.getElementById('btn-clone-stage').addEventListener('click', async () => {
+  openCloneModal();
+});
+
+// --- Clone modal helpers ---
+function openCloneModal() {
+  const modal = document.getElementById('clone-stage-modal');
+  if (!modal) return;
+  renderCloneModalOptions();
+  modal.classList.remove('hidden');
+}
+
+function closeCloneModal() {
+  const modal = document.getElementById('clone-stage-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+}
+
+function renderCloneModalOptions() {
+  const container = document.getElementById('clone-stage-options');
+  if (!container) return;
   const options = (stageConfigs || []).filter((s) => s.career_stage !== currentStage);
+  container.innerHTML = options.map((opt) => `
+    <button type="button" class="clone-target-btn fw-btn fw-btn-outline w-full text-left" data-target-stage="${opt.career_stage}">
+      ${escapeHtml(opt.label)}
+    </button>
+  `).join('');
+
+  // bind
+  container.querySelectorAll('.clone-target-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const targetCode = btn.dataset.targetStage;
+      if (!targetCode) return;
+      await performCloneToTarget(targetCode);
+      closeCloneModal();
+    });
+  });
+
+  // if no options
   if (!options.length) {
-    showAlert('Tidak ada career stage lain untuk clone.', 'warning');
-    return;
+    container.innerHTML = '<div class="text-sm text-gray-500">Tidak ada career stage lain untuk clone.</div>';
   }
+}
 
-  const targetPrompt = options.map((s, idx) => `${idx + 1}. ${s.label}`).join('\n');
-  const picked = window.prompt(`Clone ke career stage mana?\n${targetPrompt}\n\nMasukkan nomor target:`);
-  if (!picked) return;
-  const targetIndex = Number(picked) - 1;
-  if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= options.length) {
-    showAlert('Pilihan target tidak valid.', 'error');
-    return;
-  }
-
-  const targetStage = options[targetIndex];
-  const targetRes = await apiGet(`/api/vnb-framework?career_stage=${targetStage.career_stage}`);
+async function performCloneToTarget(targetStageCode) {
+  const targetRes = await apiGet(`/api/vnb-framework?career_stage=${targetStageCode}`);
   if (!targetRes.success || targetRes.setup_required) {
     showAlert('Gagal memuat data target career stage.', 'error');
     return;
   }
 
   const sourceCfg = getStageConfigByCode(currentStage);
-  const targetCfg = (targetRes.stages || []).find((s) => s.career_stage === targetStage.career_stage) || targetStage;
+  const targetCfg = (targetRes.stages || []).find((s) => s.career_stage === targetStageCode) || null;
   const maxIntegrations = Number(targetCfg?.max_integrations || sourceCfg?.max_integrations || 1);
 
   const sourceMap = {};
@@ -1102,39 +1327,29 @@ document.getElementById('btn-clone-stage').addEventListener('click', async () =>
     return;
   }
 
-  showAlert(`Integrasi berhasil di-clone ke ${targetStage.label}.`, 'success');
+  const targetLabel = (stageConfigs || []).find(s => s.career_stage === targetStageCode)?.label || targetStageCode;
+  showAlert(`Integrasi berhasil di-clone ke ${targetLabel}.`, 'success');
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+document.getElementById('btn-open-config').addEventListener('click', () => {
+  toggleStageConfig(true);
 });
 
-document.getElementById('save-integrations-btn').addEventListener('click', async () => {
-  const stageConfig = stageConfigs.find((s) => s.career_stage === currentStage);
-  const maxIntegrations = Number(stageConfig?.max_integrations || 2);
+document.getElementById('btn-close-config').addEventListener('click', () => {
+  toggleStageConfig(false);
+});
 
-  const items = integrationRows.map((row) => {
-    const base = Array.isArray(row.integrations) ? [...row.integrations] : [];
-    const draft = integrationDraft[row.id] || base;
-    const normalized = Array.from({ length: maxIntegrations }, (_, idx) => (draft[idx] || '').toString());
-    return {
-      id: row.id,
-      integrations: normalized,
-    };
-  });
-
-  if (!items.length) {
-    showAlert('Belum ada item yang bisa disimpan.', 'warning');
-    return;
-  }
-
-  const res = await apiPost('/api/vnb-framework/integrations', { items });
-  if (!res.success) {
-    showAlert(res.message || 'Gagal menyimpan integrasi.', 'error');
-    return;
-  }
-
-  integrationDraft = {};
-  clearDraftFromLocalStorage(currentStage);
-  setIntegrationDirty(false);
-  showAlert(res.message || 'Integrasi aktivitas berhasil disimpan.');
-  await loadStageItems(currentStage);
+document.getElementById('btn-fix-framework').addEventListener('click', () => {
+  document.getElementById('btn-edit-career-stage').click();
 });
 
 window.addEventListener('beforeunload', warnBeforeUnload);
