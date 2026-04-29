@@ -134,7 +134,6 @@
   {{-- Stage Config --}}
   <section id="framework-config" class="hidden fw-card">
     <div class="fw-card-title"><i class="fas fa-sliders-h"></i> Pengaturan Detail Framework</div>
-    <p class="fw-card-desc mb-4">Atur fase (durasi bulan) dan batas maksimal integrasi aktivitas untuk tiap career stage.</p>
     <div id="stage-config-list" class="space-y-4"></div>
   </section>
 
@@ -216,7 +215,6 @@
   <div class="flex items-center justify-between mb-4">
     <div class="fw-card-title"><i class="fas fa-tools"></i> Buat Kerangka VnB Framework</div>
     <div class="flex items-center gap-2">
-      <button id="btn-save-draft" class="fw-btn fw-btn-outline">Simpan Draft</button>
       <button id="btn-create-framework" class="fw-btn fw-btn-primary">Buat Framework</button>
     </div>
   </div>
@@ -272,6 +270,19 @@
     </div>
   </div>
 </div>
+
+{{-- Confirmation dialog modal --}}
+<div id="confirm-dialog-modal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="document.getElementById('confirm-dialog-modal').classList.add('hidden')"></div>
+  <div class="max-w-md mx-auto mt-24 bg-white rounded-lg shadow-lg relative p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi</h3>
+    <p id="confirm-dialog-message" class="text-gray-700 mb-6 text-sm leading-relaxed"></p>
+    <div class="flex justify-end gap-3">
+      <button id="confirm-dialog-cancel" type="button" class="fw-btn fw-btn-outline">Batal</button>
+      <button id="confirm-dialog-confirm" type="button" class="fw-btn fw-btn-primary" style="background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff;">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -289,8 +300,81 @@ let stageLabelMap = {};
 let draggedLevelId = null;
 let draggedLevelOrigin = null;
 let stageConfigDraft = { max_integrations: 1, phases: [{ duration_months: 1 }] };
+let stageConfigDraftStage = null;
 let stageConfigAutosaveTimer = null;
 let integrationEditEnabled = true;
+let frameworkEditorMode = 'create';
+
+// ===== DIRTY STATE TRACKING =====
+let behaviourDraftOriginal = [];
+let behaviourDirty = false;
+let stageDraftOriginal = [];
+let stageDirty = false;
+let stageConfigDraftOriginal = { max_integrations: 1, phases: [{ duration_months: 1 }] };
+let stageConfigDirty = false;
+
+// Snapshot original state when opening editor
+function snapshotOriginalState() {
+  behaviourDraftOriginal = JSON.parse(JSON.stringify(behaviourDraft));
+  stageDraftOriginal = JSON.parse(JSON.stringify(stageDraft));
+  stageConfigDraftOriginal = JSON.parse(JSON.stringify(stageConfigDraft));
+  behaviourDirty = false;
+  stageDirty = false;
+  stageConfigDirty = false;
+}
+
+// Check if behaviour list changed
+function checkBehaviourDirty() {
+  behaviourDirty = JSON.stringify(behaviourDraft) !== JSON.stringify(behaviourDraftOriginal);
+  return behaviourDirty;
+}
+
+// Check if stage setup changed (labels or level assignments)
+function checkStageDirty() {
+  stageDirty = JSON.stringify(stageDraft) !== JSON.stringify(stageDraftOriginal);
+  return stageDirty;
+}
+
+// Check if stage config changed (phases or max_integrations)
+function checkStageConfigDirty() {
+  stageConfigDirty = JSON.stringify(stageConfigDraft) !== JSON.stringify(stageConfigDraftOriginal);
+  return stageConfigDirty;
+}
+
+// Check if ANY unsaved changes exist
+function hasUnsavedChanges() {
+  return checkBehaviourDirty() || checkStageDirty() || checkStageConfigDirty();
+}
+
+// Show confirmation dialog
+function showConfirmDialog(message, onConfirm, onCancel) {
+  const modal = document.getElementById('confirm-dialog-modal');
+  const msgEl = document.getElementById('confirm-dialog-message');
+  const confirmBtn = document.getElementById('confirm-dialog-confirm');
+  const cancelBtn = document.getElementById('confirm-dialog-cancel');
+  
+  msgEl.textContent = message;
+  
+  confirmBtn.onclick = () => {
+    modal.classList.add('hidden');
+    if (onConfirm) onConfirm();
+  };
+  
+  cancelBtn.onclick = () => {
+    modal.classList.add('hidden');
+    if (onCancel) onCancel();
+  };
+  
+  modal.classList.remove('hidden');
+}
+
+// Show destructive operation warning
+function showDestructiveWarning(itemName, childCount, onConfirm, onCancel) {
+  const message = childCount > 0
+    ? `Hapus "${itemName}"? ${childCount} data integrasi yang terkait akan direset ke nilai awal.`
+    : `Hapus "${itemName}"?`;
+  showConfirmDialog(message, onConfirm, onCancel);
+}
 
 // ===== STEP 1: BEHAVIOUR MANAGEMENT =====
 function renderBehaviourList() {
@@ -338,16 +422,28 @@ function renderBehaviourList() {
     button.addEventListener('click', () => {
       const row = button.parentElement;
       const index = Number(row.querySelector('.behaviour-input').dataset.index);
-      behaviourDraft.splice(index, 1);
-      if (!behaviourDraft.length) {
-        behaviourDraft.push('');
-      }
-      renderBehaviourList();
+      const behaviourName = behaviourDraft[index] || `Behaviour ${index + 1}`;
+      
+      showConfirmDialog(
+        `Hapus "${behaviourName}"?`,
+        () => {
+          behaviourDraft.splice(index, 1);
+          if (!behaviourDraft.length) {
+            behaviourDraft.push('');
+          }
+          renderBehaviourList();
+        },
+        () => {
+          // User cancelled
+        }
+      );
     });
   });
 }
 
 function showFrameworkSetupEditor(useCurrentDraft = false) {
+  frameworkEditorMode = useCurrentDraft ? 'edit' : 'create';
+
   if (!useCurrentDraft) {
     // initialize drafts from server payload or local draft
     behaviourDraft = Array.isArray(setupPayload?.behaviours) ? setupPayload.behaviours.map((v) => String(v)) : [];
@@ -363,14 +459,29 @@ function showFrameworkSetupEditor(useCurrentDraft = false) {
     }
   }
 
+  // Snapshot original state for dirty-state tracking
+  snapshotOriginalState();
+
   renderBehaviourList();
   renderStageList();
+  syncFrameworkEditorActionButton();
   document.getElementById('framework-setup-editor').classList.remove('hidden');
   document.getElementById('framework-empty').classList.add('hidden');
   document.getElementById('framework-config').classList.add('hidden');
   const previewEl = document.getElementById('framework-preview');
   if (previewEl) previewEl.classList.add('hidden');
   document.getElementById('framework-integrations').classList.add('hidden');
+}
+
+function syncFrameworkEditorActionButton() {
+  const button = document.getElementById('btn-create-framework');
+  if (!button) return;
+
+  if (frameworkEditorMode === 'edit') {
+    button.innerHTML = '<i class="fas fa-save"></i> Simpan Framework';
+  } else {
+    button.innerHTML = '<i class="fas fa-plus"></i> Buat Framework';
+  }
 }
 
 function hideFrameworkSetupEditor() {
@@ -470,9 +581,19 @@ function renderStageList() {
       ev.stopPropagation();
       const card = button.closest('.stage-card');
       const index = Number(card.dataset.stageIndex);
-      stageDraft.splice(index, 1);
-      if (!stageDraft.length) stageDraft.push({ label: '', level_ids: [] });
-      renderStageList();
+      const stageName = stageDraft[index]?.label || `Career Stage ${index + 1}`;
+      
+      showConfirmDialog(
+        `Hapus "${stageName}"?`,
+        () => {
+          stageDraft.splice(index, 1);
+          if (!stageDraft.length) stageDraft.push({ label: '', level_ids: [] });
+          renderStageList();
+        },
+        () => {
+          // User cancelled
+        }
+      );
     });
   });
 
@@ -553,21 +674,19 @@ function renderLevelPool() {
 function renderStageDetailCards(stages) {
   const container = document.getElementById('stage-config-list');
   container.innerHTML = stages.map((stage) => {
-    const phaseRows = stage.phases && stage.phases.length
-      ? // respect server-configured phases
-        stage.phases
-      : // default to a single phase only
-        [{ phase_order: 1, duration_months: 3 }];
+    // Ensure phases array exists; default to a single phase
+    const phaseRows = Array.isArray(stage.phases) && stage.phases.length ? stage.phases : [{ phase_order: 1, duration_months: 3 }];
 
     const phaseInputs = phaseRows.map((phase, idx) => `
       <div class="flex items-center gap-2 mb-2">
         <span class="text-xs font-semibold text-gray-500 w-16">Fase ${idx + 1}</span>
         <input type="number" min="1" max="60" value="${phase.duration_months}" data-stage="${stage.career_stage}" data-phase-index="${idx}" class="phase-duration w-24 fw-input text-center">
         <span class="text-xs text-gray-400">bulan</span>
-          <div>
-          <label class="text-xs font-semibold text-gray-500 block mb-1.5">Durasi per Fase</label>
-          ${phaseInputs}
-        </div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="fw-stage-card">
         <div class="font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-bookmark text-green-500 text-xs"></i> ${stage.label}</div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -577,7 +696,6 @@ function renderStageDetailCards(stages) {
           <div>
             <label class="text-xs font-semibold text-gray-500 block mb-1.5">Durasi per Fase</label>
             ${phaseInputs}
-            <button type="button" class="add-phase text-xs text-green-600 hover:text-green-800 font-semibold mt-1" data-stage="${stage.career_stage}"><i class="fas fa-plus"></i> Tambah fase</button>
           </div>
         </div>
         <div class="mt-4 pt-3 border-t border-gray-100">
@@ -592,20 +710,7 @@ function renderStageDetailCards(stages) {
 
 function bindStageCardEvents() {
   document.querySelectorAll('.add-phase').forEach((button) => {
-    button.addEventListener('click', () => {
-      const stage = button.dataset.stage;
-      const card = button.closest('.fw-stage-card');
-      const anchor = button;
-      const currentCount = card.querySelectorAll(`.phase-duration[data-stage="${stage}"]`).length;
-      const wrapper = document.createElement('div');
-      wrapper.className = 'flex items-center gap-2 mb-2';
-      wrapper.innerHTML = `
-        <span class="text-sm text-gray-600 w-20">Fase ${currentCount + 1}</span>
-        <input type="number" min="1" max="60" value="1" data-stage="${stage}" data-phase-index="${currentCount}" class="phase-duration w-28 border border-gray-300 rounded px-2 py-1 text-sm">
-        <span class="text-sm text-gray-500">bulan</span>
-      `;
-      anchor.parentNode.insertBefore(wrapper, anchor);
-    });
+    // phase add button removed — UI restricted to single phase only
   });
 
   document.querySelectorAll('.save-stage').forEach((button) => {
@@ -650,6 +755,7 @@ function normalizeStagePhases(phases) {
     .map((row) => Number(row?.duration_months || 0))
     .filter((value) => value > 0)
     .map((duration_months) => ({ duration_months }));
+
   return rows.length ? rows : [{ duration_months: 1 }];
 }
 
@@ -704,8 +810,17 @@ function renderStageTabs(stages) {
 
 function renderActiveStageConfig() {
   const cfg = getStageConfigByCode(currentStage) || {};
-  stageConfigDraft.max_integrations = Math.max(1, Number(cfg.max_integrations || 1));
-  stageConfigDraft.phases = normalizeStagePhases(cfg.phases);
+  if (stageConfigDraftStage !== currentStage) {
+    stageConfigDraft.max_integrations = Math.max(1, Number(cfg.max_integrations || 1));
+    stageConfigDraft.phases = normalizeStagePhases(cfg.phases);
+    stageConfigDraftStage = currentStage;
+    stageConfigDraftOriginal = JSON.parse(JSON.stringify(stageConfigDraft));
+  } else {
+    stageConfigDraft.max_integrations = Math.max(1, Number(stageConfigDraft.max_integrations || cfg.max_integrations || 1));
+    stageConfigDraft.phases = Array.isArray(stageConfigDraft.phases) && stageConfigDraft.phases.length
+      ? stageConfigDraft.phases
+      : normalizeStagePhases(cfg.phases);
+  }
 
   const maxInput = document.getElementById('stage-max-integrations');
   if (maxInput) {
@@ -719,6 +834,7 @@ function renderActiveStageConfig() {
         <span class="text-xs font-semibold text-gray-500 w-14">Fase ${index + 1}</span>
         <input type="number" min="1" max="60" class="fw-input w-24 text-center stage-phase-input" data-phase-index="${index}" value="${phase.duration_months}">
         <span class="text-xs text-gray-400">bulan</span>
+        <button type="button" class="remove-phase-btn fw-btn fw-btn-outline text-xs ${stageConfigDraft.phases.length > 1 ? '' : 'hidden'}" data-phase-index="${index}"><i class="fas fa-trash-alt"></i></button>
       </div>
     `).join('');
 
@@ -727,6 +843,30 @@ function renderActiveStageConfig() {
         const idx = Number(input.dataset.phaseIndex);
         const value = Math.max(1, Number(input.value || 1));
         stageConfigDraft.phases[idx].duration_months = value;
+      });
+    });
+
+    phaseList.querySelectorAll('.remove-phase-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const idx = Number(button.dataset.phaseIndex);
+        if (stageConfigDraft.phases.length <= 1) return;
+
+        const phaseDuration = Number(stageConfigDraft.phases[idx]?.duration_months || 1);
+        const phaseName = `Fase ${idx + 1} (${phaseDuration} Bulan)`;
+        const relatedItems = integrationRows.filter((row) => String(row.phase || '') === phaseName).length;
+
+        showDestructiveWarning(
+          phaseName,
+          relatedItems,
+          () => {
+            // User confirmed deletion
+            stageConfigDraft.phases.splice(idx, 1);
+            renderActiveStageConfig();
+          },
+          () => {
+            // User cancelled
+          }
+        );
       });
     });
   }
@@ -765,6 +905,12 @@ async function saveStageConfig(options = { silent: false }) {
     stageConfigs[idx].max_integrations = payload.max_integrations;
     stageConfigs[idx].phases = payload.phases.map((phase, i) => ({ phase_order: i + 1, duration_months: phase.duration_months }));
   }
+
+  stageConfigDraftStage = currentStage;
+  stageConfigDraft.max_integrations = payload.max_integrations;
+  stageConfigDraft.phases = payload.phases.map((phase) => ({ duration_months: phase.duration_months }));
+  stageConfigDraftOriginal = JSON.parse(JSON.stringify(stageConfigDraft));
+  stageConfigDirty = false;
 
   setStageAutosaveIndicator('Tersimpan', 'success');
   
@@ -1118,20 +1264,7 @@ document.getElementById('editor-add-stage').addEventListener('click', () => {
   renderStageList();
 });
 
-// save draft locally
 function getEditorDraftStorageKey() { return 'vnb_framework_editor_draft_v1'; }
-function saveEditorDraft() {
-  try {
-    const payload = {
-      behaviours: behaviourDraft.map((v) => String(v || '').trim()).filter(Boolean),
-      stages: stageDraft.map((s) => ({ label: String(s.label || '').trim(), level_ids: Array.isArray(s.level_ids) ? s.level_ids : [] })),
-    };
-    window.localStorage.setItem(getEditorDraftStorageKey(), JSON.stringify(payload));
-    showAlert('Draft tersimpan di browser.', 'success');
-  } catch (e) {
-    showAlert('Gagal menyimpan draft lokal.', 'error');
-  }
-}
 
 function loadEditorDraft() {
   try {
@@ -1142,71 +1275,113 @@ function loadEditorDraft() {
   } catch (e) { return null; }
 }
 
-document.getElementById('btn-save-draft').addEventListener('click', () => {
-  saveEditorDraft();
-});
-
 // create framework (finalize)
 document.getElementById('btn-create-framework').addEventListener('click', async () => {
-  const stages = stageDraft
-    .map((stage) => ({ label: String(stage.label || '').trim(), level_ids: Array.isArray(stage.level_ids) ? stage.level_ids : [] }))
-    .filter((stage) => stage.label);
-
-  if (!stages.length) {
-    showAlert('Tambahkan minimal satu career stage.', 'error');
-    return;
+  // First, check if user has unsaved stage config changes
+  if (checkStageConfigDirty()) {
+    showConfirmDialog(
+      'Ada perubahan konfigurasi stage yang belum disimpan. Lanjutkan tanpa menyimpan?',
+      () => {
+        // User confirmed, proceed with framework creation (but without stage config changes)
+        performFrameworkCreation();
+      },
+      () => {
+        // User cancelled
+      }
+    );
+  } else {
+    performFrameworkCreation();
   }
 
-  const allLevels = (setupPayload?.levels || []).map((lvl) => String(lvl.id));
-  const selectedLevelIds = stages.flatMap((stage) => stage.level_ids).map((id) => String(id));
-  const uniqueSelected = Array.from(new Set(selectedLevelIds));
+  async function performFrameworkCreation() {
+    const stages = stageDraft
+      .map((stage) => ({ label: String(stage.label || '').trim(), level_ids: Array.isArray(stage.level_ids) ? stage.level_ids : [] }))
+      .filter((stage) => stage.label);
 
-  if (uniqueSelected.length !== selectedLevelIds.length) {
-    showAlert('Satu golongan tidak boleh berada di beberapa career stage.', 'error');
-    return;
+    if (!stages.length) {
+      showAlert('Tambahkan minimal satu career stage.', 'error');
+      return;
+    }
+
+    const allLevels = (setupPayload?.levels || []).map((lvl) => String(lvl.id));
+    const selectedLevelIds = stages.flatMap((stage) => stage.level_ids).map((id) => String(id));
+    const uniqueSelected = Array.from(new Set(selectedLevelIds));
+
+    if (uniqueSelected.length !== selectedLevelIds.length) {
+      showAlert('Satu golongan tidak boleh berada di beberapa career stage.', 'error');
+      return;
+    }
+
+    const missingLevelIds = allLevels.filter((id) => !uniqueSelected.includes(id));
+    if (missingLevelIds.length) {
+      const missingNames = (setupPayload?.levels || []).filter((lvl) => missingLevelIds.includes(String(lvl.id))).map((lvl) => lvl.name);
+      showAlert(`Semua golongan harus kebagian stage. Yang belum dipilih: ${missingNames.join(', ')}`, 'error');
+      return;
+    }
+
+    const payload = {
+      behaviours: behaviourDraft.map((v) => String(v).trim()).filter(Boolean),
+      stages: stages.map(s => ({
+        label: s.label,
+        level_ids: s.level_ids.map(id => parseInt(id))
+      })),
+    };
+
+    const res = await apiPost('/api/vnb-framework/setup-initialize', payload);
+    if (!res.success) {
+      showAlert(res.message || 'Gagal menyimpan kerangka awal.', 'error');
+      return;
+    }
+
+    showAlert(res.message || 'Framework berhasil dibuat!');
+    try { window.localStorage.removeItem('vnb_framework_editor_draft_v1'); } catch (e) {}
+    await loadFrameworkPage();
   }
-
-  const missingLevelIds = allLevels.filter((id) => !uniqueSelected.includes(id));
-  if (missingLevelIds.length) {
-    const missingNames = (setupPayload?.levels || []).filter((lvl) => missingLevelIds.includes(String(lvl.id))).map((lvl) => lvl.name);
-    showAlert(`Semua golongan harus kebagian stage. Yang belum dipilih: ${missingNames.join(', ')}`, 'error');
-    return;
-  }
-
-  const payload = {
-    behaviours: behaviourDraft.map((v) => String(v).trim()).filter(Boolean),
-    stages: stages.map(s => ({
-      label: s.label,
-      level_ids: s.level_ids.map(id => parseInt(id))
-    })),
-  };
-
-  const res = await apiPost('/api/vnb-framework/setup-initialize', payload);
-  if (!res.success) {
-    showAlert(res.message || 'Gagal menyimpan kerangka awal.', 'error');
-    return;
-  }
-
-  showAlert(res.message || 'Framework berhasil dibuat!');
-  try { window.localStorage.removeItem('vnb_framework_editor_draft_v1'); } catch (e) {}
-  await loadFrameworkPage();
 });
 
 document.getElementById('btn-edit-career-stage').addEventListener('click', () => {
-  behaviourDraft = Array.isArray(setupPayload?.behaviours)
-    ? setupPayload.behaviours.map((v) => String(v || ''))
-    : [''];
+  // Check for unsaved stage config changes
+  if (hasUnsavedChanges()) {
+    showConfirmDialog(
+      'Ada perubahan konfigurasi stage yang belum disimpan. Lanjutkan tanpa menyimpan?',
+      () => {
+        // User confirmed, proceed to edit
+        behaviourDraft = Array.isArray(setupPayload?.behaviours)
+          ? setupPayload.behaviours.map((v) => String(v || ''))
+          : [''];
 
-  stageDraft = (stageConfigs || []).map((stage) => ({
-    label: String(stage.label || ''),
-    level_ids: Array.isArray(stage.level_ids) ? stage.level_ids.map((id) => String(id)) : [],
-  }));
+        stageDraft = (stageConfigs || []).map((stage) => ({
+          label: String(stage.label || ''),
+          level_ids: Array.isArray(stage.level_ids) ? stage.level_ids.map((id) => String(id)) : [],
+        }));
 
-  if (!stageDraft.length) {
-    stageDraft = [{ label: '', level_ids: [] }];
+        if (!stageDraft.length) {
+          stageDraft = [{ label: '', level_ids: [] }];
+        }
+
+        showFrameworkSetupEditor(true);
+      },
+      () => {
+        // User cancelled, stay on current page
+      }
+    );
+  } else {
+    // No unsaved changes, proceed directly
+    behaviourDraft = Array.isArray(setupPayload?.behaviours)
+      ? setupPayload.behaviours.map((v) => String(v || ''))
+      : [''];
+
+    stageDraft = (stageConfigs || []).map((stage) => ({
+      label: String(stage.label || ''),
+      level_ids: Array.isArray(stage.level_ids) ? stage.level_ids.map((id) => String(id)) : [],
+    }));
+
+    if (!stageDraft.length) {
+      stageDraft = [{ label: '', level_ids: [] }];
+    }
+
+    showFrameworkSetupEditor(true);
   }
-
-  showFrameworkSetupEditor(true);
 });
 
 document.getElementById('stage-max-integrations').addEventListener('input', () => {
@@ -1214,18 +1389,10 @@ document.getElementById('stage-max-integrations').addEventListener('input', () =
   input.value = String(Math.max(1, Number(input.value || 1)));
 });
 
+// Allow appending more phase rows from the active stage config panel
 document.getElementById('btn-add-phase').addEventListener('click', () => {
-  const nextIndex = document.querySelectorAll('.stage-phase-input').length + 1;
-  const phaseList = document.getElementById('stage-phase-list');
-  const row = document.createElement('div');
-  row.className = 'flex items-center gap-2';
-  row.dataset.phaseRow = String(nextIndex - 1);
-  row.innerHTML = `
-    <span class="text-xs font-semibold text-gray-500 w-14">Fase ${nextIndex}</span>
-    <input type="number" min="1" max="60" class="fw-input w-24 text-center stage-phase-input" data-phase-index="${nextIndex - 1}" value="1">
-    <span class="text-xs text-gray-400">bulan</span>
-  `;
-  phaseList.appendChild(row);
+  stageConfigDraft.phases.push({ duration_months: 1 });
+  renderActiveStageConfig();
 });
 
 // Preview button and handler removed per user request

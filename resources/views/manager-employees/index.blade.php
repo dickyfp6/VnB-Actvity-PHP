@@ -16,8 +16,8 @@
 
   <div class="table-container">
     <div class="overflow-x-auto">
-      <table class="table-modern">
-        <thead>
+      <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+        <thead style="white-space: nowrap;">
           <tr>
             <th data-sort-key="row_index">No</th>
             <th data-sort-key="employee_number">NIP</th>
@@ -59,7 +59,7 @@
             <th data-sort-key="status">Status Lifecycle</th>
           </tr>
         </thead>
-        <tbody id="rows-body">
+        <tbody id="rows-body" style="white-space: nowrap;">
           <tr><td colspan="22" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>

@@ -48,12 +48,6 @@
         </div>
     </div>
 
-    <!-- Plan Description -->
-    <div class="card-glass rounded-xl p-6">
-        <h3 class="text-lg font-bold text-gray-800 mb-3">Deskripsi Planning</h3>
-        <p id="plan-description" class="text-gray-600 leading-relaxed">-</p>
-    </div>
-
     <!-- Approved Items (Non-Editable) -->
     <div class="card-glass rounded-xl overflow-hidden">
         <div class="bg-gradient-to-r from-green-500/10 to-green-600/10 border-b border-gray-200 px-6 py-4">

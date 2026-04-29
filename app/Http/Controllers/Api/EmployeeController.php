@@ -305,9 +305,12 @@ class EmployeeController extends Controller
             };
         }
 
-        $isVnbParticipant = (bool) ($employee->user?->vnbActivityAssignments()
-            ->where('is_active', true)
-            ->exists());
+        $user = $employee->user;
+        $isVnbParticipant = $user
+            ? (bool) $user->vnbActivityAssignments()
+                ->where('is_active', true)
+                ->exists()
+            : false;
 
         $planningStatus = $latestPlan?->status
             ? str_replace('_', ' ', (string) $latestPlan->status)

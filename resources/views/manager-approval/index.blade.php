@@ -35,8 +35,8 @@
   <!-- My Approvals Section -->
   <div id="section-my-approvals" class="table-container">
     <div class="overflow-x-auto">
-      <table class="table-modern">
-        <thead>
+      <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+        <thead style="white-space: nowrap;">
           <tr>
             <th data-sort-key="type">Jenis</th>
             <th data-sort-key="employee_name">Employee</th>
@@ -48,7 +48,7 @@
             <th class="text-right" data-sortable="false">Aksi</th>
           </tr>
         </thead>
-        <tbody id="my-approvals-body">
+        <tbody id="my-approvals-body" style="white-space: nowrap;">
           <tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>
@@ -61,8 +61,8 @@
       <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Bagian ini menampilkan approval yang perlu manager lain. Anda bisa memantau progress namun tidak bisa mengambil aksi.</p>
     </div>
     <div class="overflow-x-auto">
-      <table class="table-modern">
-        <thead>
+      <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+        <thead style="white-space: nowrap;">
           <tr>
             <th data-sort-key="type">Jenis</th>
             <th data-sort-key="employee_name">Employee</th>
@@ -74,7 +74,7 @@
             <th class="text-right" data-sortable="false">Aksi</th>
           </tr>
         </thead>
-        <tbody id="monitoring-body">
+        <tbody id="monitoring-body" style="white-space: nowrap;">
           <tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>

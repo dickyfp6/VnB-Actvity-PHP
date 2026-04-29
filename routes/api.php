@@ -220,6 +220,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UC003 - Manage Manager (legacy API - keep for backward compatibility)
     Route::get('/managers', [ManagerController::class, 'index']);
+    Route::get('/managers-list', [ManagerController::class, 'listManagersFromEmployee']);
     Route::get('/managers/{id}', [ManagerController::class, 'show']);
     Route::post('/managers', [ManagerController::class, 'store']);
     Route::put('/managers/{id}', [ManagerController::class, 'update']);

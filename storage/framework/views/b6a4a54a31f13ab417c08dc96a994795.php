@@ -1,8 +1,8 @@
-﻿@extends('layouts.app')
-@section('title','Manage Manager')
-@section('page_title','Manage Manager')
-@section('page_subtitle','Pantau daftar manager yang diambil langsung dari data employee.')
-@section('content')
+﻿
+<?php $__env->startSection('title','Manage Manager'); ?>
+<?php $__env->startSection('page_title','Manage Manager'); ?>
+<?php $__env->startSection('page_subtitle','Pantau daftar manager yang diambil langsung dari data employee.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4">
   <div class="table-container">
     <div class="overflow-x-auto">
@@ -26,7 +26,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let managers = [];
 
@@ -83,5 +83,7 @@ function renderTable() {
 
 loadData();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/managers/index.blade.php ENDPATH**/ ?>

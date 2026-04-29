@@ -156,6 +156,10 @@
                     <p class="text-gray-500 mb-1">Manager Operational</p>
                     <p class="font-medium text-gray-900">{{ $employee->managerOperational?->name ?? ($employee->manager_operational_id ? '-' : 'Tidak ada') }}</p>
                 </div>
+            @elseif($role === 'employee')
+                <div class="md:col-span-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-sm">
+                    Akun ini belum tersambung ke data employee HRIS. Lengkapi relasi employee untuk menampilkan profil pribadi.
+                </div>
             @else
                 <p class="text-gray-500">Data profil tidak ditemukan.</p>
             @endif

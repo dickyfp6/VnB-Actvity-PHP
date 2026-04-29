@@ -246,6 +246,66 @@ class VnbFrameworkController extends Controller
         ]);
 
         $now = now();
+        $existingStageConfigs = DB::table('vnb_framework_stage_configs')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'career_stage', 'label', 'sort_order']);
+
+        $submittedBehaviours = collect($validated['behaviours'])
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique(fn ($value) => mb_strtolower($value))
+            ->values();
+
+        $existingBehaviours = DB::table('vnb_framework_behaviours')
+            ->orderByRaw('CASE WHEN sort_order IS NULL OR sort_order = 0 THEN 999999 ELSE sort_order END')
+            ->orderBy('id')
+            ->pluck('name')
+            ->map(fn ($value) => trim((string) $value))
+            ->values();
+
+        $canPreserveExistingFramework = $existingStageConfigs->isNotEmpty()
+            && $existingStageConfigs->count() === count($validated['stages'])
+            && $existingBehaviours->count() === $submittedBehaviours->count()
+            && $existingBehaviours->map(fn ($value) => mb_strtolower($value))->values()->all() === $submittedBehaviours->map(fn ($value) => mb_strtolower($value))->values()->all();
+
+        if ($canPreserveExistingFramework) {
+            DB::transaction(function () use ($validated, $existingStageConfigs, $now): void {
+                // Keep existing stage codes/items intact; only refresh labels and level mappings.
+                DB::table('vnb_framework_stage_level_maps')->delete();
+
+                foreach (array_values($validated['stages']) as $index => $stageInput) {
+                    $stageRow = $existingStageConfigs[$index] ?? null;
+                    if (!$stageRow) {
+                        continue;
+                    }
+
+                    $label = trim((string) $stageInput['label']);
+                    DB::table('vnb_framework_stage_configs')
+                        ->where('id', $stageRow->id)
+                        ->update([
+                            'label' => $label,
+                            'sort_order' => $index + 1,
+                            'updated_at' => $now,
+                        ]);
+
+                    if (!empty($stageInput['level_ids'])) {
+                        $levelMapRows = collect($stageInput['level_ids'])->map(fn ($lvlId) => [
+                            'stage_config_id' => $stageRow->id,
+                            'level_id' => (int) $lvlId,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ])->all();
+                        DB::table('vnb_framework_stage_level_maps')->insert($levelMapRows);
+                    }
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kerangka stage berhasil diperbarui tanpa mengubah integrasi yang sudah ada.',
+            ]);
+        }
 
         DB::transaction(function () use ($validated, $now): void {
             // Rebuild behaviour ordering from submitted payload so the UI keeps the entered sequence.
@@ -354,6 +414,35 @@ class VnbFrameworkController extends Controller
 
         DB::transaction(function () use ($validated, $stage): void {
             $now = now();
+            $existingPhases = DB::table('vnb_framework_stage_phases')
+                ->where('stage_config_id', $stage->id)
+                ->orderBy('phase_order')
+                ->get(['id', 'phase_order', 'duration_months']);
+
+            $existingPhaseLabels = [];
+            foreach ($existingPhases as $phaseRow) {
+                $existingPhaseLabels[(int) $phaseRow->phase_order] = sprintf(
+                    'Fase %d (%d Bulan)',
+                    (int) $phaseRow->phase_order,
+                    (int) $phaseRow->duration_months
+                );
+            }
+
+            $newPhaseRows = [];
+            $newPhaseLabels = [];
+            foreach (array_values($validated['phases']) as $idx => $phase) {
+                $phaseOrder = $idx + 1;
+                $duration = (int) ($phase['duration_months'] ?? 1);
+                $newPhaseRows[] = [
+                    'stage_config_id' => $stage->id,
+                    'phase_order' => $phaseOrder,
+                    'duration_months' => $duration,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                $newPhaseLabels[$phaseOrder] = sprintf('Fase %d (%d Bulan)', $phaseOrder, $duration);
+            }
+
             DB::table('vnb_framework_stage_configs')
                 ->where('id', $stage->id)
                 ->update([
@@ -361,20 +450,41 @@ class VnbFrameworkController extends Controller
                     'updated_at' => $now,
                 ]);
 
-            DB::table('vnb_framework_stage_phases')->where('stage_config_id', $stage->id)->delete();
-            DB::table('vnb_framework_items')->where('career_stage', $validated['career_stage'])->delete();
+            $oldPhaseOrders = $existingPhases->pluck('phase_order')->map(fn ($value) => (int) $value)->all();
+            $newPhaseOrders = array_keys($newPhaseLabels);
 
-            $phaseRows = [];
-            foreach (array_values($validated['phases']) as $idx => $phase) {
-                $phaseRows[] = [
-                    'stage_config_id' => $stage->id,
-                    'phase_order' => $idx + 1,
-                    'duration_months' => (int) $phase['duration_months'],
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
+            $removedOrders = array_values(array_diff($oldPhaseOrders, $newPhaseOrders));
+            $keptOrders = array_values(array_intersect($oldPhaseOrders, $newPhaseOrders));
+
+            if (!empty($removedOrders)) {
+                foreach ($removedOrders as $removedOrder) {
+                    $oldLabel = $existingPhaseLabels[$removedOrder] ?? null;
+                    if ($oldLabel) {
+                        DB::table('vnb_framework_items')
+                            ->where('career_stage', $validated['career_stage'])
+                            ->where('phase', $oldLabel)
+                            ->delete();
+                    }
+                }
             }
-            DB::table('vnb_framework_stage_phases')->insert($phaseRows);
+
+            // Update kept phase labels so existing integration values stay attached.
+            foreach ($keptOrders as $order) {
+                $oldLabel = $existingPhaseLabels[$order] ?? null;
+                $newLabel = $newPhaseLabels[$order] ?? null;
+                if ($oldLabel && $newLabel && $oldLabel !== $newLabel) {
+                    DB::table('vnb_framework_items')
+                        ->where('career_stage', $validated['career_stage'])
+                        ->where('phase', $oldLabel)
+                        ->update([
+                            'phase' => $newLabel,
+                            'updated_at' => $now,
+                        ]);
+                }
+            }
+
+            DB::table('vnb_framework_stage_phases')->where('stage_config_id', $stage->id)->delete();
+            DB::table('vnb_framework_stage_phases')->insert($newPhaseRows);
 
             $behaviours = DB::table('vnb_framework_behaviours')
                 ->join('vnb_framework_stage_behaviours', 'vnb_framework_stage_behaviours.behaviour_id', '=', 'vnb_framework_behaviours.id')
@@ -383,14 +493,23 @@ class VnbFrameworkController extends Controller
                 ->pluck('vnb_framework_behaviours.name')
                 ->values();
 
+            $existingItems = DB::table('vnb_framework_items')
+                ->where('career_stage', $validated['career_stage'])
+                ->get()
+                ->groupBy(fn ($item) => (string) $item->phase);
+
             $itemsToInsert = [];
             foreach ($behaviours as $behaviour) {
-                $currentMonth = 1;
-                foreach ($phaseRows as $idx => $phaseRow) {
+                foreach ($newPhaseRows as $idx => $phaseRow) {
                     // Use human-friendly phase label: "Fase {n} ({duration} Bulan)"
                     $phaseOrder = ($phaseRow['phase_order'] ?? ($idx + 1));
                     $duration = (int) ($phaseRow['duration_months'] ?? 1);
                     $phaseLabel = sprintf('Fase %d (%d Bulan)', $phaseOrder, $duration);
+
+                    $existingItem = ($existingItems[$phaseLabel] ?? collect())->firstWhere('behaviour', $behaviour);
+                    if ($existingItem) {
+                        continue;
+                    }
 
                     $integrationTemplates = $this->buildIntegrationTemplates(
                         (string) $behaviour,
@@ -408,8 +527,6 @@ class VnbFrameworkController extends Controller
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
-
-                    $currentMonth = $currentMonth + $duration;
                 }
             }
 

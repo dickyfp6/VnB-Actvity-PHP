@@ -22,6 +22,77 @@ use Illuminate\Validation\ValidationException;
 class ManagerController extends Controller
 {
     /**
+     * List managers from Employee table (by level = 'manager')
+     * Similar to Manage Intercomm - directly pulls from employee data
+     * Shows: NIP, Name, Division, Department, Position, VnB Employees Count, STAR Submissions Count
+     */
+    public function listManagersFromEmployee(Request $request): JsonResponse
+    {
+        // Get all managers from employee table
+        $query = Employee::query()
+            ->with(['division', 'department', 'position'])
+            ->where('status', 'Aktif')
+            ->where('level', 'manager');
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('employee_number', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $managers = $query->orderBy('name')->get();
+
+        // Get subordinates count for each manager
+        $managerIds = $managers->pluck('id')->toArray();
+        
+        // Count subordinates assigned to VnB for each manager (functional role)
+        $subordinatesAssignedByManager = DB::table('employees')
+            ->whereIn('manager_functional_id', $managerIds)
+            ->where('vnb_status', '!=', 'not_assigned')
+            ->groupBy('manager_functional_id')
+            ->selectRaw('manager_functional_id, COUNT(*) as count')
+            ->pluck('count', 'manager_functional_id');
+
+        // Count total subordinates for each manager (functional role)
+        $subordinatesTotalByManager = DB::table('employees')
+            ->whereIn('manager_functional_id', $managerIds)
+            ->groupBy('manager_functional_id')
+            ->selectRaw('manager_functional_id, COUNT(*) as count')
+            ->pluck('count', 'manager_functional_id');
+
+        $rows = $managers->map(function (Employee $manager) use ($subordinatesAssignedByManager, $subordinatesTotalByManager) {
+            $subordinatesAssigned = $subordinatesAssignedByManager[$manager->id] ?? 0;
+            $subordinatesTotal = $subordinatesTotalByManager[$manager->id] ?? 0;
+
+            // TODO: Count STAR submissions by this manager (when STAR module is fully implemented)
+            $starSubmissions = 0;
+
+            return [
+                'id' => $manager->id,
+                'employee_id' => $manager->id,
+                'employee_number' => $manager->employee_number,
+                'name' => $manager->name,
+                'email' => $manager->email,
+                'division' => $manager->division?->name,
+                'department' => $manager->department?->name,
+                'position' => $manager->position?->name,
+                'level' => $manager->level,
+                'status' => $manager->status,
+                'vnb_employee_count' => $subordinatesAssigned,
+                'total_subordinates' => $subordinatesTotal,
+                'star_submissions_count' => $starSubmissions,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rows,
+        ]);
+    }
+
+    /**
      * UC003: List managers with employee counts
      */
     public function index(Request $request): JsonResponse
