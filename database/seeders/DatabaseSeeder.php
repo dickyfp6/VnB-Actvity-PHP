@@ -48,6 +48,11 @@ class DatabaseSeeder extends Seeder
                 'email' => 'employee@vnb.id',
                 'roles' => ['employee']
             ],
+            [
+                'name' => 'Developer',
+                'email' => 'dev@vnb.id',
+                'roles' => ['direktur_utama', 'pcx_manager', 'intercomm', 'manager', 'employee']
+            ],
         ];
 
         foreach ($testUsers as $userData) {
@@ -68,6 +73,10 @@ class DatabaseSeeder extends Seeder
 
             $user->syncRoles($roles);
         }
+
+        $this->call([
+            TwoDivisionDemoSeeder::class,
+        ]);
 
         $this->command->info('✅ Seeding completed - clean database with basic structure ready.');
     }

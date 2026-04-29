@@ -326,6 +326,8 @@ class EmployeeController extends Controller
                 'progress' => $progress,
                 'is_vnb_participant' => $isVnbParticipant,
                 'planning_status' => $planningStatus,
+                'manager_functional_label' => $this->resolveManagerEmployeeLabel($employee->managerFunctional),
+                'manager_operational_label' => $this->resolveManagerEmployeeLabel($employee->managerOperational),
                 'account_credential_preview' => $this->buildCredentialPreview($employee->fresh(['user'])),
             ],
         ]);
@@ -926,6 +928,26 @@ class EmployeeController extends Controller
             'temporary_password' => $tempPassword,
             'temporary_password_generated_at' => optional($user?->temp_password_generated_at)->toDateTimeString(),
         ];
+    }
+
+    private function resolveManagerEmployeeLabel(?Manager $manager): string
+    {
+        if (!$manager) {
+            return '-';
+        }
+
+        $email = trim((string) $manager->email);
+        if ($email !== '') {
+            $employeeName = Employee::query()
+                ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
+                ->value('name');
+
+            if ($employeeName) {
+                return $employeeName;
+            }
+        }
+
+        return trim((string) ($manager->name ?? $manager->email ?? '-')) ?: '-';
     }
 
     // Removed resolveEmployeeRoleName and buildDefaultPasswordFromEmployee as they are in the trait
