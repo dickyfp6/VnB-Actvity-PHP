@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Employee;
 use App\Models\VnbPeriod;
 use App\Models\VnbCancellation;
+use App\Http\Controllers\Controller;
 use App\Models\VnbPlanItem;
 use App\Models\VnbPlan;
 use App\Models\MasterDivision;
@@ -892,23 +893,6 @@ class EmployeeController extends Controller
     private function generateEmployeeNumber(int $id): string
     {
         return 'NH-' . str_pad((string) $id, 5, '0', STR_PAD_LEFT);
-    }
-
-    private function buildDefaultPasswordFromEmployee(Employee $employee): string
-    {
-        $name = trim((string) $employee->name);
-        $firstName = preg_split('/\s+/', $name)[0] ?? '';
-        $firstName = Str::of($firstName)->lower()->replaceMatches('/[^a-z0-9]/', '')->value();
-
-        if ($firstName === '') {
-            $firstName = 'user';
-        }
-
-        // Get last 2 digits from NIP
-        $nipDigits = preg_replace('/\D+/', '', (string) ($employee->employee_number ?? '')) ?? '';
-        $suffix = $nipDigits === '' ? '00' : str_pad(substr($nipDigits, -2), 2, '0', STR_PAD_LEFT);
-
-        return $firstName . $suffix;
     }
 
     // Redundant methods removed as they are now provided by handlesUserProvisioning trait.

@@ -96,4 +96,9 @@ trait HandlesUserProvisioning
 
         return $firstName . $suffix;
     }
+
+    protected function resolveEmployeeRoleName(): string
+    {
+        return 'employee';
+    }
 }

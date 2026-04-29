@@ -20,4 +20,14 @@ class VnbFrameworkItem extends Model
         'manage_others'         => 'Manage Other (Manager)',
         'manage_managers'       => 'Manage Manager (Direktur)',
     ];
+
+    public static array $behaviours = [
+        'Empathy',
+        'Speak with Data',
+        'Collaborative',
+        'Decisive',
+        'Be Ambassador',
+        'Integrity',
+        'Innovation',
+    ];
 }

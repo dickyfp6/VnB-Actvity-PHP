@@ -19,6 +19,7 @@ class VnbPlanController extends Controller
     /**
      * Map employee level (from HRIS) to career stage code
      * Uses the same logic as Employee::mapLevelToCareerStage() 
+use App\Http\Controllers\Controller;
      * Returns the underscore-format code for framework lookups
      */
     private function mapLevelToCareerStageCode($level): string

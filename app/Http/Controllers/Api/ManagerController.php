@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Manager;
 use App\Models\Employee;
 use App\Models\User;
+use App\Http\Controllers\Controller;
 use App\Models\VnbPlanItem;
 use App\Models\VnbPlan;
 use App\Models\VnbPlanRevision;
