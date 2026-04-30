@@ -404,6 +404,10 @@ class HrisController extends Controller
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
             'manager_operational_id' => $existing?->manager_operational_id,
+            // Every HRIS sync starts as VnB inactive until explicitly assigned.
+            'vnb_status' => 'not_started',
+            'vnb_period_start' => null,
+            'vnb_period_end' => null,
             'status' => $status,
         ];
     }

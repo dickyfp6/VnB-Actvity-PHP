@@ -14,12 +14,13 @@
             <th data-column-key="division">Divisi</th>
             <th data-column-key="department">Departemen</th>
             <th data-column-key="position">Jabatan</th>
+            <th data-column-key="total_subordinates" class="text-center">Total Employee</th>
             <th data-column-key="vnb_employee_count" class="text-center">VnB's Employee</th>
             <th data-column-key="star_submissions_count" class="text-center">Ajuan STAR</th>
           </tr>
         </thead>
         <tbody id="table-body" style="white-space: nowrap;">
-          <tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
+          <tr><td colspan="8" class="text-center py-10 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -41,7 +42,7 @@ function renderEmployeeNameLink(row) {
 
 async function loadData() {
   const tbody = document.getElementById('table-body');
-  tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
 
   try {
     const res = await apiGet('/api/managers-list');
@@ -49,14 +50,14 @@ async function loadData() {
     renderTable();
   } catch (error) {
     console.error('Error loading managers:', error);
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-red-500">Gagal memuat data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-red-500">Gagal memuat data</td></tr>';
   }
 }
 
 function renderTable() {
   const tbody = document.getElementById('table-body');
   if (!managers.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">Tidak ada manager yang ditemukan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-gray-400">Tidak ada manager yang ditemukan</td></tr>';
     return;
   }
 
@@ -67,6 +68,11 @@ function renderTable() {
       <td class="px-6 py-3" data-column-key="division">${manager.division || '-'}</td>
       <td class="px-6 py-3" data-column-key="department">${manager.department || '-'}</td>
       <td class="px-6 py-3" data-column-key="position">${manager.position || '-'}</td>
+      <td class="px-6 py-3 text-center" data-column-key="total_subordinates">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full" style="background: rgba(100,116,139,0.1); color: #64748b; font-weight: bold;">
+          ${manager.total_subordinates ?? 0}
+        </span>
+      </td>
       <td class="px-6 py-3 text-center" data-column-key="vnb_employee_count">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full" style="background: rgba(55,170,5,0.1); color: #37AA05; font-weight: bold;">
           ${manager.vnb_employee_count ?? 0}

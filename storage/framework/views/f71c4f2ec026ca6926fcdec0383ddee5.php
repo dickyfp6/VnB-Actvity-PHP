@@ -901,9 +901,6 @@
                     $topbarTitle = trim(strip_tags($__env->yieldContent('title')));
                 }
                 $topbarSubtitle = trim($__env->yieldContent('page_subtitle'));
-                if ($topbarSubtitle === '') {
-                    $topbarSubtitle = 'Kelola data dan pengaturan pada halaman ini.';
-                }
             ?>
             <div class="top-navbar">
                 <div class="top-navbar-left">

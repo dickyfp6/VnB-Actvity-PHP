@@ -74,10 +74,6 @@ class DatabaseSeeder extends Seeder
             $user->syncRoles($roles);
         }
 
-        $this->call([
-            TwoDivisionDemoSeeder::class,
-        ]);
-
         $this->command->info('✅ Seeding completed - clean database with basic structure ready.');
     }
 }

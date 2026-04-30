@@ -16,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -48,13 +49,22 @@ class ManagerController extends Controller
         // Get subordinates count for each manager
         $managerIds = $managers->pluck('id')->toArray();
         
-        // Count subordinates assigned to VnB for each manager (functional role)
-        $subordinatesAssignedByManager = DB::table('employees')
-            ->whereIn('manager_functional_id', $managerIds)
-            ->where('vnb_status', '!=', 'not_assigned')
-            ->groupBy('manager_functional_id')
-            ->selectRaw('manager_functional_id, COUNT(*) as count')
-            ->pluck('count', 'manager_functional_id');
+        // Count subordinates assigned to VnB based on active assignment records.
+        // This keeps VnB's Employee independent from employee.vnb_status.
+        if (Schema::hasTable('vnb_activity_assignments') && Schema::hasTable('users')) {
+            $subordinatesAssignedByManager = DB::table('employees')
+                ->leftJoin('users', 'users.employee_id', '=', 'employees.id')
+                ->join('vnb_activity_assignments', function ($join): void {
+                    $join->on('vnb_activity_assignments.user_id', '=', 'users.id')
+                        ->where('vnb_activity_assignments.is_active', true);
+                })
+                ->whereIn('employees.manager_functional_id', $managerIds)
+                ->groupBy('employees.manager_functional_id')
+                ->selectRaw('employees.manager_functional_id, COUNT(DISTINCT employees.id) as count')
+                ->pluck('count', 'employees.manager_functional_id');
+        } else {
+            $subordinatesAssignedByManager = collect();
+        }
 
         // Count total subordinates for each manager (functional role)
         $subordinatesTotalByManager = DB::table('employees')

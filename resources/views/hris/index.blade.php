@@ -162,14 +162,15 @@
 
     <div id="sync-modal" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/40" onclick="closeSyncModal()"></div>
-        <div class="relative h-full w-full flex items-center justify-center p-4">
-            <div class="w-full max-w-xl bg-white rounded-xl shadow-2xl border border-gray-200">
-                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <div class="relative h-full w-full flex items-center justify-center p-3 md:p-6">
+            <div class="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col max-h-[85vh] overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
                     <h3 class="text-lg font-bold text-gray-800">Sinkronisasi Data</h3>
                     <button type="button" onclick="closeSyncModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
                 </div>
 
-                <div class="p-5 space-y-3">
+                <div class="p-5 overflow-y-auto flex-1 min-h-0">
+                    <div class="flex flex-col gap-4 w-full">
                     <div id="sync-updated-container" class="rounded-lg border" style="background-color: #fef3c7; border-color: #fcd34d;">
                         <label class="flex items-center justify-between px-4 py-3 border-b" style="border-color: #fcd34d;">
                             <span class="font-semibold text-yellow-800">Update Data</span>
@@ -177,11 +178,11 @@
                         </label>
                         <div class="p-3 overflow-x-auto">
                             <table class="w-full text-sm" id="sync-updated-table">
-                                <thead>
+                                <thead class="bg-[#fef3c7]">
                                     <tr class="text-yellow-900">
-                                        <th class="text-left px-2 py-1">NIP</th>
-                                        <th class="text-left px-2 py-1">Nama</th>
-                                        <th class="text-left px-2 py-1">Keterangan</th>
+                                        <th class="text-left px-2 py-2 font-semibold">NIP</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Nama</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sync-updated-table-body"></tbody>
@@ -196,10 +197,12 @@
                         </label>
                         <div class="p-3 overflow-x-auto">
                             <table class="w-full text-sm" id="sync-add-table">
-                                <thead>
+                                <thead class="bg-[#dcfce7]">
                                     <tr class="text-green-900">
-                                        <th class="text-left px-2 py-1">NIP</th>
-                                        <th class="text-left px-2 py-1">Nama</th>
+                                        <th class="text-left px-2 py-2 font-semibold">NIP</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Nama</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Divisi</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Departemen</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sync-add-table-body"></tbody>
@@ -214,19 +217,20 @@
                         </label>
                         <div class="p-3 overflow-x-auto">
                             <table class="w-full text-sm" id="sync-inactive-table">
-                                <thead>
+                                <thead class="bg-[#fee2e2]">
                                     <tr class="text-red-900">
-                                        <th class="text-left px-2 py-1">NIP</th>
-                                        <th class="text-left px-2 py-1">Nama</th>
+                                        <th class="text-left px-2 py-2 font-semibold">NIP</th>
+                                        <th class="text-left px-2 py-2 font-semibold">Nama</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sync-inactive-table-body"></tbody>
                             </table>
                         </div>
                     </div>
+                    </div>
                 </div>
 
-                <div class="px-5 py-4 border-t border-gray-200 flex justify-end gap-2">
+                <div class="px-5 py-4 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
                     <button type="button" onclick="closeSyncModal()" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700">Batal</button>
                     <button type="button" onclick="submitSyncModal()" class="px-4 py-2 rounded-lg text-white font-semibold" style="background-color: #144600;">Sinkron</button>
                 </div>
@@ -335,6 +339,61 @@ input[type="checkbox"]:checked {
 th:first-child, td:first-child {
     text-align: center;
     padding: 0.75rem 1rem;
+}
+
+/* Sync modal layout - portrait with internal scroll */
+.sync-modal-panel {
+    width: min(92vw, 800px);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+}
+
+.sync-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.25rem !important;
+}
+
+.sync-preview-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.sync-preview-table-wrap {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.sync-preview-table-wrap table {
+    font-size: 0.875rem;
+    table-layout: auto;
+    width: 100%;
+}
+
+.sync-preview-table-wrap table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+#sync-updated-table thead th {
+    background-color: #fef3c7;
+}
+
+#sync-add-table thead th {
+    background-color: #dcfce7;
+}
+
+#sync-inactive-table thead th {
+    background-color: #fee2e2;
 }
 </style>
 @endpush
@@ -757,6 +816,8 @@ function renderSyncPreviewTables() {
             <tr class="border-t border-green-200">
                 <td class="px-2 py-1">${escapeHtml(row.employee_number)}</td>
                 <td class="px-2 py-1">${renderEmployeeNameLink(row)}</td>
+                <td class="px-2 py-1">${escapeHtml(row.division || '-')}</td>
+                <td class="px-2 py-1">${escapeHtml(row.department || '-')}</td>
             </tr>
         `).join('');
         addContainer.classList.remove('hidden');
