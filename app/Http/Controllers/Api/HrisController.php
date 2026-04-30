@@ -324,7 +324,18 @@ class HrisController extends Controller
 
     private function syncRowToEmployee(array $sourceRow): array
     {
-        $employee = Employee::query()->where('employee_number', $sourceRow['employee_number'])->first();
+        // Try to find existing employee by employee_number first, then by email
+        $employee = Employee::query()
+            ->where('employee_number', $sourceRow['employee_number'])
+            ->first();
+        
+        // If not found by employee_number, try email (for cases where employee was created via seeding)
+        if (!$employee) {
+            $employee = Employee::query()
+                ->where('email', (string) $sourceRow['email'])
+                ->first();
+        }
+        
         $payload = $this->mapSourceToEmployeePayload($sourceRow, $employee);
         $statusChangedToInactive = false;
 

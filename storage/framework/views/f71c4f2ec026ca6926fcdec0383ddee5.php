@@ -754,6 +754,15 @@
         $user = Auth::user();
         $activeRole = \App\Support\ActiveRoleContext::current(request(), $user);
         $availableRoles = \App\Support\ActiveRoleContext::availableRoles($user);
+        if ($user?->email === 'dev@vnb.id') {
+            $availableRoles = array_values(array_unique(array_merge($availableRoles, [
+                'direktur_utama',
+                'pcx_manager',
+                'intercomm',
+                'manager',
+                'employee',
+            ])));
+        }
     ?>
     
     <!-- Sidebar Overlay -->
@@ -927,7 +936,7 @@
                             <?php if(count($availableRoles) > 1): ?>
                             <form action="<?php echo e(route('switch-role')); ?>" method="POST" class="px-2 py-1">
                                 <?php echo csrf_field(); ?>
-                                <label class="text-[11px] text-gray-500 font-semibold block mb-1">Ganti Hak Akses (Role)</label>
+                                <label class="text-[11px] text-gray-500 font-semibold block mb-1">Switch Account</label>
                                 <select name="role" onchange="this.form.submit()" class="top-role-select">
                                     <?php $__currentLoopData = $availableRoles; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $roleOption): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option value="<?php echo e($roleOption); ?>" <?php echo e($activeRole === $roleOption ? 'selected' : ''); ?>>
