@@ -226,7 +226,7 @@ class HrisController extends Controller
             ->orderBy('employee_number')
             ->get()
             ->map(function ($row): array {
-                return [
+                $mappedRow = [
                     'id' => (int) $row->id,
                     'source_system' => (string) $row->source_system,
                     'employee_number' => (string) ($row->employee_number ?? ''),
@@ -243,6 +243,8 @@ class HrisController extends Controller
                     'employee_status' => (string) ($row->employee_status ?? ''),
                     'status' => (string) ($row->status ?? 'Aktif'),
                 ];
+
+                return $this->applyGeneralManagerNormalization($mappedRow);
             })
             ->values();
     }
@@ -286,6 +288,10 @@ class HrisController extends Controller
         foreach ($fieldMap as $sourceKey => $employeeField) {
             $sourceValue = (string) ($sourceRow[$sourceKey] ?? '');
             $currentValue = $this->resolveEmployeeComparableValue($existing, $employeeField);
+
+            if ($sourceKey === 'division' && trim($sourceValue) === '-') {
+                $sourceValue = '';
+            }
 
             if ($sourceKey === 'date_joined') {
                 $sourceValue = substr($sourceValue, 0, 10);
@@ -383,7 +389,8 @@ class HrisController extends Controller
 
     private function mapSourceToEmployeePayload(array $sourceRow, ?Employee $existing): array
     {
-        $divisionId = $this->resolveMasterId('master_divisions', (string) ($sourceRow['division'] ?? ''));
+        $divisionName = trim((string) ($sourceRow['division'] ?? ''));
+        $divisionId = $divisionName === '-' ? null : $this->resolveMasterId('master_divisions', $divisionName);
         $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
         $managerFunctionalId = $this->resolveFunctionalManagerId($existing);
@@ -410,6 +417,23 @@ class HrisController extends Controller
             'vnb_period_end' => null,
             'status' => $status,
         ];
+    }
+
+    private function applyGeneralManagerNormalization(array $row): array
+    {
+        $level = mb_strtolower(trim((string) ($row['level'] ?? '')));
+        if ($level !== 'general manager') {
+            return $row;
+        }
+
+        $department = trim((string) ($row['department'] ?? ''));
+        $position = $department !== '' ? $department . ' General Manager' : 'General Manager';
+
+        $row['division'] = '-';
+        $row['position'] = $position;
+        $row['level'] = 'Manager';
+
+        return $row;
     }
 
     private function normalizeEmployeeStatusLabel(string $status): string

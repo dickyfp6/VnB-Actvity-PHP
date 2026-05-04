@@ -251,4 +251,4 @@ unset($__errorArgs, $__bag); ?>
     </script>
 </body>
 </html>
-<?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views\auth\login.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/auth/login.blade.php ENDPATH**/ ?>
