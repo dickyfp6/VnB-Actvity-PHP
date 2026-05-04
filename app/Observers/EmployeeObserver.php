@@ -13,6 +13,21 @@ class EmployeeObserver
     use HandlesUserProvisioning;
 
     /**
+     * Handle the Employee "creating" event.
+     * Auto-assign functional manager if not already set.
+     */
+    public function creating(Employee $employee): void
+    {
+        // Only auto-assign if manager_functional_id is not already set
+        if ($employee->manager_functional_id === null) {
+            $manager = $employee->findFunctionalManager();
+            if ($manager) {
+                $employee->manager_functional_id = $manager->id;
+            }
+        }
+    }
+
+    /**
      * Handle the Employee "created" event.
      */
     public function created(Employee $employee): void

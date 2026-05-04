@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $employee_number
  * @property string|null $company
  * @property string|null $division
+ * @property int|null $division_id
+ * @property int|null $department_id
  * @property string $status
  * @property int|null $user_id
  */
@@ -21,7 +23,18 @@ class Manager extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'email', 'employee_number', 'company', 'division', 'status', 'user_id'];
+    protected $fillable = ['name', 'email', 'employee_number', 'company', 'division', 'division_id', 'department_id', 'status', 'user_id'];
+
+    // Relationships
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(MasterDivision::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(MasterDepartment::class);
+    }
 
     public function user(): BelongsTo
     {

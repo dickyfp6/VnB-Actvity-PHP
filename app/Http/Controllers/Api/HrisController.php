@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeHistory;
+use App\Models\Manager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -393,7 +394,7 @@ class HrisController extends Controller
         $divisionId = $divisionName === '-' ? null : $this->resolveMasterId('master_divisions', $divisionName);
         $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
-        $managerFunctionalId = $this->resolveFunctionalManagerId($existing);
+        $managerFunctionalId = $this->resolveFunctionalManagerId($existing, $sourceRow, $divisionId, $departmentId);
         $status = $this->normalizeEmployeeStatusLabel((string) ($sourceRow['status'] ?? 'Aktif'));
 
         return [
@@ -427,10 +428,13 @@ class HrisController extends Controller
         }
 
         $department = trim((string) ($row['department'] ?? ''));
-        $position = $department !== '' ? $department . ' General Manager' : 'General Manager';
 
-        $row['division'] = '-';
-        $row['position'] = $position;
+        // Keep the real division (IT/HR/etc.), but normalize the role naming.
+        if ($department === '') {
+            $row['department'] = 'General';
+        }
+
+        $row['position'] = 'General Manager';
         $row['level'] = 'Manager';
 
         return $row;
@@ -448,42 +452,145 @@ class HrisController extends Controller
         return in_array($normalized, ['inactive', 'inaktif', 'tidak aktif', 'nonaktif', 'non-active', 'non active'], true);
     }
 
-    private function resolveFunctionalManagerId(?Employee $existing): ?int
+    private function resolveFunctionalManagerId(?Employee $existing, array $sourceRow, ?int $divisionId, ?int $departmentId): ?int
     {
+        // If already assigned and it's an update, keep the existing assignment
         if ($existing?->manager_functional_id) {
             return (int) $existing->manager_functional_id;
         }
 
-        if (!Schema::hasTable('managers')) {
+        // Skip if Outsource/OS
+        $employeeStatus = (string) ($sourceRow['employee_status'] ?? '');
+        if (in_array(strtolower(trim($employeeStatus)), ['os', 'outsource', 'outsourcing'], true)) {
             return null;
         }
 
-        $existingManagerId = DB::table('managers')
-            ->where('status', 'active')
-            ->orderBy('id')
-            ->value('id');
-
-        if ($existingManagerId) {
-            return (int) $existingManagerId;
+        // Need division to proceed
+        if (!$divisionId) {
+            return null;
         }
 
-        $now = now();
-        $fallbackEmail = 'sync.default.manager@vnb.local';
+        // Get the position and level for career stage determination
+        $position = (string) ($sourceRow['position'] ?? '');
+        $level = (string) ($sourceRow['level'] ?? '');
+        $company = (string) ($sourceRow['company'] ?? '');
 
-        DB::table('managers')->updateOrInsert(
-            ['email' => $fallbackEmail],
-            [
-                'name' => 'Default Sync Manager',
-                'company' => 'VnB Platform',
-                'division' => 'System',
-                'status' => 'active',
-                'user_id' => null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]
-        );
+        // Determine career stage to route to correct manager type
+        $careerStage = $this->determineCareeStageForSync($level, $position, $employeeStatus, $company);
 
-        return (int) DB::table('managers')->where('email', $fallbackEmail)->value('id');
+        // If top level → null
+        if (in_array($careerStage, ['Manage Function', 'Manage Manager (Direktur)'], true)) {
+            return null;
+        }
+
+        // If staff level and has department → find manager of same department
+        if (in_array($careerStage, ['Manage Self (Staff dan Supervisor)', 'Manage Self (Non-Staff)'], true)) {
+            if ($departmentId) {
+                $manager = Manager::query()
+                    ->where('division_id', $divisionId)
+                    ->where('department_id', $departmentId)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($manager) {
+                    return (int) $manager->id;
+                }
+            }
+
+            // Fall back to GM (General department manager) of same division
+            return $this->findGeneralManagerIdOfDivision($divisionId);
+        }
+
+        // If manager level → find GM (General department manager) of same division
+        if ($careerStage === 'Manage Other (Manager)') {
+            return $this->findGeneralManagerIdOfDivision($divisionId);
+        }
+
+        return null;
+    }
+
+    /**
+     * Find General Manager (direktur) ID of a division.
+     * GM = Manager with department "General" in the given division.
+     */
+    private function findGeneralManagerIdOfDivision(?int $divisionId): ?int
+    {
+        if (!$divisionId) {
+            return null;
+        }
+
+        // Find the "General" department ID
+        $generalDept = DB::table('master_departments')
+            ->where('name', 'General')
+            ->first();
+
+        if (!$generalDept) {
+            return null;
+        }
+
+        $managerId = Manager::query()
+            ->where('division_id', $divisionId)
+            ->where('department_id', $generalDept->id)
+            ->where('status', 'active')
+            ->value('id');
+
+        return $managerId ? (int) $managerId : null;
+    }
+
+    /**
+     * Determine career stage during HRIS sync for manager routing.
+     */
+    private function determineCareeStageForSync(string $level, string $position, string $employeeStatus, string $company): ?string
+    {
+        $levelLower = strtolower(trim($level));
+        $positionLower = strtolower(trim($position));
+
+        // Non-Staff levels (Contract, Intern, etc)
+        if (
+            str_contains($levelLower, 'non-staff') ||
+            str_contains($levelLower, 'contract') ||
+            str_contains($levelLower, 'intern')
+        ) {
+            return 'Manage Self (Non-Staff)';
+        }
+
+        // Staff & Supervisor levels
+        if (
+            str_contains($levelLower, 'staff') ||
+            str_contains($levelLower, 'supervisor')
+        ) {
+            return 'Manage Self (Staff dan Supervisor)';
+        }
+
+        // Manager levels
+        if (
+            str_contains($levelLower, 'manager') ||
+            str_contains($levelLower, 'tim leader') ||
+            str_contains($levelLower, 'lead')
+        ) {
+            return 'Manage Other (Manager)';
+        }
+
+        // General Manager / Direktur level (but not Kepala Divisi)
+        if (
+            (str_contains($levelLower, 'general manager') ||
+             str_contains($levelLower, 'direktur')) &&
+            !str_contains($levelLower, 'kepala')
+        ) {
+            return 'Manage Manager (Direktur)';
+        }
+
+        // Function/Division head levels
+        if (
+            str_contains($levelLower, 'kepala divisi') ||
+            str_contains($levelLower, 'kepala') ||
+            str_contains($levelLower, 'director') ||
+            str_contains($levelLower, 'head of division')
+        ) {
+            return 'Manage Function';
+        }
+
+        return null;
     }
 
     private function moveEmployeeToHistory(Employee $employee): void

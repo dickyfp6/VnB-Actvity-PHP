@@ -1,9 +1,9 @@
-@extends('layouts.app')
 
-@section('title', 'VNB Participants - VnB Platform')
-@section('page_title', 'VNB Participants')
 
-@section('content')
+<?php $__env->startSection('title', 'VNB Participants - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'VNB Participants'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
 	<div class="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
 		<div>
@@ -154,9 +154,9 @@
 	</div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
 /* small styles for participants page */
 #participants-table th, #participants-table td { padding: 0.6rem; text-align: left; }
@@ -167,9 +167,9 @@
 .assign-table-row { cursor: pointer; }
 .assign-checkbox { width: 1.2rem; height: 1.2rem; }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let assignableEmployees = [];
 let selectedAssignEmployeeIds = new Set();
@@ -722,4 +722,6 @@ function removeParticipantRow(btn) {
 function escapeHtml(value) { return (value||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeHtmlAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views\vnb-participants\index.blade.php ENDPATH**/ ?>

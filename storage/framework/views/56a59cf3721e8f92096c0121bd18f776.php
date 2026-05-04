@@ -273,13 +273,21 @@
 
 
 <div id="confirm-dialog-modal" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-black/40" onclick="document.getElementById('confirm-dialog-modal').classList.add('hidden')"></div>
+  <div class="absolute inset-0 bg-black/40" onclick="window.closeConfirmDialog && window.closeConfirmDialog(false)"></div>
   <div class="max-w-md mx-auto mt-24 bg-white rounded-lg shadow-lg relative p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi</h3>
+    <div class="flex items-start gap-3 mb-4">
+      <div id="confirm-dialog-icon" class="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div>
+        <h3 id="confirm-dialog-title" class="text-lg font-semibold text-gray-900">Konfirmasi</h3>
+        <p id="confirm-dialog-subtitle" class="text-sm text-gray-500 mt-0.5 hidden"></p>
+      </div>
+    </div>
     <p id="confirm-dialog-message" class="text-gray-700 mb-6 text-sm leading-relaxed"></p>
     <div class="flex justify-end gap-3">
       <button id="confirm-dialog-cancel" type="button" class="fw-btn fw-btn-outline">Batal</button>
-      <button id="confirm-dialog-confirm" type="button" class="fw-btn fw-btn-primary" style="background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff;">Ya, Hapus</button>
+      <button id="confirm-dialog-confirm" type="button" class="fw-btn fw-btn-primary">Lanjutkan</button>
     </div>
   </div>
 </div>
@@ -347,24 +355,68 @@ function hasUnsavedChanges() {
 }
 
 // Show confirmation dialog
-function showConfirmDialog(message, onConfirm, onCancel) {
+let confirmDialogState = {
+  onConfirm: null,
+  onCancel: null,
+};
+
+function closeConfirmDialog(triggerCancel = true) {
+  const modal = document.getElementById('confirm-dialog-modal');
+  const cancelHandler = confirmDialogState.onCancel;
+  confirmDialogState.onConfirm = null;
+  confirmDialogState.onCancel = null;
+
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+
+  if (triggerCancel && cancelHandler) {
+    cancelHandler();
+  }
+}
+
+window.closeConfirmDialog = closeConfirmDialog;
+
+function showConfirmDialog(message, onConfirm, onCancel, options = {}) {
   const modal = document.getElementById('confirm-dialog-modal');
   const msgEl = document.getElementById('confirm-dialog-message');
+  const titleEl = document.getElementById('confirm-dialog-title');
+  const subtitleEl = document.getElementById('confirm-dialog-subtitle');
   const confirmBtn = document.getElementById('confirm-dialog-confirm');
   const cancelBtn = document.getElementById('confirm-dialog-cancel');
-  
+
+  confirmDialogState.onConfirm = onConfirm || null;
+  confirmDialogState.onCancel = onCancel || null;
   msgEl.textContent = message;
-  
+  titleEl.textContent = options.title || 'Konfirmasi';
+
+  if (subtitleEl) {
+    if (options.subtitle) {
+      subtitleEl.textContent = options.subtitle;
+      subtitleEl.classList.remove('hidden');
+    } else {
+      subtitleEl.textContent = '';
+      subtitleEl.classList.add('hidden');
+    }
+  }
+
+  confirmBtn.textContent = options.confirmText || 'Lanjutkan';
+  confirmBtn.className = options.confirmButtonClass || 'fw-btn fw-btn-primary';
+  confirmBtn.style.cssText = options.confirmButtonStyle || '';
+  cancelBtn.textContent = options.cancelText || 'Batal';
+
   confirmBtn.onclick = () => {
-    modal.classList.add('hidden');
-    if (onConfirm) onConfirm();
+    const confirmHandler = confirmDialogState.onConfirm;
+    closeConfirmDialog(false);
+    if (confirmHandler) {
+      confirmHandler();
+    }
   };
-  
+
   cancelBtn.onclick = () => {
-    modal.classList.add('hidden');
-    if (onCancel) onCancel();
+    closeConfirmDialog(true);
   };
-  
+
   modal.classList.remove('hidden');
 }
 
@@ -373,7 +425,13 @@ function showDestructiveWarning(itemName, childCount, onConfirm, onCancel) {
   const message = childCount > 0
     ? `Hapus "${itemName}"? ${childCount} data integrasi yang terkait akan direset ke nilai awal.`
     : `Hapus "${itemName}"?`;
-  showConfirmDialog(message, onConfirm, onCancel);
+  showConfirmDialog(message, onConfirm, onCancel, {
+    title: 'Hapus Data',
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    confirmButtonClass: 'fw-btn fw-btn-primary',
+    confirmButtonStyle: 'background: linear-gradient(135deg, #dc2626, #991b1b); color: #fff;',
+  });
 }
 
 // ===== STEP 1: BEHAVIOUR MANAGEMENT =====
@@ -796,8 +854,23 @@ function renderStageTabs(stages) {
       if (!stageCode || stageCode === currentStage) return;
 
       if (integrationDirty) {
-        const confirmed = window.confirm('Ada perubahan integrasi yang belum disimpan. Tetap pindah career stage?');
-        if (!confirmed) return;
+        showConfirmDialog(
+          'Ada perubahan integrasi yang belum disimpan. Tetap pindah career stage?',
+          async () => {
+            currentStage = stageCode;
+            renderStageTabs(stageConfigs);
+            renderActiveStageConfig();
+            await loadStageItems(currentStage);
+          },
+          () => {},
+          {
+            title: 'Pindah Career Stage',
+            subtitle: 'Perubahan yang belum disimpan tetap ada di draft lokal sampai kamu simpan atau batalkan.',
+            confirmText: 'Tetap Pindah',
+            cancelText: 'Batal',
+          }
+        );
+        return;
       }
 
       currentStage = stageCode;
@@ -1525,4 +1598,4 @@ loadFrameworkPage();
 </script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-framework/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views\vnb-framework\index.blade.php ENDPATH**/ ?>

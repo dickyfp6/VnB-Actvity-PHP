@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Observers\EmployeeObserver;
+use App\Models\Manager;
 
 /**
  * @property int $id
@@ -153,7 +154,12 @@ class Employee extends Model
 
         // Get career stage from HRIS level (new approach - integrated with HRIS)
         if ($this->level) {
-            $careerStage = $this->mapLevelToCareerStage($this->level);
+            $careerStage = $this->mapLevelToCareerStage(
+                $this->level,
+                $this->employee_status,
+                $this->company,
+                $this->position?->name
+            );
             if ($careerStage) {
                 return $careerStage;
             }
@@ -161,7 +167,12 @@ class Employee extends Model
 
         // Fallback: compute from position for safety when level is not available
         if ($this->position) {
-            return $this->mapPositionToCareerStage($this->position->name);
+            return $this->mapPositionToCareerStage(
+                $this->position->name,
+                $this->employee_status,
+                $this->company,
+                $this->level
+            );
         }
 
         return null;
@@ -190,13 +201,19 @@ class Employee extends Model
      * Map HRIS level directly to career stage (no master_levels dependency)
      * This is the primary mapping source when integrated with HRIS
      */
-    private function mapLevelToCareerStage(string $level): ?string
+    private function mapLevelToCareerStage(
+        string $level,
+        ?string $employeeStatus = null,
+        ?string $company = null,
+        ?string $position = null
+    ): ?string
     {
         if (!$level) {
             return null;
         }
 
         $levelLower = strtolower(trim($level));
+        $isOutsource = $this->isOutsourceContext($employeeStatus, $company, $position, $level);
 
         // Non-Staff levels (Contract, Intern, etc)
         if (
@@ -204,9 +221,13 @@ class Employee extends Model
             str_contains($levelLower, 'non staff') ||
             str_contains($levelLower, 'contract') ||
             str_contains($levelLower, 'intern') ||
-            str_contains($levelLower, 'harian') ||
-            str_contains($levelLower, 'mingguan') ||
-            str_contains($levelLower, 'borongan')
+            (
+                $isOutsource && (
+                    str_contains($levelLower, 'harian') ||
+                    str_contains($levelLower, 'mingguan') ||
+                    str_contains($levelLower, 'borongan')
+                )
+            )
         ) {
             return 'Manage Self (Non-Staff)';
         }
@@ -253,15 +274,25 @@ class Employee extends Model
     /**
      * Determine career stage from position name (fallback for safety)
      */
-    private function mapPositionToCareerStage(string $position): ?string
+    private function mapPositionToCareerStage(
+        string $position,
+        ?string $employeeStatus = null,
+        ?string $company = null,
+        ?string $level = null
+    ): ?string
     {
         $positionLower = strtolower(trim($position));
+        $isOutsource = $this->isOutsourceContext($employeeStatus, $company, $position, $level);
 
-        // Non-Staff (Harian, Mingguan, Borongan)
+        // Non-Staff (Harian, Mingguan, Borongan) only for OS/outsource workers
         if (
-            str_contains($positionLower, 'harian') ||
-            str_contains($positionLower, 'mingguan') ||
-            str_contains($positionLower, 'borongan') ||
+            (
+                $isOutsource && (
+                    str_contains($positionLower, 'harian') ||
+                    str_contains($positionLower, 'mingguan') ||
+                    str_contains($positionLower, 'borongan')
+                )
+            ) ||
             str_contains($positionLower, 'non-staff') ||
             str_contains($positionLower, 'non staff') ||
             str_contains($positionLower, 'contract') ||
@@ -284,4 +315,120 @@ class Employee extends Model
 
         return null;
     }
+
+    /**
+     * Find appropriate functional manager based on employee hierarchy.
+     * 
+     * Hierarchy Rules:
+     * - OS/Outsource employees → null (no manager assignment)
+     * - Staff (department-specific) → Manager of same department
+     * - Staff General → Manager of General department in same division (GM)
+     * - Manager (department) → Manager of General department in same division (GM)
+     * - General Manager/Director → null (top level, or same division GM)
+     * 
+     * @return Manager|null
+     */
+    public function findFunctionalManager(): ?Manager
+    {
+        // Skip if Outsource/OS
+        if ($this->isOutsourceContext($this->employee_status, $this->company, $this->position?->name, $this->level)) {
+            return null;
+        }
+
+        // Need division to proceed
+        if (!$this->division_id) {
+            return null;
+        }
+
+        $careerStage = $this->getCareerStage();
+
+        // If employee is at top level (Manage Function, or Manage Managers)
+        if (in_array($careerStage, ['Manage Function', 'Manage Manager (Direktur)'], true)) {
+            // For Direktur/GM: return null or GM of same division (if needed for signing authority chain)
+            // Currently: return null (top level)
+            return null;
+        }
+
+        // If employee is Staff (Manage Self - Staff atau Non-Staff)
+        if (in_array($careerStage, ['Manage Self (Staff dan Supervisor)', 'Manage Self (Non-Staff)'], true)) {
+            // If has a department → find manager of same department
+            if ($this->department_id) {
+                $manager = Manager::query()
+                    ->where('division_id', $this->division_id)
+                    ->where('department_id', $this->department_id)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($manager) {
+                    return $manager;
+                }
+            }
+
+            // If no department or no manager found → find GM (General department manager) of same division
+            // General department manager is the next level up
+            return $this->findGeneralManagerOfDivision();
+        }
+
+        // If employee is Manager (Manage Other - Manager)
+        if ($careerStage === 'Manage Other (Manager)') {
+            // Manager reports to GM (General department manager) of same division
+            return $this->findGeneralManagerOfDivision();
+        }
+
+        return null;
+    }
+
+    /**
+     * Find General Manager (direktur) of employee's division.
+     * GM = Manager with department "General" in employee's division.
+     */
+    private function findGeneralManagerOfDivision(): ?Manager
+    {
+        if (!$this->division_id) {
+            return null;
+        }
+
+        // Find the "General" department ID
+        $generalDept = DB::table('master_departments')
+            ->where('name', 'General')
+            ->first();
+
+        if (!$generalDept) {
+            return null;
+        }
+
+        return Manager::query()
+            ->where('division_id', $this->division_id)
+            ->where('department_id', $generalDept->id)
+            ->where('status', 'active')
+            ->first();
+    }
+
+    private function isOutsourceContext(
+        ?string $employeeStatus = null,
+        ?string $company = null,
+        ?string $position = null,
+        ?string $level = null
+    ): bool {
+        $status = strtolower(trim((string) $employeeStatus));
+        if (in_array($status, ['os', 'outsource', 'outsourcing'], true)) {
+            return true;
+        }
+
+        $context = strtolower(trim(implode(' ', array_filter([
+            (string) $employeeStatus,
+            (string) $company,
+            (string) $position,
+            (string) $level,
+        ]))));
+
+        if ($context === '') {
+            return false;
+        }
+
+        return str_contains($context, 'outsource')
+            || str_contains($context, 'outsourcing')
+            || preg_match('/\bos\b/i', $context) === 1;
+    }
 }
+

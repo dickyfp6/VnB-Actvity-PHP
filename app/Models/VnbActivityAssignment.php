@@ -16,6 +16,7 @@ class VnbActivityAssignment extends Model
         'is_active',
         'notes',
         'assigned_at',
+        'induction_date',
         'revoked_at',
     ];
 
@@ -24,6 +25,7 @@ class VnbActivityAssignment extends Model
         return [
             'is_active' => 'boolean',
             'assigned_at' => 'datetime',
+            'induction_date' => 'date',
             'revoked_at' => 'datetime',
         ];
     }

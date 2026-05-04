@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - VnB Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 to-green-100 min-h-screen flex items-center justify-center py-8">
+    <div class="w-full max-w-md">
+        <!-- Card -->
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <!-- Logo / Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">VnB Platform</h1>
+                <p class="text-gray-600 text-sm mt-2">Create Your Account</p>
+            </div>
+
+            <!-- Form -->
+            <form action="<?php echo e(route('register.post')); ?>" method="POST">
+                <?php echo csrf_field(); ?>
+
+                <!-- Name -->
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Full Name</label>
+                    <input type="text" name="name" value="<?php echo e(old('name')); ?>" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'"
+                        placeholder="John Doe">
+                    <?php $__errorArgs = ['name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-red-500 text-xs mt-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Email Address</label>
+                    <input type="email" name="email" value="<?php echo e(old('email')); ?>" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'"
+                        placeholder="user@example.com">
+                    <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-red-500 text-xs mt-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                <!-- Role -->
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Role</label>
+                    <select name="role" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'">
+                        <option value="">-- Select Role --</option>
+                        <option value="employee" <?php echo e(old('role') === 'employee' ? 'selected' : ''); ?>>Employee</option>
+                        <option value="manager" <?php echo e(old('role') === 'manager' ? 'selected' : ''); ?>>Manager</option>
+                        <option value="pcx_manager" <?php echo e(old('role') === 'pcx_manager' ? 'selected' : ''); ?>>PCX Manager</option>
+                        <option value="intercomm" <?php echo e(old('role') === 'intercomm' ? 'selected' : ''); ?>>Intercomm</option>
+                        <option value="direktur_utama" <?php echo e(old('role') === 'direktur_utama' ? 'selected' : ''); ?>>Direktur Utama</option>
+                    </select>
+                    <?php $__errorArgs = ['role'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-red-500 text-xs mt-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-5">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                    <input type="password" name="password" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'"
+                        placeholder="••••••••">
+                    <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-red-500 text-xs mt-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                <!-- Password Confirmation -->
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">Confirm Password</label>
+                    <input type="password" name="password_confirmation" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="outline: none;" onmouseover="this.style.outline='2px solid #37AA05'" onmouseout="this.style.outline='none'"
+                        placeholder="••••••••">
+                    <?php $__errorArgs = ['password_confirmation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="text-red-500 text-xs mt-1"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                </div>
+
+                <!-- Register Button -->
+                <button type="submit" class="w-full text-white font-semibold py-2 px-4 rounded-lg transition duration-200" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">
+                    Create Account
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="mt-6 text-center">
+                <p class="text-gray-600 text-sm">
+                    Already have an account? 
+                    <a href="<?php echo e(route('login')); ?>" class="font-semibold hover:underline" style="color: #144600;">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views\auth\register.blade.php ENDPATH**/ ?>

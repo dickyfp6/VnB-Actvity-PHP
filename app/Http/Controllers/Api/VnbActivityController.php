@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\VnbPlanItem;
-use App\Models\VnbPlan;
 use App\Models\Employee;
 use App\Models\Manager;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use App\Models\VnbActivityAssignment;
+use App\Models\VnbPlan;
+use App\Models\VnbPlanItem;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class VnbActivityController extends Controller
 {
@@ -21,14 +24,12 @@ class VnbActivityController extends Controller
     {
         $user = Auth::user();
 
-        // Find Employee employee linked to this user by email
         $employee = Employee::where('email', $user->email)->first();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Data Employee tidak ditemukan'], 404);
         }
 
-        // Get plan items for all approved plans
         $items = VnbPlanItem::whereHas('plan', function ($q) use ($employee) {
             $q->where('employee_id', $employee->id)
               ->where('status', 'approved');
@@ -53,7 +54,6 @@ class VnbActivityController extends Controller
     {
         $item = VnbPlanItem::findOrFail($planItemId);
 
-        // Only allow edit if draft or revision_required
         if (!in_array($item->submission_status, ['draft', 'revision_required'])) {
             return response()->json([
                 'success' => false,
@@ -63,20 +63,20 @@ class VnbActivityController extends Controller
 
         $validated = $request->validate([
             'activity_description' => 'required|string',
-            'activity_date'        => 'required|date',
+            'activity_date' => 'required|date',
         ]);
 
         $item->update([
             'activity_description' => $validated['activity_description'],
-            'activity_date'        => $validated['activity_date'],
-            'submission_status'    => 'waiting_approval',
-            'submitted_at'         => now(),
+            'activity_date' => $validated['activity_date'],
+            'submission_status' => 'submitted',
+            'submitted_at' => now(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Aktivitas berhasil disubmit. Menunggu approval Manager.',
-            'data'    => $this->formatActivityItem($item->fresh()),
+            'message' => 'Aktivitas berhasil disimpan.',
+            'data' => $this->formatActivityItem($item->fresh()),
         ]);
     }
 
@@ -93,7 +93,7 @@ class VnbActivityController extends Controller
 
         $validated = $request->validate([
             'activity_description' => 'nullable|string',
-            'activity_date'        => 'nullable|date',
+            'activity_date' => 'nullable|date',
         ]);
 
         $item->update($validated);
@@ -236,16 +236,58 @@ class VnbActivityController extends Controller
      */
     public function assignParticipant(Request $request, int $employeeId): JsonResponse
     {
-        // TODO: Authorize: PCX, Intercomm only
-        // TODO: Find employee by ID
-        // TODO: Create/activate VnbActivityAssignment for this employee
-        // TODO: Set is_active = true
-        // TODO: Record who assigned and when
-        
+        $validated = $request->validate([
+            'induction_date' => ['nullable', 'date'],
+        ]);
+
+        $employee = Employee::query()->with('user')->findOrFail($employeeId);
+        $user = $employee->user;
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee belum memiliki akun user, tidak bisa di-assign ke VnB.',
+            ], 422);
+        }
+
+        $assignment = DB::transaction(function () use ($user, $validated): VnbActivityAssignment {
+            $activeAssignment = VnbActivityAssignment::query()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->latest('id')
+                ->first();
+
+            $payload = [
+                'assigned_by_user_id' => auth()->id(),
+                'is_active' => true,
+                'notes' => null,
+                'assigned_at' => now(),
+                'induction_date' => $validated['induction_date'] ?? null,
+                'revoked_at' => null,
+            ];
+
+            if ($activeAssignment) {
+                $activeAssignment->update($payload);
+
+                return $activeAssignment;
+            }
+
+            return VnbActivityAssignment::create([
+                'user_id' => $user->id,
+                ...$payload,
+            ]);
+        });
+
         return response()->json([
             'success' => true,
             'message' => 'Employee assigned to VnB Activity',
-            'data' => [],
+            'data' => [
+                'employee_id' => $employee->id,
+                'user_id' => $user->id,
+                'assignment_id' => $assignment->id,
+                'induction_date' => optional($assignment->induction_date)->toDateString(),
+                'assigned_at' => optional($assignment->assigned_at)->toDateTimeString(),
+            ],
         ]);
     }
 

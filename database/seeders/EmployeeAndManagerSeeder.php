@@ -46,6 +46,15 @@ class EmployeeAndManagerSeeder extends Seeder
 
         $managers = [
             [
+                'name' => 'Operations Manager',
+                'email' => 'ops.manager@vnb.id',
+                'employee_number' => 'OPS001',
+                'company' => 'PT Wismilak Inti Makmur',
+                'division' => 'Operations (Pusat Produksi)',
+                'status' => 'active',
+                'user_id' => null,
+            ],
+            [
                 'name' => 'Manager',
                 'email' => 'manager@vnb.id',
                 'employee_number' => '5026221022',
@@ -53,15 +62,6 @@ class EmployeeAndManagerSeeder extends Seeder
                 'division' => 'Finance & Business Support',
                 'status' => 'active',
                 'user_id' => $managerUser?->id,
-            ],
-            [
-                'name' => 'Dicky Febri Primadhani',
-                'email' => 'dicky@vnb.id',
-                'employee_number' => '5026221036',
-                'company' => 'PT Wismilak Inti Makmur',
-                'division' => 'Strategic Research & Development (R&D)',
-                'status' => 'active',
-                'user_id' => $dickyUser?->id,
             ],
             [
                 'name' => 'Viqi Alvanto',
@@ -74,19 +74,34 @@ class EmployeeAndManagerSeeder extends Seeder
             ],
         ];
 
+        // Get General department ID (all managers are GMs with General department)
+        $generalDept = DB::table('master_departments')->where('name', 'General')->first();
+        $generalDeptId = $generalDept?->id;
+
         foreach ($managers as $managerData) {
-            if ($managerData['user_id']) {  // Only create if user exists
-                Manager::firstOrCreate(
-                    ['email' => $managerData['email']],
-                    $managerData
-                );
+            // Resolve division_id from division name
+            $division = DB::table('master_divisions')
+                ->where('name', $managerData['division'])
+                ->first();
+
+            if ($division) {
+                $managerData['division_id'] = $division->id;
             }
+
+            // All managers in this seeder are GMs (General department)
+            if ($generalDeptId) {
+                $managerData['department_id'] = $generalDeptId;
+            }
+
+            Manager::firstOrCreate(
+                ['email' => $managerData['email']],
+                $managerData
+            );
         }
 
         // ========== EMPLOYEES (Employees) ==========
         // Employees ter-link ke users dengan role 'employee'
-        // Get all managers for assignment
-        $allManagers = Manager::all();
+        // Manager assignment is auto-handled by Employee observer based on hierarchy logic
         
         $employees = [
             [
@@ -105,8 +120,9 @@ class EmployeeAndManagerSeeder extends Seeder
                 'employee_status' => 'OS',
                 'vnb_status' => 'active',
                 'status' => 'Aktif',
-                'manager_functional_id' => $allManagers->count() > 0 ? $allManagers[0]->id : 1,
-                'manager_operational_id' => null,  // Opsional: hanya functional manager
+                // manager_functional_id will be auto-assigned by Employee observer
+                // OS employees will have null, non-OS will get assigned based on hierarchy
+                'manager_operational_id' => null,
             ],
             [
                 'employee_number' => '5026221078',
@@ -124,8 +140,8 @@ class EmployeeAndManagerSeeder extends Seeder
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
                 'status' => 'Aktif',
-                'manager_functional_id' => $allManagers->count() > 1 ? $allManagers[1]->id : 1,
-                'manager_operational_id' => $allManagers->count() > 2 ? $allManagers[2]->id : null,  // Berbeda manager
+                // manager_functional_id will be auto-assigned by Employee observer
+                'manager_operational_id' => null,
             ],
             [
                 'employee_number' => '5026221063',
@@ -143,8 +159,8 @@ class EmployeeAndManagerSeeder extends Seeder
                 'employee_status' => 'PKWTT',
                 'vnb_status' => 'active',
                 'status' => 'Aktif',
-                'manager_functional_id' => $allManagers->count() > 2 ? $allManagers[2]->id : 1,
-                'manager_operational_id' => null,  // Opsional: hanya functional manager
+                // manager_functional_id will be auto-assigned by Employee observer
+                'manager_operational_id' => null,
             ],
         ];
 

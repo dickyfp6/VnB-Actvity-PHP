@@ -29,6 +29,9 @@ use App\Http\Controllers\Controller;
         }
 
         $levelLower = strtolower(trim($level));
+        $isOutsource = str_contains($levelLower, 'outsource')
+            || str_contains($levelLower, 'outsourcing')
+            || preg_match('/\bos\b/i', $levelLower) === 1;
 
         // Non-Staff levels (Contract, Intern, etc)
         if (
@@ -36,9 +39,13 @@ use App\Http\Controllers\Controller;
             str_contains($levelLower, 'non staff') ||
             str_contains($levelLower, 'contract') ||
             str_contains($levelLower, 'intern') ||
-            str_contains($levelLower, 'harian') ||
-            str_contains($levelLower, 'mingguan') ||
-            str_contains($levelLower, 'borongan')
+            (
+                $isOutsource && (
+                    str_contains($levelLower, 'harian') ||
+                    str_contains($levelLower, 'mingguan') ||
+                    str_contains($levelLower, 'borongan')
+                )
+            )
         ) {
             return 'manage_self_non_staff';
         }
