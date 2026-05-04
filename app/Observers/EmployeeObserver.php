@@ -13,17 +13,28 @@ class EmployeeObserver
     use HandlesUserProvisioning;
 
     /**
-     * Handle the Employee "creating" event.
-     * Auto-assign functional manager if not already set.
+     * Handle the Employee "saving" event (before create/update).
+     * Auto-sync manager names based on IDs.
      */
-    public function creating(Employee $employee): void
+    public function saving(Employee $employee): void
     {
-        // Only auto-assign if manager_functional_id is not already set
-        if ($employee->manager_functional_id === null) {
+        // Auto-assign functional manager if creating and not set
+        if (!$employee->exists && $employee->manager_functional_id === null) {
             $manager = $employee->findFunctionalManager();
             if ($manager) {
                 $employee->manager_functional_id = $manager->id;
             }
+        }
+
+        // Keep manager names in sync with IDs for "easy calling"
+        if ($employee->isDirty('manager_functional_id')) {
+            $manager = Manager::find($employee->manager_functional_id);
+            $employee->manager_functional = $manager ? $manager->name : null;
+        }
+
+        if ($employee->isDirty('manager_operational_id')) {
+            $manager = Manager::find($employee->manager_operational_id);
+            $employee->manager_operational = $manager ? $manager->name : null;
         }
     }
 

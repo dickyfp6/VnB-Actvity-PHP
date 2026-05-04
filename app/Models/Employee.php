@@ -48,8 +48,8 @@ class Employee extends Model
     protected $fillable = [
         'employee_number', 'name', 'date_joined', 'induction_date', 'company',
         'division_id', 'department_id', 'position_id', 'placement', 'level', 'career_stage',
-        'employee_status', 'email', 'whatsapp', 'manager_functional_id',
-        'manager_operational_id', 'vnb_period_start', 'vnb_period_end',
+        'employee_status', 'email', 'whatsapp', 'manager_functional_id', 'manager_functional',
+        'manager_operational_id', 'manager_operational', 'vnb_period_start', 'vnb_period_end',
         'vnb_status', 'notes', 'status'
     ];
 

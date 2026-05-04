@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('title', 'Sinkronisasi Data - VnB Platform')
-@section('page_title', 'Sinkronisasi Data')
-@section('page_subtitle', 'Sinkronisasi Employee dari HRIS, HRMS, dan Updated Data ke Employees.')
 
-@section('content')
+<?php $__env->startSection('title', 'Sinkronisasi Data - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'Sinkronisasi Data'); ?>
+<?php $__env->startSection('page_subtitle', 'Sinkronisasi Employee dari HRIS, HRMS, dan Updated Data ke Employees.'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
 
     <div class="bg-white rounded-xl shadow-sm p-4">
@@ -69,13 +69,12 @@
                                     </div>
                                 </div>
                             </div>
-                        <th data-sort-key="manager_functional">Manager Fungsional</th>
-                        <th data-sort-key="manager_operational">Manager Operasional</th>
+                        </th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="updated-body" style="white-space: nowrap;">
-                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -110,13 +109,12 @@
                                     </div>
                                 </div>
                             </div>
-                        <th data-sort-key="manager_functional">Manager Fungsional</th>
-                        <th data-sort-key="manager_operational">Manager Operasional</th>
+                        </th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hris-body" style="white-space: nowrap;">
-                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -151,13 +149,12 @@
                                     </div>
                                 </div>
                             </div>
-                        <th data-sort-key="manager_functional">Manager Fungsional</th>
-                        <th data-sort-key="manager_operational">Manager Operasional</th>
+                        </th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hrms-body" style="white-space: nowrap;">
-                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -241,9 +238,9 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
 /* Flexible table - NO wrapping */
 #section-updated,
@@ -399,9 +396,9 @@ th:first-child, td:first-child {
     background-color: #fee2e2;
 }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let currentTab = 'updated';
 let hrisSourceRows = [];
@@ -648,8 +645,7 @@ function renderUpdatedTable() {
             <td class="px-3 py-2">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.manager_functional || '-')}</td>
-            <td class="px-3 py-2">${escapeHtml(row.manager_operational || '-')}</td>
+            <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
             <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
@@ -660,7 +656,7 @@ function renderHrisTable() {
     const rows = filteredSourceRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
         return;
     }
 
@@ -678,8 +674,7 @@ function renderHrisTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
-            <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
@@ -690,7 +685,7 @@ function renderHrmsTable() {
     const rows = filteredHrmsRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
         return;
     }
 
@@ -708,8 +703,7 @@ function renderHrmsTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
-            <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
@@ -1006,4 +1000,6 @@ async function loadHrisData() {
 switchTab('updated');
 loadHrisData();
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/hris/index.blade.php ENDPATH**/ ?>

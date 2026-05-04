@@ -243,6 +243,8 @@ class HrisController extends Controller
                     'level' => (string) ($row->level ?? ''),
                     'employee_status' => (string) ($row->employee_status ?? ''),
                     'status' => (string) ($row->status ?? 'Aktif'),
+                    'manager_functional' => (string) ($row->manager_functional ?? ''),
+                    'manager_operational' => (string) ($row->manager_operational ?? ''),
                 ];
 
                 return $this->applyGeneralManagerNormalization($mappedRow);
@@ -411,7 +413,9 @@ class HrisController extends Controller
             'email' => (string) $sourceRow['email'],
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
+            'manager_functional' => $this->resolveManagerNameById($managerFunctionalId),
             'manager_operational_id' => $managerOperationalId,
+            'manager_operational' => $this->resolveManagerNameById($managerOperationalId),
             // Every HRIS sync starts as VnB inactive until explicitly assigned.
             'vnb_status' => 'not_started',
             'vnb_period_start' => null,
@@ -479,6 +483,12 @@ class HrisController extends Controller
 
         // If no Dept Manager found, MO = GM (Functional Manager)
         return $managerId ? (int) $managerId : $gmId;
+    }
+
+    private function resolveManagerNameById(?int $id): ?string
+    {
+        if (!$id) return null;
+        return Manager::where('id', $id)->value('name');
     }
 
     /**
