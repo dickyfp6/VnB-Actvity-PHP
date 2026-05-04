@@ -106,13 +106,20 @@
 					</div>
 
 					<div id="assign-step-confirm" class="space-y-4 hidden">
-						<div class="rounded-lg border border-green-200 bg-green-50 p-4">
-							<h4 class="font-semibold text-green-900">Konfirmasi pendaftaran ke VnB</h4>
-							<p class="text-sm text-green-800 mt-1">Cek lagi daftar employee berikut sebelum didaftarkan ke VnB.</p>
+						<div class="grid grid-cols-1 lg:grid-cols-[1.35fr_0.95fr] gap-4 items-stretch">
+							<div class="rounded-lg border border-green-200 bg-green-50 p-4 h-full flex flex-col justify-center">
+								<h4 class="font-semibold text-green-900">Konfirmasi pendaftaran ke VnB</h4>
+								<p class="text-sm text-green-800 mt-1">Cek lagi daftar employee berikut sebelum didaftarkan ke VnB.</p>
+							</div>
+
+							<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+								<label for="assign-induction-date" class="block text-xs font-semibold text-gray-500 mb-1">Tanggal induction</label>
+								<input id="assign-induction-date" type="date" class="w-full px-3 py-2 border rounded-lg bg-white" />
+							</div>
 						</div>
 
-						<div class="grid grid-cols-1 lg:grid-cols-[1.35fr_0.95fr] gap-4 items-start">
-							<div class="overflow-x-auto border rounded-lg bg-white">
+						<div class="border rounded-lg bg-white" style="overflow: visible;">
+							<div style="overflow-x: auto; overflow-y: visible;">
 								<table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
 									<thead class="bg-gray-50">
 										<tr>
@@ -128,23 +135,13 @@
 									<tbody id="assign-confirm-list"></tbody>
 								</table>
 							</div>
+						</div>
 
-							<div class="space-y-4">
-								<div class="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
-									<div>
-										<label for="assign-induction-date" class="block text-xs font-semibold text-gray-500 mb-1">Tanggal induction</label>
-										<input id="assign-induction-date" type="date" class="w-full px-3 py-2 border rounded-lg bg-white" />
-										<p class="mt-2 text-xs text-gray-500">Tanggal ini dipakai untuk semua employee yang dipilih dalam batch ini.</p>
-									</div>
-								</div>
-
-								<div class="flex items-center justify-between gap-3 pt-1">
-									<div class="text-sm text-gray-600"><span id="assign-confirm-count" class="font-semibold text-gray-800">0</span> employee akan didaftarkan.</div>
-									<div class="flex items-center gap-2">
-										<button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700" onclick="backToAssignListStep()">Kembali</button>
-										<button class="px-4 py-2 rounded-lg text-white" style="background-color:#144600;" onclick="confirmAssignEmployees()">Daftarkan ke VnB</button>
-									</div>
-								</div>
+						<div class="flex items-center justify-between gap-3 pt-1">
+							<div class="text-sm text-gray-600"><span id="assign-confirm-count" class="font-semibold text-gray-800">0</span> employee akan didaftarkan.</div>
+							<div class="flex items-center gap-2">
+								<button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700" onclick="backToAssignListStep()">Kembali</button>
+								<button class="px-4 py-2 rounded-lg text-white" style="background-color:#144600;" onclick="confirmAssignEmployees()">Daftarkan ke VnB</button>
 							</div>
 						</div>
 					</div>
@@ -157,6 +154,7 @@
 @endsection
 
 @push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
 <style>
 /* small styles for participants page */
 #participants-table th, #participants-table td { padding: 0.6rem; text-align: left; }
@@ -166,12 +164,37 @@
 .assign-table-row.selected { background: #f0fdf4; }
 .assign-table-row { cursor: pointer; }
 .assign-checkbox { width: 1.2rem; height: 1.2rem; }
+
+/* TomSelect Customizations */
+.ts-control { border-radius: 0.5rem !important; border: 1px solid #d1d5db !important; padding: 0.5rem 0.75rem !important; font-size: 0.875rem !important; }
+.ts-wrapper.focus .ts-control { border-color: #144600 !important; box-shadow: 0 0 0 2px rgba(20, 70, 0, 0.1) !important; }
+.ts-dropdown { border-radius: 0.5rem !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; border: 1px solid #e5e7eb !important; }
+.ts-dropdown .optgroup-header { font-size: 0.65rem !important; font-weight: 700 !important; color: #9ca3af !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; background: #f9fafb !important; }
+.ts-dropdown .active { background-color: #f0fdf4 !important; color: #144600 !important; }
 </style>
 @endpush
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+@endpush
 <script>
-let assignableEmployees = [];
+let tomSelectInstances = {};
+
+function initSearchableSelects() {
+	// Destroy existing instances first
+	Object.values(tomSelectInstances).forEach(ts => ts.destroy());
+	tomSelectInstances = {};
+
+	document.querySelectorAll('select[id^="assign-"]').forEach(select => {
+		const id = select.id;
+		tomSelectInstances[id] = new TomSelect(select, {
+			create: false,
+			sortField: { field: "text", direction: "asc" },
+			placeholder: select.getAttribute('placeholder') || "Pilih manager...",
+			allowEmptyOption: true,
+		});
+	});
+}
 let selectedAssignEmployeeIds = new Set();
 let assignModalStep = 'list';
 let managerDirectory = [];
@@ -250,19 +273,52 @@ function isGeneralDepartment(name) {
 	return String(name || '').trim().toLowerCase() === 'general';
 }
 
-function getSuggestedFunctionalManagers(employee) {
-	if (!employee) return [];
-	const divisionName = String(employee.division || employee.division_name || '').trim().toLowerCase();
-	const departmentName = String(employee.department || employee.department_name || '').trim().toLowerCase();
-	const sameDivisionSameDepartment = managerDirectory.filter((manager) =>
-		String(manager.division || '').trim().toLowerCase() === divisionName && String(manager.department || '').trim().toLowerCase() === departmentName
-	);
-	const sameDivisionGeneral = managerDirectory.filter((manager) =>
-		String(manager.division || '').trim().toLowerCase() === divisionName && isGeneralDepartment(manager.department)
-	);
-	return [...sameDivisionSameDepartment, ...sameDivisionGeneral].filter((manager, index, array) =>
-		array.findIndex((item) => String(item.id) === String(manager.id)) === index
-	);
+function getEmployeeManagerSelection(employee) {
+	const key = String(employee.id);
+	if (!assignManagerSelections[key]) {
+		// Automation Logic:
+		// 1. Manager Fungsional (MF) = General Manager (GM) of Division
+		// 2. Manager Operasional (MO) = Manager of same Department
+		// 3. If no MO found, MO = MF
+		// 4. If employee is Staff in "General" dept, MF & MO = GM
+
+		const divisionId = employee.division_id;
+		const departmentId = employee.department_id;
+		const departmentName = String(employee.department || employee.department_name || '').trim().toLowerCase();
+
+		// Find GM (Manager in same division whose department is "General")
+		const gm = managerDirectory.find(m => 
+			String(m.division_id) === String(divisionId) && 
+			String(m.department || '').trim().toLowerCase() === 'general'
+		);
+
+		// Find Dept Manager (Manager in same division and department)
+		// Note: We avoid picking GM as Dept Manager if there's another manager in that dept
+		const deptManager = managerDirectory.find(m => 
+			String(m.division_id) === String(divisionId) && 
+			String(m.department_id) === String(departmentId) &&
+			String(m.department || '').trim().toLowerCase() !== 'general'
+		);
+
+		let mf = null;
+		let mo = null;
+
+		if (departmentName === 'general') {
+			mf = gm;
+			mo = gm;
+		} else {
+			mf = gm;
+			mo = deptManager || gm; // Fallback to GM if no dept manager
+		}
+
+		assignManagerSelections[key] = {
+			functional_id: mf ? String(mf.id) : '',
+			functional_name: mf ? (mf.name || '') : '',
+			operational_id: mo ? String(mo.id) : '',
+			operational_name: mo ? (mo.name || '') : '',
+		};
+	}
+	return assignManagerSelections[key];
 }
 
 function buildManagerOptionsHtml(managers, includeEmpty = true, includeSuggestedLabel = false) {
@@ -304,62 +360,78 @@ function buildFunctionalOptionsForEmployee(employee) {
 	return buildManagerOptionsHtml(functionalOptions, true, suggestedFunctional.length > 0);
 }
 
-function onRowFunctionalManagerSelectChange(employeeId, selectEl) {
-	if (!selectEl || selectEl.value === '__suggested__') return;
-	const selectedOption = selectEl.selectedOptions[0];
-	const rowTextInput = document.getElementById(`assign-functional-text-${employeeId}`);
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.functional_id = selectEl.value;
-	current.functional_name = selectedOption ? selectedOption.text.split(' • ')[0] : '';
-	assignManagerSelections[String(employeeId)] = current;
-	if (rowTextInput) {
-		rowTextInput.value = current.functional_name;
+function buildManagerSelectOptions(employee, managerType, selectedId) {
+	const divisionId = employee.division_id;
+	const departmentId = employee.department_id;
+
+	// Suggested: based on division/department
+	const suggested = managerDirectory.filter(m => 
+		String(m.division_id) === String(divisionId)
+	);
+	
+	const others = managerDirectory.filter(m => !suggested.some(s => String(s.id) === String(m.id)));
+	
+	let html = '<option value="">Pilih Manager...</option>';
+	
+	if (suggested.length > 0) {
+		html += '<optgroup label="Managers in Division">';
+		suggested.forEach(m => {
+			html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.department ? ' • ' + m.department : ''}</option>`;
+		});
+		html += '</optgroup>';
+		html += '<optgroup label="Other Managers">';
+	}
+	
+	others.forEach(m => {
+		html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.division ? ' • ' + m.division : ''}${m.department ? ' • ' + m.department : ''}</option>`;
+	});
+	
+	if (suggested.length > 0) {
+		html += '</optgroup>';
+	}
+	
+	return html;
+}
+
+function onManagerSelectChange(managerType, employeeId, selectEl) {
+	const key = String(employeeId);
+	if (!assignManagerSelections[key]) {
+		assignManagerSelections[key] = { functional_id: '', functional_name: '', operational_id: '', operational_name: '' };
+	}
+	
+	const val = selectEl.value;
+	const text = selectEl.options[selectEl.selectedIndex].text;
+	
+	if (managerType === 'functional') {
+		assignManagerSelections[key].functional_id = val;
+		assignManagerSelections[key].functional_name = val ? text.split(' • ')[0] : '';
+	} else {
+		assignManagerSelections[key].operational_id = val;
+		assignManagerSelections[key].operational_name = val ? text.split(' • ')[0] : '';
 	}
 }
 
-function syncRowFunctionalManagerManual(employeeId, value) {
-	const current = assignManagerSelections[String(employeeId)] || {
+function updateManagerComboboxSelection(managerType, employeeId, managerId, managerName) {
+	const key = String(employeeId);
+	const current = assignManagerSelections[key] || {
 		functional_id: '',
 		functional_name: '',
 		operational_id: '',
 		operational_name: '',
 	};
-	current.functional_name = value;
-	assignManagerSelections[String(employeeId)] = current;
-}
-
-function onRowOperationalManagerSelectChange(employeeId, selectEl) {
-	if (!selectEl) return;
-	const selectedOption = selectEl.selectedOptions[0];
-	const rowTextInput = document.getElementById(`assign-operational-text-${employeeId}`);
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.operational_id = selectEl.value;
-	current.operational_name = selectedOption ? selectedOption.text.split(' • ')[0] : '';
-	assignManagerSelections[String(employeeId)] = current;
-	if (rowTextInput) {
-		rowTextInput.value = current.operational_name;
+	if (managerType === 'functional') {
+		current.functional_id = String(managerId);
+		current.functional_name = managerName;
+	} else {
+		current.operational_id = String(managerId);
+		current.operational_name = managerName;
 	}
-}
-
-function syncRowOperationalManagerManual(employeeId, value) {
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.operational_name = value;
-	assignManagerSelections[String(employeeId)] = current;
+	assignManagerSelections[key] = current;
+	const inputEl = document.getElementById(`assign-${managerType}-combo-${employeeId}`);
+	if (inputEl) {
+		inputEl.value = managerName;
+	}
+	closeManagerCombobox(managerType, employeeId);
 }
 
 async function loadAssignableEmployees(overrideQuery = null) {
@@ -562,8 +634,6 @@ function updateAssignConfirmList() {
 
 	container.innerHTML = selectedEmployees.map((employee) => {
 		const selection = getEmployeeManagerSelection(employee);
-		const functionalOptions = buildFunctionalOptionsForEmployee(employee);
-		const operationalOptions = buildManagerOptionsHtml(managerDirectory, true, false);
 		return `
 		<tr>
 			<td class="font-medium text-gray-800">${escapeHtml(employee.employee_number || '-')}</td>
@@ -571,21 +641,15 @@ function updateAssignConfirmList() {
 			<td>${escapeHtml(employee.division || '-')}</td>
 			<td>${escapeHtml(employee.department || '-')}</td>
 			<td>${escapeHtml(employee.career_stage || '-')}</td>
-			<td class="min-w-[280px]">
-				<div class="space-y-2">
-					<select class="w-full px-2 py-1.5 border rounded bg-white text-sm" onchange="onRowFunctionalManagerSelectChange(${employee.id}, this)">
-						${functionalOptions}
-					</select>
-					<input id="assign-functional-text-${employee.id}" type="text" class="w-full px-2 py-1.5 border rounded bg-white text-sm" value="${escapeHtml(selection.functional_name || '')}" placeholder="Nama manager fungsional" oninput="syncRowFunctionalManagerManual(${employee.id}, this.value)" />
-				</div>
+			<td class="min-w-[250px]">
+				<select id="assign-functional-select-${employee.id}" class="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-none focus:border-[#144600]" onchange="onManagerSelectChange('functional', ${employee.id}, this)">
+					${buildManagerSelectOptions(employee, 'functional', selection.functional_id)}
+				</select>
 			</td>
-			<td class="min-w-[280px]">
-				<div class="space-y-2">
-					<select class="w-full px-2 py-1.5 border rounded bg-white text-sm" onchange="onRowOperationalManagerSelectChange(${employee.id}, this)">
-						${operationalOptions}
-					</select>
-					<input id="assign-operational-text-${employee.id}" type="text" class="w-full px-2 py-1.5 border rounded bg-white text-sm" value="${escapeHtml(selection.operational_name || '')}" placeholder="Kosong / optional" oninput="syncRowOperationalManagerManual(${employee.id}, this.value)" />
-				</div>
+			<td class="min-w-[250px]">
+				<select id="assign-operational-select-${employee.id}" class="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-none focus:border-[#144600]" onchange="onManagerSelectChange('operational', ${employee.id}, this)">
+					${buildManagerSelectOptions(employee, 'operational', selection.operational_id)}
+				</select>
 			</td>
 		</tr>
 		`;
@@ -595,15 +659,17 @@ function updateAssignConfirmList() {
 		const key = String(employee.id);
 		const selection = assignManagerSelections[key] || null;
 		if (!selection) return;
-		const functionalSelect = container.querySelector(`select[onchange="onRowFunctionalManagerSelectChange(${employee.id}, this)"]`);
-		const operationalSelect = container.querySelector(`select[onchange="onRowOperationalManagerSelectChange(${employee.id}, this)"]`);
-		if (functionalSelect) {
-			functionalSelect.value = selection.functional_id || '';
+		const functionalInput = container.querySelector(`#assign-functional-combo-${employee.id}`);
+		const operationalInput = container.querySelector(`#assign-operational-combo-${employee.id}`);
+		if (functionalInput) {
+			functionalInput.value = selection.functional_name || '';
 		}
-		if (operationalSelect) {
-			operationalSelect.value = selection.operational_id || '';
+		if (operationalInput) {
+			operationalInput.value = selection.operational_name || '';
 		}
 	});
+
+	initSearchableSelects();
 }
 
 async function confirmAssignEmployees() {

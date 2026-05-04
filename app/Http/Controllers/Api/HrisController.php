@@ -394,8 +394,8 @@ class HrisController extends Controller
         $divisionId = $divisionName === '-' ? null : $this->resolveMasterId('master_divisions', $divisionName);
         $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
-        $managerFunctionalId = $this->resolveFunctionalManagerId($existing, $sourceRow, $divisionId, $departmentId);
-        $status = $this->normalizeEmployeeStatusLabel((string) ($sourceRow['status'] ?? 'Aktif'));
+        $managerFunctionalId = $this->resolveFunctionalManagerId($divisionId);
+        $managerOperationalId = $this->resolveOperationalManagerId($divisionId, $departmentId, (string) ($sourceRow['department'] ?? ''));
 
         return [
             'employee_number' => (string) $sourceRow['employee_number'],
@@ -411,7 +411,7 @@ class HrisController extends Controller
             'email' => (string) $sourceRow['email'],
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
-            'manager_operational_id' => $existing?->manager_operational_id,
+            'manager_operational_id' => $managerOperationalId,
             // Every HRIS sync starts as VnB inactive until explicitly assigned.
             'vnb_status' => 'not_started',
             'vnb_period_start' => null,
@@ -452,61 +452,33 @@ class HrisController extends Controller
         return in_array($normalized, ['inactive', 'inaktif', 'tidak aktif', 'nonaktif', 'non-active', 'non active'], true);
     }
 
-    private function resolveFunctionalManagerId(?Employee $existing, array $sourceRow, ?int $divisionId, ?int $departmentId): ?int
+    private function resolveFunctionalManagerId(?int $divisionId): ?int
     {
-        // If already assigned and it's an update, keep the existing assignment
-        if ($existing?->manager_functional_id) {
-            return (int) $existing->manager_functional_id;
+        // Functional manager is always the GM of the division
+        return $this->findGeneralManagerIdOfDivision($divisionId);
+    }
+
+    private function resolveOperationalManagerId(?int $divisionId, ?int $departmentId, string $departmentName): ?int
+    {
+        if (!$divisionId) return null;
+
+        $deptNameLower = strtolower(trim($departmentName));
+        $gmId = $this->findGeneralManagerIdOfDivision($divisionId);
+
+        // If employee is in General department, MO = GM
+        if ($deptNameLower === 'general') {
+            return $gmId;
         }
 
-        // Skip if Outsource/OS
-        $employeeStatus = (string) ($sourceRow['employee_status'] ?? '');
-        if (in_array(strtolower(trim($employeeStatus)), ['os', 'outsource', 'outsourcing'], true)) {
-            return null;
-        }
+        // Find Dept Manager (Manager in same department)
+        $managerId = Manager::query()
+            ->where('division_id', $divisionId)
+            ->where('department_id', $departmentId)
+            ->where('status', 'active')
+            ->value('id');
 
-        // Need division to proceed
-        if (!$divisionId) {
-            return null;
-        }
-
-        // Get the position and level for career stage determination
-        $position = (string) ($sourceRow['position'] ?? '');
-        $level = (string) ($sourceRow['level'] ?? '');
-        $company = (string) ($sourceRow['company'] ?? '');
-
-        // Determine career stage to route to correct manager type
-        $careerStage = $this->determineCareeStageForSync($level, $position, $employeeStatus, $company);
-
-        // If top level → null
-        if (in_array($careerStage, ['Manage Function', 'Manage Manager (Direktur)'], true)) {
-            return null;
-        }
-
-        // If staff level and has department → find manager of same department
-        if (in_array($careerStage, ['Manage Self (Staff dan Supervisor)', 'Manage Self (Non-Staff)'], true)) {
-            if ($departmentId) {
-                $manager = Manager::query()
-                    ->where('division_id', $divisionId)
-                    ->where('department_id', $departmentId)
-                    ->where('status', 'active')
-                    ->first();
-
-                if ($manager) {
-                    return (int) $manager->id;
-                }
-            }
-
-            // Fall back to GM (General department manager) of same division
-            return $this->findGeneralManagerIdOfDivision($divisionId);
-        }
-
-        // If manager level → find GM (General department manager) of same division
-        if ($careerStage === 'Manage Other (Manager)') {
-            return $this->findGeneralManagerIdOfDivision($divisionId);
-        }
-
-        return null;
+        // If no Dept Manager found, MO = GM (Functional Manager)
+        return $managerId ? (int) $managerId : $gmId;
     }
 
     /**

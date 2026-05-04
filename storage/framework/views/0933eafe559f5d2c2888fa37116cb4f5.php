@@ -106,13 +106,20 @@
 					</div>
 
 					<div id="assign-step-confirm" class="space-y-4 hidden">
-						<div class="rounded-lg border border-green-200 bg-green-50 p-4">
-							<h4 class="font-semibold text-green-900">Konfirmasi pendaftaran ke VnB</h4>
-							<p class="text-sm text-green-800 mt-1">Cek lagi daftar employee berikut sebelum didaftarkan ke VnB.</p>
+						<div class="grid grid-cols-1 lg:grid-cols-[1.35fr_0.95fr] gap-4 items-stretch">
+							<div class="rounded-lg border border-green-200 bg-green-50 p-4 h-full flex flex-col justify-center">
+								<h4 class="font-semibold text-green-900">Konfirmasi pendaftaran ke VnB</h4>
+								<p class="text-sm text-green-800 mt-1">Cek lagi daftar employee berikut sebelum didaftarkan ke VnB.</p>
+							</div>
+
+							<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+								<label for="assign-induction-date" class="block text-xs font-semibold text-gray-500 mb-1">Tanggal induction</label>
+								<input id="assign-induction-date" type="date" class="w-full px-3 py-2 border rounded-lg bg-white" />
+							</div>
 						</div>
 
-						<div class="grid grid-cols-1 lg:grid-cols-[1.35fr_0.95fr] gap-4 items-start">
-							<div class="overflow-x-auto border rounded-lg bg-white">
+						<div class="border rounded-lg bg-white" style="overflow: visible;">
+							<div style="overflow-x: auto; overflow-y: visible;">
 								<table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
 									<thead class="bg-gray-50">
 										<tr>
@@ -128,23 +135,13 @@
 									<tbody id="assign-confirm-list"></tbody>
 								</table>
 							</div>
+						</div>
 
-							<div class="space-y-4">
-								<div class="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
-									<div>
-										<label for="assign-induction-date" class="block text-xs font-semibold text-gray-500 mb-1">Tanggal induction</label>
-										<input id="assign-induction-date" type="date" class="w-full px-3 py-2 border rounded-lg bg-white" />
-										<p class="mt-2 text-xs text-gray-500">Tanggal ini dipakai untuk semua employee yang dipilih dalam batch ini.</p>
-									</div>
-								</div>
-
-								<div class="flex items-center justify-between gap-3 pt-1">
-									<div class="text-sm text-gray-600"><span id="assign-confirm-count" class="font-semibold text-gray-800">0</span> employee akan didaftarkan.</div>
-									<div class="flex items-center gap-2">
-										<button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700" onclick="backToAssignListStep()">Kembali</button>
-										<button class="px-4 py-2 rounded-lg text-white" style="background-color:#144600;" onclick="confirmAssignEmployees()">Daftarkan ke VnB</button>
-									</div>
-								</div>
+						<div class="flex items-center justify-between gap-3 pt-1">
+							<div class="text-sm text-gray-600"><span id="assign-confirm-count" class="font-semibold text-gray-800">0</span> employee akan didaftarkan.</div>
+							<div class="flex items-center gap-2">
+								<button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700" onclick="backToAssignListStep()">Kembali</button>
+								<button class="px-4 py-2 rounded-lg text-white" style="background-color:#144600;" onclick="confirmAssignEmployees()">Daftarkan ke VnB</button>
 							</div>
 						</div>
 					</div>
@@ -166,6 +163,17 @@
 .assign-table-row.selected { background: #f0fdf4; }
 .assign-table-row { cursor: pointer; }
 .assign-checkbox { width: 1.2rem; height: 1.2rem; }
+.combobox-wrapper { position: relative; }
+.combobox-input { width: 100%; padding: 0.375rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem; background: white; font-size: 0.875rem; }
+.combobox-input:focus { outline: none; border-color: #3b82f6; }
+.combobox-list { position: fixed; background: white; border: 1px solid #d1d5db; border-radius: 0.375rem; max-height: 250px; overflow-y: auto; z-index: 50; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); pointer-events: none; }
+.combobox-list.open { pointer-events: auto; }
+.combobox-list.open { display: block; }
+.combobox-option { padding: 0.5rem 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+.combobox-option:hover { background: #f3f4f6; }
+.combobox-option-name { font-weight: 600; color: #000; }
+.combobox-option-info { font-size: 0.75rem; color: #9ca3af; }
+.combobox-option.disabled { opacity: 0.5; pointer-events: none; }
 </style>
 <?php $__env->stopPush(); ?>
 
@@ -304,62 +312,92 @@ function buildFunctionalOptionsForEmployee(employee) {
 	return buildManagerOptionsHtml(functionalOptions, true, suggestedFunctional.length > 0);
 }
 
-function onRowFunctionalManagerSelectChange(employeeId, selectEl) {
-	if (!selectEl || selectEl.value === '__suggested__') return;
-	const selectedOption = selectEl.selectedOptions[0];
-	const rowTextInput = document.getElementById(`assign-functional-text-${employeeId}`);
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.functional_id = selectEl.value;
-	current.functional_name = selectedOption ? selectedOption.text.split(' • ')[0] : '';
-	assignManagerSelections[String(employeeId)] = current;
-	if (rowTextInput) {
-		rowTextInput.value = current.functional_name;
+function buildComboboxHtml(managers, managerType, employeeId) {
+	const modalContainer = document.getElementById('assign-modal');
+	return managers.map((manager) => `
+		<div class="combobox-option" data-manager-id="${manager.id}" data-manager-name="${escapeHtmlAttr(manager.name || '')}" onclick="selectManagerFromCombobox('${managerType}', ${employeeId}, this)">
+			<div class="combobox-option-name">${escapeHtml(manager.name || '')}</div>
+			<div class="combobox-option-info">${escapeHtml(manager.division || '')}${manager.department ? ' • ' + manager.department : ''}</div>
+		</div>
+	`).join('');
+}
+
+function openManagerCombobox(managerType, employeeId) {
+	const listEl = document.getElementById(`assign-${managerType}-list-${employeeId}`);
+	const inputEl = document.getElementById(`assign-${managerType}-combo-${employeeId}`);
+	if (!listEl || !inputEl) return;
+	const employee = assignableEmployees.find((e) => String(e.id) === String(employeeId));
+	if (!employee) return;
+	const managers = managerType === 'functional'
+		? [...getSuggestedFunctionalManagers(employee), ...managerDirectory.filter((m) => !getSuggestedFunctionalManagers(employee).some((s) => String(s.id) === String(m.id)))]
+		: managerDirectory;
+	listEl.innerHTML = buildComboboxHtml(managers, managerType, employeeId);
+	const rect = inputEl.getBoundingClientRect();
+	listEl.style.top = (rect.bottom + window.scrollY) + 'px';
+	listEl.style.left = rect.left + 'px';
+	listEl.style.width = rect.width + 'px';
+	listEl.classList.add('open');
+}
+
+function closeManagerCombobox(managerType, employeeId) {
+	const listEl = document.getElementById(`assign-${managerType}-list-${employeeId}`);
+	if (listEl) {
+		listEl.classList.remove('open');
 	}
 }
 
-function syncRowFunctionalManagerManual(employeeId, value) {
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.functional_name = value;
-	assignManagerSelections[String(employeeId)] = current;
-}
-
-function onRowOperationalManagerSelectChange(employeeId, selectEl) {
-	if (!selectEl) return;
-	const selectedOption = selectEl.selectedOptions[0];
-	const rowTextInput = document.getElementById(`assign-operational-text-${employeeId}`);
-	const current = assignManagerSelections[String(employeeId)] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	current.operational_id = selectEl.value;
-	current.operational_name = selectedOption ? selectedOption.text.split(' • ')[0] : '';
-	assignManagerSelections[String(employeeId)] = current;
-	if (rowTextInput) {
-		rowTextInput.value = current.operational_name;
+function filterManagerCombobox(managerType, employeeId, query) {
+	const listEl = document.getElementById(`assign-${managerType}-list-${employeeId}`);
+	const inputEl = document.getElementById(`assign-${managerType}-combo-${employeeId}`);
+	if (!listEl || !inputEl) return;
+	const employee = assignableEmployees.find((e) => String(e.id) === String(employeeId));
+	if (!employee) return;
+	const managers = managerType === 'functional'
+		? [...getSuggestedFunctionalManagers(employee), ...managerDirectory.filter((m) => !getSuggestedFunctionalManagers(employee).some((s) => String(s.id) === String(m.id)))]
+		: managerDirectory;
+	const filtered = query.trim() === '' ? managers : managers.filter((m) =>
+		String(m.name || '').toLowerCase().includes(query.toLowerCase())
+		|| String(m.division || '').toLowerCase().includes(query.toLowerCase())
+		|| String(m.department || '').toLowerCase().includes(query.toLowerCase())
+	);
+	listEl.innerHTML = buildComboboxHtml(filtered, managerType, employeeId);
+	if (!listEl.classList.contains('open')) {
+		const rect = inputEl.getBoundingClientRect();
+		listEl.style.top = (rect.bottom + window.scrollY) + 'px';
+		listEl.style.left = rect.left + 'px';
+		listEl.style.width = rect.width + 'px';
+		listEl.classList.add('open');
 	}
 }
 
-function syncRowOperationalManagerManual(employeeId, value) {
-	const current = assignManagerSelections[String(employeeId)] || {
+function selectManagerFromCombobox(managerType, employeeId, optionEl) {
+	const managerId = optionEl.getAttribute('data-manager-id');
+	const managerName = optionEl.getAttribute('data-manager-name');
+	if (!managerId || !managerName) return;
+	updateManagerComboboxSelection(managerType, employeeId, managerId, managerName);
+}
+
+function updateManagerComboboxSelection(managerType, employeeId, managerId, managerName) {
+	const key = String(employeeId);
+	const current = assignManagerSelections[key] || {
 		functional_id: '',
 		functional_name: '',
 		operational_id: '',
 		operational_name: '',
 	};
-	current.operational_name = value;
-	assignManagerSelections[String(employeeId)] = current;
+	if (managerType === 'functional') {
+		current.functional_id = String(managerId);
+		current.functional_name = managerName;
+	} else {
+		current.operational_id = String(managerId);
+		current.operational_name = managerName;
+	}
+	assignManagerSelections[key] = current;
+	const inputEl = document.getElementById(`assign-${managerType}-combo-${employeeId}`);
+	if (inputEl) {
+		inputEl.value = managerName;
+	}
+	closeManagerCombobox(managerType, employeeId);
 }
 
 async function loadAssignableEmployees(overrideQuery = null) {
@@ -562,8 +600,6 @@ function updateAssignConfirmList() {
 
 	container.innerHTML = selectedEmployees.map((employee) => {
 		const selection = getEmployeeManagerSelection(employee);
-		const functionalOptions = buildFunctionalOptionsForEmployee(employee);
-		const operationalOptions = buildManagerOptionsHtml(managerDirectory, true, false);
 		return `
 		<tr>
 			<td class="font-medium text-gray-800">${escapeHtml(employee.employee_number || '-')}</td>
@@ -571,20 +607,14 @@ function updateAssignConfirmList() {
 			<td>${escapeHtml(employee.division || '-')}</td>
 			<td>${escapeHtml(employee.department || '-')}</td>
 			<td>${escapeHtml(employee.career_stage || '-')}</td>
-			<td class="min-w-[280px]">
-				<div class="space-y-2">
-					<select class="w-full px-2 py-1.5 border rounded bg-white text-sm" onchange="onRowFunctionalManagerSelectChange(${employee.id}, this)">
-						${functionalOptions}
-					</select>
-					<input id="assign-functional-text-${employee.id}" type="text" class="w-full px-2 py-1.5 border rounded bg-white text-sm" value="${escapeHtml(selection.functional_name || '')}" placeholder="Nama manager fungsional" oninput="syncRowFunctionalManagerManual(${employee.id}, this.value)" />
+			<td class="min-w-[250px]">
+				<div class="combobox-wrapper">
+					<input id="assign-functional-combo-${employee.id}" type="text" class="combobox-input" placeholder="Cari manager fungsional" value="${escapeHtml(selection.functional_name || '')}" onfocus="openManagerCombobox('functional', ${employee.id})" onblur="setTimeout(() => closeManagerCombobox('functional', ${employee.id}), 200)" oninput="filterManagerCombobox('functional', ${employee.id}, this.value)" />
 				</div>
 			</td>
-			<td class="min-w-[280px]">
-				<div class="space-y-2">
-					<select class="w-full px-2 py-1.5 border rounded bg-white text-sm" onchange="onRowOperationalManagerSelectChange(${employee.id}, this)">
-						${operationalOptions}
-					</select>
-					<input id="assign-operational-text-${employee.id}" type="text" class="w-full px-2 py-1.5 border rounded bg-white text-sm" value="${escapeHtml(selection.operational_name || '')}" placeholder="Kosong / optional" oninput="syncRowOperationalManagerManual(${employee.id}, this.value)" />
+			<td class="min-w-[250px]">
+				<div class="combobox-wrapper">
+					<input id="assign-operational-combo-${employee.id}" type="text" class="combobox-input" placeholder="Cari manager operasional" value="${escapeHtml(selection.operational_name || '')}" onfocus="openManagerCombobox('operational', ${employee.id})" onblur="setTimeout(() => closeManagerCombobox('operational', ${employee.id}), 200)" oninput="filterManagerCombobox('operational', ${employee.id}, this.value)" />
 				</div>
 			</td>
 		</tr>
@@ -595,13 +625,13 @@ function updateAssignConfirmList() {
 		const key = String(employee.id);
 		const selection = assignManagerSelections[key] || null;
 		if (!selection) return;
-		const functionalSelect = container.querySelector(`select[onchange="onRowFunctionalManagerSelectChange(${employee.id}, this)"]`);
-		const operationalSelect = container.querySelector(`select[onchange="onRowOperationalManagerSelectChange(${employee.id}, this)"]`);
-		if (functionalSelect) {
-			functionalSelect.value = selection.functional_id || '';
+		const functionalInput = container.querySelector(`#assign-functional-combo-${employee.id}`);
+		const operationalInput = container.querySelector(`#assign-operational-combo-${employee.id}`);
+		if (functionalInput) {
+			functionalInput.value = selection.functional_name || '';
 		}
-		if (operationalSelect) {
-			operationalSelect.value = selection.operational_id || '';
+		if (operationalInput) {
+			operationalInput.value = selection.operational_name || '';
 		}
 	});
 }

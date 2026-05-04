@@ -34,7 +34,12 @@ class ManagerController extends Controller
         $query = Employee::query()
             ->with(['division', 'department', 'position'])
             ->where('status', 'Aktif')
-            ->where('level', 'manager');
+            ->where(function($q) {
+                $q->where('level', 'Manager')
+                  ->orWhere('level', 'Director')
+                  ->orWhere('level', 'manager') // extra safety
+                  ->orWhere('level', 'director');
+            });
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -86,7 +91,9 @@ class ManagerController extends Controller
                 'employee_number' => $manager->employee_number,
                 'name' => $manager->name,
                 'email' => $manager->email,
+                'division_id' => $manager->division_id,
                 'division' => $manager->division?->name,
+                'department_id' => $manager->department_id,
                 'department' => $manager->department?->name,
                 'position' => $manager->position?->name,
                 'level' => $manager->level,
