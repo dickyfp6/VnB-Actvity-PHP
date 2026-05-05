@@ -132,40 +132,41 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('intercomm')->givePermissionTo($intercommPermissions);
 
         // Create demo users
+        // One user may have multiple roles; this seed keeps the demo login matrix aligned with the UI.
         $users = [
             [
                 'name' => 'Direktur Utama',
-                'email' => 'direktur@vnb.id',
+                'email' => 'EMP1001',
                 'password' => 'password',
                 'roles' => ['direktur_utama'],
             ],
             [
                 'name' => 'Manager User',
-                'email' => 'manager@vnb.id',
+                'email' => 'EMP1004',
                 'password' => 'password',
-                'roles' => ['manager'],
+                'roles' => ['manager', 'employee'],
             ],
             [
                 'name' => 'Employee User',
-                'email' => 'employee@vnb.id',
+                'email' => 'EMP1005',
                 'password' => 'password',
                 'roles' => ['employee'],
             ],
             [
                 'name' => 'PCX Manager',
-                'email' => 'pcx@vnb.id',
+                'email' => 'EMP1002',
                 'password' => 'password',
-                'roles' => ['pcx_manager', 'manager'],
+                'roles' => ['pcx_manager', 'manager', 'employee'],
             ],
             [
                 'name' => 'Intercomm User',
-                'email' => 'intercomm@vnb.id',
+                'email' => 'EMP1003',
                 'password' => 'password',
-                'roles' => ['intercomm'],
+                'roles' => ['intercomm', 'employee'],
             ],
             [
                 'name' => 'Developer',
-                'email' => 'dev@vnb.id',
+                'email' => 'EMP1006',
                 'password' => 'password',
                 'roles' => ['direktur_utama', 'pcx_manager', 'intercomm', 'manager', 'employee'],
             ],

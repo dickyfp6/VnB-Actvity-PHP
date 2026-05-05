@@ -7,6 +7,7 @@ use App\Support\ActiveRoleContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthWebController extends Controller
@@ -28,19 +29,19 @@ class AuthWebController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|string',
+            'nip' => 'required|string',
             'password' => 'required',
         ]);
 
-        $credential = trim((string) $validated['email']);
+        $credential = Str::upper(trim((string) $validated['nip']));
 
         $users = User::query()
-            ->whereRaw('LOWER(email) = ?', [strtolower($credential)])
+            ->whereRaw('UPPER(email) = ?', [$credential])
             ->orWhereHas('employee', function ($query) use ($credential) {
-                $query->where('employee_number', $credential);
+                $query->whereRaw('UPPER(employee_number) = ?', [$credential]);
             })
             ->orWhereHas('manager', function ($query) use ($credential) {
-                $query->where('employee_number', $credential);
+                $query->whereRaw('UPPER(employee_number) = ?', [$credential]);
             })
             ->get();
 
@@ -50,13 +51,13 @@ class AuthWebController extends Controller
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are invalid.'],
+                'nip' => ['The provided credentials are invalid.'],
             ]);
         }
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => ['User account is inactive.'],
+                'nip' => ['User account is inactive.'],
             ]);
         }
 

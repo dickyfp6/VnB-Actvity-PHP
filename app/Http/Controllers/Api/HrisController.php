@@ -247,6 +247,21 @@ class HrisController extends Controller
                     'manager_operational' => (string) ($row->manager_operational ?? ''),
                 ];
 
+                $divisionId = $this->resolveMasterId('master_divisions', $mappedRow['division']);
+                $departmentId = $this->resolveMasterId('master_departments', $mappedRow['department']);
+
+                if ($mappedRow['manager_functional'] === '') {
+                    $mappedRow['manager_functional'] = $this->resolveManagerNameById(
+                        $this->resolveFunctionalManagerId($divisionId)
+                    ) ?? '';
+                }
+
+                if ($mappedRow['manager_operational'] === '') {
+                    $mappedRow['manager_operational'] = $this->resolveManagerNameById(
+                        $this->resolveOperationalManagerId($divisionId, $departmentId, $mappedRow['department'])
+                    ) ?? $mappedRow['manager_functional'];
+                }
+
                 return $this->applyGeneralManagerNormalization($mappedRow);
             })
             ->values();
@@ -398,6 +413,7 @@ class HrisController extends Controller
         $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
         $managerFunctionalId = $this->resolveFunctionalManagerId($divisionId);
         $managerOperationalId = $this->resolveOperationalManagerId($divisionId, $departmentId, (string) ($sourceRow['department'] ?? ''));
+        $status = $this->isInactiveEmployeeStatus((string) ($sourceRow['status'] ?? 'Aktif')) ? 'Inactive' : 'Aktif';
 
         return [
             'employee_number' => (string) $sourceRow['employee_number'],

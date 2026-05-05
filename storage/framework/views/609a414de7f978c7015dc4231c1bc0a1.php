@@ -69,12 +69,13 @@
                                     </div>
                                 </div>
                             </div>
-                        </th>
+                        <th data-sort-key="manager_functional">Manager Fungsional</th>
+                        <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="updated-body" style="white-space: nowrap;">
-                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -109,12 +110,13 @@
                                     </div>
                                 </div>
                             </div>
-                        </th>
+                        <th data-sort-key="manager_functional">Manager Fungsional</th>
+                        <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hris-body" style="white-space: nowrap;">
-                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -149,12 +151,13 @@
                                     </div>
                                 </div>
                             </div>
-                        </th>
+                        <th data-sort-key="manager_functional">Manager Fungsional</th>
+                        <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
                     </tr>
                 </thead>
                 <tbody id="hrms-body" style="white-space: nowrap;">
-                    <tr><td colspan="14" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colspan="16" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -645,7 +648,8 @@ function renderUpdatedTable() {
             <td class="px-3 py-2">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2">${escapeHtml(row.manager_functional || '-')}</td>
+            <td class="px-3 py-2">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
@@ -656,7 +660,7 @@ function renderHrisTable() {
     const rows = filteredSourceRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">Tidak ada data HRIS.</td></tr>';
         return;
     }
 
@@ -674,7 +678,8 @@ function renderHrisTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
+            <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');
@@ -685,7 +690,7 @@ function renderHrmsTable() {
     const rows = filteredHrmsRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">Tidak ada data HRMS.</td></tr>';
         return;
     }
 
@@ -703,7 +708,8 @@ function renderHrmsTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
-            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status)}</td>
+            <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
+            <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
         </tr>
     `).join('');

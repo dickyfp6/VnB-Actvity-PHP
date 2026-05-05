@@ -330,6 +330,20 @@ class SyncSourceEmployeesSeeder extends Seeder
             ],
         ];
 
+        $rows = array_map(function (array $row): array {
+            $row['status'] = 'Aktif';
+
+            [$managerFunctional, $managerOperational] = $this->resolveDemoManagerNames(
+                (string) ($row['division'] ?? ''),
+                (string) ($row['department'] ?? '')
+            );
+
+            $row['manager_functional'] = $managerFunctional;
+            $row['manager_operational'] = $managerOperational;
+
+            return $row;
+        }, $rows);
+
         $now = now();
 
         foreach ($rows as $row) {
@@ -345,5 +359,97 @@ class SyncSourceEmployeesSeeder extends Seeder
                 ]
             );
         }
+
+        DB::table('sync_source_employees')
+            ->whereIn('employee_number', ['EMP0001', 'EMP0002', 'EMP0003'])
+            ->update([
+                'status' => 'Aktif',
+                'manager_functional' => 'Direktur Utama',
+                'manager_operational' => 'Direktur Utama',
+                'updated_at' => $now,
+            ]);
+
+        DB::table('sync_source_employees')
+            ->whereIn('employee_number', ['EMP0004', 'EMP0005', 'EMP0006'])
+            ->update([
+                'status' => 'Aktif',
+                'manager_functional' => 'Direktur Utama',
+                'manager_operational' => 'PCX Manager',
+                'updated_at' => $now,
+            ]);
+
+        DB::table('sync_source_employees')
+            ->whereIn('employee_number', ['OUTSRC001', 'OUTSRC002', 'OUTSRC003'])
+            ->update([
+                'status' => 'Aktif',
+                'manager_functional' => 'Manager User',
+                'manager_operational' => 'Manager User',
+                'updated_at' => $now,
+            ]);
+    }
+
+    private function resolveDemoManagerNames(string $divisionName, string $departmentName): array
+    {
+        $divisionKey = mb_strtolower(trim($divisionName));
+        $departmentKey = mb_strtolower(trim($departmentName));
+
+        $assignment = [
+            'human capital' => [
+                'functional' => 'Direktur Utama',
+                'default_operational' => 'PCX Manager',
+                'departments' => [
+                    'c&b and hris' => 'PCX Manager',
+                ],
+            ],
+            'sales and marketing' => [
+                'functional' => 'Manager User',
+                'default_operational' => 'Manager User',
+                'departments' => [
+                    'area east' => 'Manager User',
+                ],
+            ],
+            'technology' => [
+                'functional' => 'Fajar Nugroho',
+                'default_operational' => 'Fajar Nugroho',
+                'departments' => [
+                    'product engineering' => 'Developer',
+                ],
+            ],
+            'human resource' => [
+                'functional' => 'Direktur Utama',
+                'default_operational' => 'PCX Manager',
+                'departments' => [
+                    'general' => 'PCX Manager',
+                    'people, culture, and experiences' => 'PCX Manager',
+                    'c&b and hris' => 'PCX Manager',
+                    'people operations and development' => 'PCX Manager',
+                    'recruitment' => 'PCX Manager',
+                ],
+            ],
+            'it' => [
+                'functional' => 'Fajar Nugroho',
+                'default_operational' => 'Fajar Nugroho',
+                'departments' => [
+                    'general' => 'Fajar Nugroho',
+                    'technical support' => 'Rizal Maulana',
+                    'webapp dev' => 'Nanda Saputra',
+                    'sap' => 'Putri Maharani',
+                    'infrastructure & security' => 'Bima Adityawan',
+                ],
+            ],
+        ];
+
+        $defaultFunctional = 'Direktur Utama';
+        $defaultOperational = $defaultFunctional;
+
+        $divisionConfig = $assignment[$divisionKey] ?? null;
+        if (!$divisionConfig) {
+            return [$defaultFunctional, $defaultOperational];
+        }
+
+        $functional = $divisionConfig['functional'] ?? $defaultFunctional;
+        $operational = $divisionConfig['departments'][$departmentKey] ?? ($divisionConfig['default_operational'] ?? $functional);
+
+        return [$functional, $operational];
     }
 }
