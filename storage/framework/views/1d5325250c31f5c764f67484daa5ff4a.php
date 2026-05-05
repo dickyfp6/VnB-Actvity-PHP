@@ -1,8 +1,8 @@
-@extends('layouts.app')
-@section('title','Manajemen Intercomm')
-@section('page_title','Manajemen Intercomm')
-@section('page_subtitle','Kelola akun Intercomm dan status akses employee yang terlibat di modul ini.')
-@section('content')
+
+<?php $__env->startSection('title','Manajemen Intercomm'); ?>
+<?php $__env->startSection('page_title','Manajemen Intercomm'); ?>
+<?php $__env->startSection('page_subtitle','Kelola akun Intercomm dan status akses employee yang terlibat di modul ini.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4">
   <div class="table-container">
     <table class="table-modern">
@@ -24,7 +24,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let users = [];
 function formatDate(value) {
@@ -97,5 +97,7 @@ async function toggleIntercomm(employeeId, enabled, inputEl) {
 
 loadData();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/intercomm/index.blade.php ENDPATH**/ ?>

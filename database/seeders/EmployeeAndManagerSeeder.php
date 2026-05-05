@@ -28,10 +28,11 @@ class EmployeeAndManagerSeeder extends Seeder
         // Managers ter-link ke users dengan role 'manager'
         
         // Get actual user IDs from database
-        $managerUser = User::where('email', 'manager@vnb.id')->first();
-        $dickyUser = User::where('email', 'dicky@vnb.id')->first();
-        $viqiUser = User::where('email', 'viqi@vnb.id')->firstOrCreate(
-            ['email' => 'viqi@vnb.id'],
+        $direkturUser = User::where('email', 'direktur@wiscore.id')->first();
+        $pcxUser = User::where('email', 'pcx@wiscore.id')->first();
+        $managerUser = User::where('email', 'manager@wiscore.id')->first();
+        $viqiUser = User::where('email', 'viqi@wiscore.id')->firstOrCreate(
+            ['email' => 'viqi@wiscore.id'],
             [
                 'name' => 'Viqi Alvanto',
                 'password' => bcrypt('password'),
@@ -46,8 +47,28 @@ class EmployeeAndManagerSeeder extends Seeder
 
         $managers = [
             [
+                'name' => 'Direktur Utama',
+                'email' => 'direktur@wiscore.id',
+                'employee_number' => 'EMP1001',
+                'company' => 'PT Wismilak Inti Makmur',
+                'division' => 'Human Capital & Corporate Affairs (HC&CA)',
+                'department' => 'General',
+                'status' => 'active',
+                'user_id' => $direkturUser?->id,
+            ],
+            [
+                'name' => 'PCX Manager',
+                'email' => 'pcx@wiscore.id',
+                'employee_number' => 'EMP1002',
+                'company' => 'PT Wismilak Inti Makmur',
+                'division' => 'Human Capital & Corporate Affairs (HC&CA)',
+                'department' => 'People & Culture Excellence (PCX)',
+                'status' => 'active',
+                'user_id' => $pcxUser?->id,
+            ],
+            [
                 'name' => 'Operations Manager',
-                'email' => 'ops.manager@vnb.id',
+                'email' => 'ops.manager@wiscore.id',
                 'employee_number' => 'OPS001',
                 'company' => 'PT Wismilak Inti Makmur',
                 'division' => 'Operations (Pusat Produksi)',
@@ -55,9 +76,9 @@ class EmployeeAndManagerSeeder extends Seeder
                 'user_id' => null,
             ],
             [
-                'name' => 'Manager',
-                'email' => 'manager@vnb.id',
-                'employee_number' => '5026221022',
+                'name' => 'Manager User',
+                'email' => 'manager@wiscore.id',
+                'employee_number' => 'EMP1004',
                 'company' => 'PT Gawih Djaja',
                 'division' => 'Finance & Business Support',
                 'status' => 'active',
@@ -65,7 +86,7 @@ class EmployeeAndManagerSeeder extends Seeder
             ],
             [
                 'name' => 'Viqi Alvanto',
-                'email' => 'viqi@vnb.id',
+                'email' => 'viqi@wiscore.id',
                 'employee_number' => '5026221001',
                 'company' => 'PT Gelora Djaja',
                 'division' => 'Supply Chain Management (SCM)',
@@ -74,7 +95,7 @@ class EmployeeAndManagerSeeder extends Seeder
             ],
         ];
 
-        // Get General department ID (all managers are GMs with General department)
+        // Get General department ID fallback
         $generalDept = DB::table('master_departments')->where('name', 'General')->first();
         $generalDeptId = $generalDept?->id;
 
@@ -88,8 +109,14 @@ class EmployeeAndManagerSeeder extends Seeder
                 $managerData['division_id'] = $division->id;
             }
 
-            // All managers in this seeder are GMs (General department)
-            if ($generalDeptId) {
+            // Resolve department_id
+            if (isset($managerData['department'])) {
+                $dept = DB::table('master_departments')
+                    ->where('name', $managerData['department'])
+                    ->first();
+                $managerData['department_id'] = $dept?->id;
+                unset($managerData['department']);
+            } else if ($generalDeptId) {
                 $managerData['department_id'] = $generalDeptId;
             }
 
@@ -99,83 +126,9 @@ class EmployeeAndManagerSeeder extends Seeder
             );
         }
 
-        // ========== EMPLOYEES (Employees) ==========
-        // Employees ter-link ke users dengan role 'employee'
-        // Manager assignment is auto-handled by Employee observer based on hierarchy logic
-        
-        $employees = [
-            [
-                'employee_number' => '5026221011',
-                'name' => 'Employee',
-                'email' => 'employee@vnb.local',
-                'whatsapp' => '082123456789',
-                'date_joined' => '2026-04-01',
-                'induction_date' => '2026-04-07',
-                'company' => 'PT Gawih Djaja',
-                'division_id' => 1,
-                'department_id' => 1,
-                'position_id' => 1,
-                'placement' => 'Bengkulu',
-                'level' => 1,
-                'employee_status' => 'OS',
-                'vnb_status' => 'active',
-                'status' => 'Aktif',
-                // manager_functional_id will be auto-assigned by Employee observer
-                // OS employees will have null, non-OS will get assigned based on hierarchy
-                'manager_operational_id' => null,
-            ],
-            [
-                'employee_number' => '5026221078',
-                'name' => 'Ahnaf Fathan',
-                'email' => 'ahnaf@vnb.id',
-                'whatsapp' => '081234567890',
-                'date_joined' => '2026-04-01',
-                'induction_date' => '2026-04-07',
-                'company' => 'PT Gelora Djaja',
-                'division_id' => 1,
-                'department_id' => 1,
-                'position_id' => 4,
-                'placement' => 'Bandung',
-                'level' => 1,
-                'employee_status' => 'PKWTT',
-                'vnb_status' => 'active',
-                'status' => 'Aktif',
-                // manager_functional_id will be auto-assigned by Employee observer
-                'manager_operational_id' => null,
-            ],
-            [
-                'employee_number' => '5026221063',
-                'name' => 'Regina Dwi',
-                'email' => 'rere@vnb.id',
-                'whatsapp' => '082123456788',
-                'date_joined' => '2026-04-01',
-                'induction_date' => '2026-04-07',
-                'company' => 'PT Wismilak Inti Makmur',
-                'division_id' => 1,
-                'department_id' => 1,
-                'position_id' => 5,
-                'placement' => 'Banjarmasin',
-                'level' => 1,
-                'employee_status' => 'PKWTT',
-                'vnb_status' => 'active',
-                'status' => 'Aktif',
-                // manager_functional_id will be auto-assigned by Employee observer
-                'manager_operational_id' => null,
-            ],
-        ];
-
-        foreach ($employees as $employeeData) {
-            Employee::create($employeeData);
-        }
-
-        // ========== AUTO-POPULATE CAREER STAGE ==========
-        // After creating employees, populate career_stage based on position
-        $this->populateCareerStages();
-
-        echo "Employee and Manager seeder completed:\n";
+        // Managers seeding completed
+        echo "Manager seeder completed:\n";
         echo "- Managers: " . Manager::count() . "\n";
-        echo "- Core Employees: " . Employee::where('id', '<=', 3)->count() . "\n";
-        echo "- Total: " . Manager::count() . " managers, " . Employee::count() . " employees\n";
     }
 
     private function populateCareerStages(): void
@@ -190,5 +143,27 @@ class EmployeeAndManagerSeeder extends Seeder
                 $employee->save();
             }
         }
+    }
+    
+    private function resolvePositionId(string $name): ?int
+    {
+        $needle = trim($name);
+        if ($needle === '') {
+            return null;
+        }
+
+        $existing = DB::table('master_positions')
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($needle)])
+            ->first();
+
+        if ($existing) {
+            return (int) $existing->id;
+        }
+
+        return (int) DB::table('master_positions')->insertGetId([
+            'name' => $needle,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

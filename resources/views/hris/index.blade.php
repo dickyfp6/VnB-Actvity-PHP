@@ -57,18 +57,7 @@
                         <th data-sort-key="position">Jabatan</th>
                         <th data-sort-key="placement">Penempatan</th>
                         <th data-sort-key="level">Golongan</th>
-                        <th class="relative" data-sort-key="employee_status">
-                            <div class="flex items-center justify-between gap-2">
-                                <span>Status Pegawai</span>
-                                <div class="relative group cursor-pointer">
-                                    <button type="button" id="filter-updated-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                                    </button>
-                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
-                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-updated-employee_status-options"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <th data-sort-key="employee_status">Status Pegawai</th>
                         <th data-sort-key="manager_functional">Manager Fungsional</th>
                         <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
@@ -98,18 +87,7 @@
                         <th data-sort-key="position">Jabatan</th>
                         <th data-sort-key="placement">Penempatan</th>
                         <th data-sort-key="level">Golongan</th>
-                        <th class="relative" data-sort-key="employee_status">
-                            <div class="flex items-center justify-between gap-2">
-                                <span>Status Pegawai</span>
-                                <div class="relative group cursor-pointer">
-                                    <button type="button" id="filter-hris-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                                    </button>
-                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
-                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-hris-employee_status-options"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <th data-sort-key="employee_status">Status Pegawai</th>
                         <th data-sort-key="manager_functional">Manager Fungsional</th>
                         <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
@@ -139,18 +117,7 @@
                         <th data-sort-key="position">Jabatan</th>
                         <th data-sort-key="placement">Penempatan</th>
                         <th data-sort-key="level">Golongan</th>
-                        <th class="relative" data-sort-key="employee_status">
-                            <div class="flex items-center justify-between gap-2">
-                                <span>Status Pegawai</span>
-                                <div class="relative group cursor-pointer">
-                                    <button type="button" id="filter-hrms-employee_status-btn" class="p-0.5 text-gray-500 hover:text-gray-700 group-hover:bg-gray-100 rounded" title="Filter">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                                    </button>
-                                    <div class="hidden group-hover:block absolute right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-10 min-w-max">
-                                        <div class="p-1 max-h-60 overflow-y-auto" id="filter-hrms-employee_status-options"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <th data-sort-key="employee_status">Status Pegawai</th>
                         <th data-sort-key="manager_functional">Manager Fungsional</th>
                         <th data-sort-key="manager_operational">Manager Operasional</th>
                         <th data-sort-key="status">Status Aktif</th>
@@ -412,7 +379,6 @@ let filteredHrmsRows = [];
 let filteredPendingRows = [];
 let selectedPendingIds = new Set();
 let columnFilters = {
-    employee_status: null,
     sync_type: null
 };
 
@@ -522,9 +488,8 @@ function updateActionVisibility() {
 
 function applyFilters() {
     const apply = (rows) => rows.filter(row => {
-        const matchStatus = columnFilters.employee_status === null || normalize(row.employee_status) === normalize(columnFilters.employee_status);
         const matchSyncType = columnFilters.sync_type === null || row.sync_type === columnFilters.sync_type;
-        return matchStatus && matchSyncType;
+        return matchSyncType;
     });
 
     filteredSourceRows = apply(hrisSourceRows);
@@ -534,7 +499,6 @@ function applyFilters() {
     renderHrisTable();
     renderHrmsTable();
     renderUpdatedTable();
-    updateFilterButtonStates();
 }
 
 function setColumnFilter(column, value) {
@@ -545,33 +509,6 @@ function setColumnFilter(column, value) {
 function resetColumnFilter(column) {
     columnFilters[column] = null;
     applyFilters();
-}
-
-function renderStatusOptions() {
-    const statuses = [...new Set([...hrisSourceRows, ...hrmsSourceRows, ...hrisPendingRows].map(row => row.employee_status).filter(Boolean))].sort();
-
-    renderFilterOptions('filter-updated-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
-        allLabel: 'Semua Status',
-        emptyLabel: 'Belum ada status',
-    });
-    renderFilterOptions('filter-hris-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
-        allLabel: 'Semua Status',
-        emptyLabel: 'Belum ada status',
-    });
-    renderFilterOptions('filter-hrms-employee_status-options', statuses, 'employee_status', columnFilters.employee_status, {
-        allLabel: 'Semua Status',
-        emptyLabel: 'Belum ada status',
-    });
-
-    updateFilterButtonStates();
-}
-
-function updateFilterButtonStates() {
-    setFilterButtonState([
-        'filter-updated-employee_status-btn',
-        'filter-hris-employee_status-btn',
-        'filter-hrms-employee_status-btn',
-    ], columnFilters.employee_status !== null);
 }
 
 function updateSummary(summary) {
@@ -630,7 +567,7 @@ function renderUpdatedTable() {
     const rows = filteredPendingRows;
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-gray-400">Tidak ada data pending sinkronisasi.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" class="text-center py-8 text-gray-400">Tidak ada data pending sinkronisasi.</td></tr>';
         return;
     }
 
@@ -648,6 +585,7 @@ function renderUpdatedTable() {
             <td class="px-3 py-2">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2">${escapeHtml(row.level)}</td>
+            <td class="px-3 py-2">${escapeHtml(row.employee_status || '-')}</td>
             <td class="px-3 py-2">${escapeHtml(row.manager_functional || '-')}</td>
             <td class="px-3 py-2">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2">${renderActiveStatusPill(row.status)}</td>
@@ -678,6 +616,7 @@ function renderHrisTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status || '-')}</td>
             <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
             <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
@@ -708,6 +647,7 @@ function renderHrmsTable() {
             <td class="px-3 py-2" data-column-key="position">${escapeHtml(row.position)}</td>
             <td class="px-3 py-2" data-column-key="placement">${escapeHtml(row.placement)}</td>
             <td class="px-3 py-2" data-column-key="level">${escapeHtml(row.level)}</td>
+            <td class="px-3 py-2" data-column-key="employee_status">${escapeHtml(row.employee_status || '-')}</td>
             <td class="px-3 py-2" data-column-key="manager_functional">${escapeHtml(row.manager_functional || '-')}</td>
             <td class="px-3 py-2" data-column-key="manager_operational">${escapeHtml(row.manager_operational || '-')}</td>
             <td class="px-3 py-2" data-column-key="status">${renderActiveStatusPill(row.status)}</td>
@@ -994,12 +934,10 @@ async function loadHrisData() {
     filteredHrmsRows = [...hrmsSourceRows];
     filteredPendingRows = [...hrisPendingRows];
 
-    renderStatusOptions();
     updateSummary(res.data.summary || {});
     renderHrisTable();
     renderHrmsTable();
     renderUpdatedTable();
-    updateFilterButtonStates();
     updateActionVisibility();
 }
 

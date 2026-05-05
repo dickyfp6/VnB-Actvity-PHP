@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             MasterDataSeeder::class,
             SyncSourceEmployeesSeeder::class,
+            EmployeeAndManagerSeeder::class,
             EmployeeHierarchySeeder::class,
         ]);
 
@@ -30,32 +31,38 @@ class DatabaseSeeder extends Seeder
         $testUsers = [
             [
                 'name' => 'Direktur Utama',
-                'email' => 'EMP1001',
+                'email' => 'direktur@wiscore.id',
+                'employee_number' => 'EMP1001',
                 'roles' => ['direktur_utama']
             ],
             [
                 'name' => 'PCX Manager',
-                'email' => 'EMP1002',
+                'email' => 'pcx@wiscore.id',
+                'employee_number' => 'EMP1002',
                 'roles' => ['pcx_manager', 'manager', 'employee']
             ],
             [
-                'name' => 'Intercomm',
-                'email' => 'EMP1003',
+                'name' => 'Intercomm User',
+                'email' => 'intercomm@wiscore.id',
+                'employee_number' => 'EMP1003',
                 'roles' => ['intercomm', 'employee']
             ],
             [
-                'name' => 'Manager',
-                'email' => 'EMP1004',
+                'name' => 'Manager User',
+                'email' => 'manager@wiscore.id',
+                'employee_number' => 'EMP1004',
                 'roles' => ['manager', 'employee']
             ],
             [
-                'name' => 'Employee',
-                'email' => 'EMP1005',
+                'name' => 'Employee User',
+                'email' => 'employee@wiscore.id',
+                'employee_number' => 'EMP1005',
                 'roles' => ['employee']
             ],
             [
                 'name' => 'Developer',
-                'email' => 'EMP1006',
+                'email' => 'dev@wiscore.id',
+                'employee_number' => 'EMP1006',
                 'roles' => ['direktur_utama', 'pcx_manager', 'intercomm', 'manager', 'employee']
             ],
         ];
@@ -68,6 +75,7 @@ class DatabaseSeeder extends Seeder
                 ['email' => $userData['email']],
                 [
                     'name' => $userData['name'],
+                    'employee_number' => $userData['employee_number'],
                     'password' => Hash::make('password'),
                     'phone' => null,
                     'employee_id' => null,
@@ -85,12 +93,12 @@ class DatabaseSeeder extends Seeder
     private function resetSeededData(): void
     {
         $preservedEmails = [
-            'EMP1001',
-            'EMP1002',
-            'EMP1003',
-            'EMP1004',
-            'EMP1005',
-            'EMP1006',
+            'direktur@wiscore.id',
+            'pcx@wiscore.id',
+            'intercomm@wiscore.id',
+            'manager@wiscore.id',
+            'employee@wiscore.id',
+            'dev@wiscore.id',
         ];
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');

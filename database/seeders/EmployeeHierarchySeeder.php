@@ -66,7 +66,8 @@ class EmployeeHierarchySeeder extends Seeder
         $this->command->info('  - 2 General Managers (HR, IT)');
         $this->command->info('  - 4 Department Managers');
         $this->command->info('  - 13 Staff / Supervisor employees (PKWT/PKWTT)');
-        $this->command->info('  - Subtotal HRIS: 20 employees');
+        $this->command->info('  - 2 PCX Team (People, Culture & Experiences)');
+        $this->command->info('  - Subtotal HRIS: 22 employees');
         $this->command->info('');
         $this->command->info('OS Employees (OS + 6 digits):');
         $this->command->info('  - 2 Harian workers');
@@ -74,8 +75,9 @@ class EmployeeHierarchySeeder extends Seeder
         $this->command->info('  - 2 Borongan workers');
         $this->command->info('  - Subtotal OS: 6 employees');
         $this->command->info('');
-        $this->command->info('📊 Total: 26 employees');
+        $this->command->info('📊 Total: 28 employees');
         $this->command->info('📧 All emails using @wiscore.id domain');
+        $this->command->info('✓ Intercomm eligible: 2 employees dari HR - People, Culture & Experiences');
     }
 
     private function seedManagers(array $definitions): array
@@ -147,6 +149,7 @@ class EmployeeHierarchySeeder extends Seeder
             ['division' => 'Human Resource', 'code' => 'HR-GEN', 'name' => 'General'],
             ['division' => 'Human Resource', 'code' => 'HR-REC', 'name' => 'Recruitment'],
             ['division' => 'Human Resource', 'code' => 'HR-PD', 'name' => 'People Development'],
+            ['division' => 'Human Resource', 'code' => 'HR-PCX', 'name' => 'People, Culture and Experiences'],
             ['division' => 'Information and Technology', 'code' => 'IT-GEN', 'name' => 'General'],
             ['division' => 'Information and Technology', 'code' => 'IT-SE', 'name' => 'Software Engineering'],
             ['division' => 'Information and Technology', 'code' => 'IT-INF', 'name' => 'Infrastructure'],
@@ -164,18 +167,33 @@ class EmployeeHierarchySeeder extends Seeder
             );
         }
 
+        // Descriptive positions based on department
         $positions = [
-            ['name' => 'Direktur Utama'],
-            ['name' => 'General Manager'],
-            ['name' => 'Manager'],
-            ['name' => 'Staff / Supervisor'],
+            'Direktur Utama',
+            'General Manager - Human Resource',
+            'General Manager - IT',
+            'Recruitment Manager',
+            'Recruitment Specialist',
+            'People Development Manager',
+            'People Development Specialist',
+            'PCX Manager',
+            'Internal Communication Specialist',
+            'Employee Experience Specialist',
+            'HR Generalist',
+            'IT General Manager',
+            'Software Engineering Manager',
+            'Software Engineer',
+            'Infrastructure Manager',
+            'Infrastructure Specialist',
+            'Technical Support Specialist',
+            'Staff / Supervisor',
         ];
 
         foreach ($positions as $position) {
             DB::table('master_positions')->updateOrInsert(
-                ['name' => $position['name']],
+                ['name' => $position],
                 [
-                    'name' => $position['name'],
+                    'name' => $position,
                     'updated_at' => $now,
                     'created_at' => $now,
                 ]
@@ -257,7 +275,7 @@ class EmployeeHierarchySeeder extends Seeder
         $osBase = [
             'source_system' => 'OS',
             'date_joined' => '2024-03-01',
-            'company' => 'PT Wismilak Inti Makmur',
+            'company' => 'PT Outsourcing (Khusus OS)',
             'placement' => 'Surabaya',
             'employee_status' => 'OS',
         ];
@@ -286,7 +304,7 @@ class EmployeeHierarchySeeder extends Seeder
                 'whatsapp' => '081234501002',
                 'division' => 'Human Resource',
                 'department' => 'General',
-                'position' => 'General Manager',
+                'position' => 'General Manager - Human Resource',
                 'level' => 'Manager',
                 'employee_status' => 'PKWTT',
                 'manager_functional_employee_number' => '1001000001',
@@ -300,7 +318,7 @@ class EmployeeHierarchySeeder extends Seeder
                 'whatsapp' => '081234501003',
                 'division' => 'Information and Technology',
                 'department' => 'General',
-                'position' => 'General Manager',
+                'position' => 'General Manager - IT',
                 'level' => 'Manager',
                 'employee_status' => 'PKWTT',
                 'manager_functional_employee_number' => '1001000001',
@@ -555,6 +573,36 @@ class EmployeeHierarchySeeder extends Seeder
                 'employee_status' => 'PKWT',
                 'manager_functional_employee_number' => '1001000003',
                 'manager_operational_employee_number' => '1001000007',
+            ],
+
+            // ========== HRIS: STAFF & SUPERVISORS (HR PEOPLE, CULTURE & EXPERIENCES) ==========
+            [
+                ...$hrisBase,
+                'employee_number' => '1001000021',
+                'name' => 'Silvi Nuraini',
+                'email' => 'silvi.nuraini@wiscore.id',
+                'whatsapp' => '081234501021',
+                'division' => 'Human Resource',
+                'department' => 'People, Culture and Experiences',
+                'position' => 'PCX Manager',
+                'level' => 'Manager',
+                'employee_status' => 'PKWTT',
+                'manager_functional_employee_number' => '1001000001',
+                'manager_operational_employee_number' => '1001000002',
+            ],
+            [
+                ...$hrisBase,
+                'employee_number' => '1001000022',
+                'name' => 'Dwi Hartanto',
+                'email' => 'dwi.hartanto@wiscore.id',
+                'whatsapp' => '081234501022',
+                'division' => 'Human Resource',
+                'department' => 'People, Culture and Experiences',
+                'position' => 'Internal Communication Specialist',
+                'level' => 'Staff',
+                'employee_status' => 'PKWT',
+                'manager_functional_employee_number' => '1001000002',
+                'manager_operational_employee_number' => '1001000021',
             ],
 
             // ========== OS EMPLOYEES (HARIAN, MINGGUAN, BORONGAN) ==========

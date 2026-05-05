@@ -42,21 +42,21 @@ class IntercommController extends Controller
             ->whereHas('division', function ($q) {
                 $q->whereRaw(
                     'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DIVISIONS), '?')) . ')',
-                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
+                    array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
                 );
             })
             ->whereHas('department', function ($q) {
                 $q->whereRaw(
                     'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DEPARTMENTS), '?')) . ')',
-                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
+                    array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
                 );
             });
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%')
-                  ->orWhere('employee_number', 'like', '%' . $request->search . '%');
+                    ->orWhere('email', 'like', '%' . $request->search . '%')
+                    ->orWhere('employee_number', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -114,16 +114,16 @@ class IntercommController extends Controller
             ->whereHas('division', function ($q) {
                 $q->whereRaw(
                     'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DIVISIONS), '?')) . ')',
-                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
+                    array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS)
                 );
             })
             ->whereHas('department', function ($q) {
                 $q->whereRaw(
                     'LOWER(TRIM(name)) IN (' . implode(',', array_fill(0, count(self::REQUIRED_DEPARTMENTS), '?')) . ')',
-                    array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
+                    array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS)
                 );
             })
-            ->when(!empty($alreadyAssignedIds), fn ($q) => $q->whereNotIn('id', $alreadyAssignedIds))
+            ->when(!empty($alreadyAssignedIds), fn($q) => $q->whereNotIn('id', $alreadyAssignedIds))
             ->orderBy('name')
             ->get()
             ->map(function (Employee $employee): array {
@@ -163,9 +163,9 @@ class IntercommController extends Controller
 
         $divisionName = mb_strtolower(trim((string) ($employee->division?->name ?? '')));
         $departmentName = mb_strtolower(trim((string) ($employee->department?->name ?? '')));
-        $isValidDivision = in_array($divisionName, array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS), true);
-        $isValidDepartment = in_array($departmentName, array_map(fn (string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS), true);
-        
+        $isValidDivision = in_array($divisionName, array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DIVISIONS), true);
+        $isValidDepartment = in_array($departmentName, array_map(fn(string $value) => mb_strtolower(trim($value)), self::REQUIRED_DEPARTMENTS), true);
+
         if (!$isValidDivision || !$isValidDepartment) {
             return response()->json([
                 'success' => false,
@@ -210,7 +210,7 @@ class IntercommController extends Controller
         $user = User::role('intercomm')->findOrFail($id);
 
         $validated = $request->validate([
-            'name'  => 'sometimes|string|max:255',
+            'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
         ]);
 

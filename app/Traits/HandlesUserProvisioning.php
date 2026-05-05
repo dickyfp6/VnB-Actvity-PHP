@@ -44,6 +44,7 @@ trait HandlesUserProvisioning
                 'phone' => $employee->whatsapp,
                 'status' => strtolower($employee->status ?? 'active') === 'aktif' ? 'active' : 'inactive',
                 'employee_id' => $employee->id,
+                'employee_number' => $employee->employee_number,
             ]);
 
             $this->ensureBaseEmployeeRole($user);
@@ -56,6 +57,7 @@ trait HandlesUserProvisioning
         $user = User::create([
             'name' => $employee->name,
             'email' => $email,
+            'employee_number' => $employee->employee_number,
             'password' => Hash::make($rawPassword),
             'temp_password_encrypted' => Crypt::encryptString($rawPassword),
             'temp_password_generated_at' => now(),

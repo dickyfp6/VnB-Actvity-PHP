@@ -16,6 +16,7 @@ use App\Models\VnbActivityAssignment;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $employee_number
  * @property string $password
  * @property string|null $phone
  * @property string|null $avatar
@@ -34,6 +35,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'employee_number',
         'password',
         'phone',
         'avatar',

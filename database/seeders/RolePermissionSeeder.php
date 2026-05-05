@@ -131,61 +131,6 @@ class RolePermissionSeeder extends Seeder
         ];
         Role::findByName('intercomm')->givePermissionTo($intercommPermissions);
 
-        // Create demo users
-        // One user may have multiple roles; this seed keeps the demo login matrix aligned with the UI.
-        $users = [
-            [
-                'name' => 'Direktur Utama',
-                'email' => 'EMP1001',
-                'password' => 'password',
-                'roles' => ['direktur_utama'],
-            ],
-            [
-                'name' => 'Manager User',
-                'email' => 'EMP1004',
-                'password' => 'password',
-                'roles' => ['manager', 'employee'],
-            ],
-            [
-                'name' => 'Employee User',
-                'email' => 'EMP1005',
-                'password' => 'password',
-                'roles' => ['employee'],
-            ],
-            [
-                'name' => 'PCX Manager',
-                'email' => 'EMP1002',
-                'password' => 'password',
-                'roles' => ['pcx_manager', 'manager', 'employee'],
-            ],
-            [
-                'name' => 'Intercomm User',
-                'email' => 'EMP1003',
-                'password' => 'password',
-                'roles' => ['intercomm', 'employee'],
-            ],
-            [
-                'name' => 'Developer',
-                'email' => 'EMP1006',
-                'password' => 'password',
-                'roles' => ['direktur_utama', 'pcx_manager', 'intercomm', 'manager', 'employee'],
-            ],
-        ];
-
-        foreach ($users as $userData) {
-            $roles = $userData['roles'] ?? [$userData['role']];
-
-            $user = User::firstOrCreate(
-                ['email' => $userData['email']],
-                [
-                    'name' => $userData['name'],
-                    'password' => bcrypt($userData['password']),
-                    'status' => 'active',
-                    'email_verified_at' => now(),
-                ]
-            );
-
-            $user->syncRoles($roles);
-        }
+        Role::findByName('intercomm')->givePermissionTo($intercommPermissions);
     }
 }
