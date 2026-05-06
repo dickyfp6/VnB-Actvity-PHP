@@ -127,43 +127,7 @@ class EmployeeAndManagerSeeder extends Seeder
         }
 
         // Managers seeding completed
-        echo "Manager seeder completed:\n";
-        echo "- Managers: " . Manager::count() . "\n";
-    }
-
-    private function populateCareerStages(): void
-    {
-        $employees = Employee::all();
-        
-        foreach ($employees as $employee) {
-            $employee->load('position');
-            $careerStage = $employee->getCareerStage();
-            if ($careerStage) {
-                $employee->career_stage = $careerStage;
-                $employee->save();
-            }
-        }
-    }
-    
-    private function resolvePositionId(string $name): ?int
-    {
-        $needle = trim($name);
-        if ($needle === '') {
-            return null;
-        }
-
-        $existing = DB::table('master_positions')
-            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($needle)])
-            ->first();
-
-        if ($existing) {
-            return (int) $existing->id;
-        }
-
-        return (int) DB::table('master_positions')->insertGetId([
-            'name' => $needle,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        echo "✅ Manager seeder completed:\n";
+        echo "   - Managers: " . Manager::count() . "\n";
     }
 }

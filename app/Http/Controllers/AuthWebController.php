@@ -37,6 +37,7 @@ class AuthWebController extends Controller
 
         $users = User::query()
             ->whereRaw('UPPER(email) = ?', [$credential])
+            ->orWhereRaw('UPPER(employee_number) = ?', [$credential])
             ->orWhereHas('employee', function ($query) use ($credential) {
                 $query->whereRaw('UPPER(employee_number) = ?', [$credential]);
             })

@@ -22,8 +22,8 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             MasterDataSeeder::class,
             SyncSourceEmployeesSeeder::class,
+            SyncEmployeesSeeder::class,
             EmployeeAndManagerSeeder::class,
-            EmployeeHierarchySeeder::class,
         ]);
 
         // 2. Recreate the six core demo credentials
