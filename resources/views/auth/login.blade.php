@@ -52,6 +52,38 @@
         .btn-login:active {
             transform: translateY(0);
         }
+
+        /* Custom modern scrollbar - only visible on hover/scroll */
+        .scrollbar-modern {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        .scrollbar-modern::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-modern::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-modern::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            transition: background 0.3s ease;
+        }
+
+        .scrollbar-modern::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .scrollbar-modern {
+            transition: scrollbar-color 0.3s ease;
+        }
+
+        .scrollbar-modern:hover::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.35);
+        }
     </style>
 </head>
 <body class="bg-gradient-animated min-h-screen flex items-center justify-center p-4">
@@ -63,37 +95,78 @@
         <div class="absolute top-1/2 left-1/3 w-80 h-80 bg-green-700/3 rounded-full blur-3xl mix-blend-multiply"></div>
     </div>
 
-    <!-- Demo Credentials - Floating (Right) -->
-    <div class="hidden lg:block fixed right-12 top-1/2 transform -translate-y-1/2 z-10">
-        <div class="w-64 rounded-2xl p-4 bg-white/10 backdrop-filter backdrop-blur-sm border border-white/20">
-            <p class="text-white text-xs font-semibold uppercase tracking-wider mb-3 opacity-70">Demo NIP</p>
-            <div class="space-y-2">
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1006'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">Developer (All)</span>
-                    <span class="text-xs text-white/70">EMP1006</span>
-                </button>
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1001'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">Direktur Utama</span>
-                    <span class="text-xs text-white/70">EMP1001</span>
-                </button>
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1002'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">PCX Manager</span>
-                    <span class="text-xs text-white/70">EMP1002</span>
-                </button>
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1003'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">Intercomm</span>
-                    <span class="text-xs text-white/70">EMP1003</span>
-                </button>
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1004'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">Manager</span>
-                    <span class="text-xs text-white/70">EMP1004</span>
-                </button>
-                <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1005'; document.querySelector('input[name=password]').value='password'; document.querySelector('form').scrollIntoView({behavior: 'smooth'})" class="w-full text-left p-2.5 rounded-lg bg-white/5 border border-white/20 hover:bg-white/10 hover:border-white/40 transition text-sm">
-                    <span class="block text-xs font-semibold text-white opacity-90">Employee</span>
-                    <span class="text-xs text-white/70">EMP1005</span>
+    <div class="fixed left-4 top-4 sm:left-6 sm:top-6 z-20">
+        <button
+            type="button"
+            id="demo-fab"
+            aria-expanded="false"
+            aria-controls="demo-popover"
+            class="group h-14 w-14 rounded-full bg-white/20 backdrop-blur-xl border border-white/25 shadow-2xl shadow-black/20 text-white flex items-center justify-center transition duration-300 hover:scale-105 hover:bg-white/30"
+            title="Buka demo login"
+        >
+            <i class="fas fa-user-group text-xl"></i>
+        </button>
+
+        <div
+            id="demo-popover"
+            class="absolute left-0 top-16 w-[min(24rem,calc(100vw-2rem))] max-h-[78vh] overflow-hidden rounded-3xl border border-white/15 bg-slate-950/85 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl opacity-0 pointer-events-none -translate-x-3 scale-95 transition duration-300"
+        >
+            <div class="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4">
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.35em] text-emerald-300">Demo Login</p>
+                    <h2 class="mt-1 text-base font-semibold">Akun seeded siap pakai</h2>
+                    <p class="mt-1 text-xs leading-5 text-white/60">Klik salah satu kartu untuk mengisi NIP dan password, lalu panel akan menutup otomatis.</p>
+                </div>
+                <button
+                    type="button"
+                    id="demo-close"
+                    class="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                    title="Tutup demo"
+                >
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
-            <p class="text-center text-white text-xs mt-2 opacity-60">pwd: <span class="font-mono text-xs">password</span></p>
+
+            <div class="max-h-[calc(78vh-5rem)] space-y-4 overflow-y-auto px-3 py-3 pb-12 scrollbar-modern">
+                @foreach ($demoGroups as $group)
+                    <section class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div class="mb-3 flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-sm font-semibold text-white">{{ $group['label'] }}</h3>
+                                <p class="text-[11px] leading-4 text-white/55">{{ $group['description'] }}</p>
+                            </div>
+                            <span class="rounded-full border border-{{ $group['tone'] }}-300/30 bg-{{ $group['tone'] }}-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-{{ $group['tone'] }}-200">{{ count($group['accounts']) }}</span>
+                        </div>
+
+                        <div class="space-y-2">
+                            @foreach ($group['accounts'] as $account)
+                                <button
+                                    type="button"
+                                    onclick="fillDemoCredential(this)"
+                                    class="demo-credential-card w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/10"
+                                    data-demo-nip="{{ $account['nip'] }}"
+                                    data-demo-password="{{ $account['password'] }}"
+                                    data-demo-name="{{ $account['name'] }}"
+                                    data-demo-role="{{ $account['role_label'] }}"
+                                    data-demo-division="{{ $account['division'] }}"
+                                >
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-sm font-semibold text-white">{{ $account['name'] }}</p>
+                                            <p class="text-[11px] uppercase tracking-wider text-white/50">{{ $account['role_label'] }}</p>
+                                        </div>
+                                        <span class="rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider {{ $account['division_badge_class'] }}">{{ $account['division'] }}</span>
+                                    </div>
+                                    <div class="mt-2 flex items-center justify-between gap-3 text-xs text-white/70">
+                                        <span class="font-semibold tracking-wide">{{ $account['nip'] }}</span>
+                                        <span class="font-mono text-[11px]">pwd: {{ $account['password'] }}</span>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                    </section>
+                @endforeach
+            </div>
         </div>
     </div>
 
@@ -185,37 +258,6 @@
                 </button>
             </form>
 
-            <!-- Demo Credentials Section (Mobile Friendly) -->
-            <div class="lg:hidden mt-8 pt-8 border-t border-white/20">
-                <p class="text-gray-700 text-xs font-semibold uppercase tracking-wider mb-3">Demo NIP</p>
-                <div class="space-y-2 max-h-48 overflow-y-auto">
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1006'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-blue-100 to-blue-50 border border-blue-300 hover:shadow-md hover:border-blue-400 transition text-xs">
-                        <span class="block font-semibold text-blue-900">Developer (All)</span>
-                        <span class="text-blue-700">EMP1006</span>
-                    </button>
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1001'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-blue-100 to-blue-50 border border-blue-300 hover:shadow-md hover:border-blue-400 transition text-xs">
-                        <span class="block font-semibold text-blue-900">Direktur Utama</span>
-                        <span class="text-blue-700">EMP1001</span>
-                    </button>
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1002'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
-                        <span class="block font-semibold text-green-900">PCX Manager</span>
-                        <span class="text-green-700">EMP1002</span>
-                    </button>
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1003'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
-                        <span class="block font-semibold text-green-900">Intercomm</span>
-                        <span class="text-green-700">EMP1003</span>
-                    </button>
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1004'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
-                        <span class="block font-semibold text-green-900">Manager</span>
-                        <span class="text-green-700">EMP1004</span>
-                    </button>
-                    <button type="button" onclick="document.querySelector('input[name=nip]').value='EMP1005'; document.querySelector('input[name=password]').value='password'" class="w-full text-left p-2 rounded-lg bg-gradient-to-r from-green-100 to-green-50 border border-green-300 hover:shadow-md hover:border-green-400 transition text-xs">
-                        <span class="block font-semibold text-green-900">Employee</span>
-                        <span class="text-green-700">EMP1005</span>
-                    </button>
-                </div>
-                <p class="text-center text-gray-600 text-xs mt-2">pwd: <span class="font-mono text-xs">password</span></p>
-            </div>
         </div>
     </div>
 
@@ -225,11 +267,77 @@
     </p>
 
     <script>
+        const demoFab = document.getElementById('demo-fab');
+        const demoPopover = document.getElementById('demo-popover');
+        const demoClose = document.getElementById('demo-close');
+        const loginForm = document.querySelector('form');
+        const nipField = document.querySelector('input[name="nip"]');
+        const passwordField = document.querySelector('input[name="password"]');
+
+        function openDemoPopover() {
+            demoPopover.classList.remove('opacity-0', 'pointer-events-none', '-translate-x-3', 'scale-95');
+            demoPopover.classList.add('opacity-100', 'translate-x-0', 'scale-100');
+            demoFab.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeDemoPopover() {
+            demoPopover.classList.add('opacity-0', 'pointer-events-none', '-translate-x-3', 'scale-95');
+            demoPopover.classList.remove('opacity-100', 'translate-x-0', 'scale-100');
+            demoFab.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleDemoPopover() {
+            const isOpen = demoFab.getAttribute('aria-expanded') === 'true';
+            if (isOpen) {
+                closeDemoPopover();
+                return;
+            }
+            openDemoPopover();
+        }
+
+        function fillDemoCredential(button) {
+            nipField.value = button.dataset.demoNip || '';
+            passwordField.value = button.dataset.demoPassword || '';
+            closeDemoPopover();
+            nipField.focus();
+        }
+
+        window.fillDemoCredential = fillDemoCredential;
+
+        demoFab?.addEventListener('click', toggleDemoPopover);
+        demoClose?.addEventListener('click', closeDemoPopover);
+
+        document.addEventListener('click', function(event) {
+            if (!demoPopover || !demoFab) {
+                return;
+            }
+
+            const target = event.target;
+            if (!(target instanceof Node)) {
+                return;
+            }
+
+            if (demoPopover.contains(target) || demoFab.contains(target)) {
+                return;
+            }
+
+            closeDemoPopover();
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDemoPopover();
+            }
+        });
+
+        loginForm?.addEventListener('submit', function() {
+            closeDemoPopover();
+        });
+
         // Toggle password visibility
         document.getElementById('toggle-password').addEventListener('click', function() {
-            const passwordField = document.getElementById('login-password');
             const icon = this.querySelector('i');
-            
+
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';
                 icon.classList.remove('fa-eye');

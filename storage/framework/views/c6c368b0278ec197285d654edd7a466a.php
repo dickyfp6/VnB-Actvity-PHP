@@ -1,9 +1,9 @@
-@extends('layouts.app')
 
-@section('title', 'VNB Participants - VnB Platform')
-@section('page_title', 'VNB Participants')
 
-@section('content')
+<?php $__env->startSection('title', 'VNB Participants - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'VNB Participants'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
 	<div class="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
 		<div>
@@ -150,9 +150,9 @@
 	</div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
 <style>
 /* small styles for participants page */
@@ -171,9 +171,9 @@
 .ts-dropdown .optgroup-header { font-size: 0.65rem !important; font-weight: 700 !important; color: #9ca3af !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; background: #f9fafb !important; }
 .ts-dropdown .active { background-color: #f0fdf4 !important; color: #144600 !important; }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
 let tomSelectInstances = {};
@@ -275,15 +275,46 @@ function isGeneralDepartment(name) {
 function getEmployeeManagerSelection(employee) {
 	const key = String(employee.id);
 	if (!assignManagerSelections[key]) {
-		// Prefer explicit manager fields coming from employee data (id or name)
-		const functional = findManagerSelectionByEmployeeData(employee, 'functional');
-		const operational = findManagerSelectionByEmployeeData(employee, 'operational');
+		// Automation Logic:
+		// 1. Manager Fungsional (MF) = General Manager (GM) of Division
+		// 2. Manager Operasional (MO) = Manager of same Department
+		// 3. If no MO found, MO = MF
+		// 4. If employee is Staff in "General" dept, MF & MO = GM
+
+		const divisionId = employee.division_id;
+		const departmentId = employee.department_id;
+		const departmentName = String(employee.department || employee.department_name || '').trim().toLowerCase();
+
+		// Find GM (Manager in same division whose department is "General")
+		const gm = managerDirectory.find(m => 
+			String(m.division_id) === String(divisionId) && 
+			String(m.department || '').trim().toLowerCase() === 'general'
+		);
+
+		// Find Dept Manager (Manager in same division and department)
+		// Note: We avoid picking GM as Dept Manager if there's another manager in that dept
+		const deptManager = managerDirectory.find(m => 
+			String(m.division_id) === String(divisionId) && 
+			String(m.department_id) === String(departmentId) &&
+			String(m.department || '').trim().toLowerCase() !== 'general'
+		);
+
+		let mf = null;
+		let mo = null;
+
+		if (departmentName === 'general') {
+			mf = gm;
+			mo = gm;
+		} else {
+			mf = gm;
+			mo = deptManager || gm; // Fallback to GM if no dept manager
+		}
 
 		assignManagerSelections[key] = {
-			functional_id: functional.id || '',
-			functional_name: functional.name || '',
-			operational_id: operational.id || '',
-			operational_name: operational.name || '',
+			functional_id: mf ? String(mf.id) : '',
+			functional_name: mf ? (mf.name || '') : '',
+			operational_id: mo ? String(mo.id) : '',
+			operational_name: mo ? (mo.name || '') : '',
 		};
 	}
 	return assignManagerSelections[key];
@@ -304,37 +335,41 @@ function buildManagerOptionsHtml(managers, includeEmpty = true, includeSuggested
 	return options.join('');
 }
 
-function findManagerSelectionByEmployeeData(employee, managerType) {
-	const managerIdKey = managerType === 'functional' ? 'manager_functional_id' : 'manager_operational_id';
-	const managerNameKey = managerType === 'functional' ? 'manager_functional' : 'manager_operational';
-
-	const managerId = employee[managerIdKey] ? String(employee[managerIdKey]) : '';
-	const managerName = String(employee[managerNameKey] || '').trim();
-
-	if (managerId) {
-		const manager = managerDirectory.find(m => String(m.id) === managerId) || null;
-		return { id: managerId, name: manager ? (manager.name || managerName) : managerName };
-	}
-
-	if (managerName) {
-		const manager = managerDirectory.find(m => String(m.name || '').trim() === managerName) || null;
-		return { id: manager ? String(manager.id) : '', name: managerName };
-	}
-
-	return { id: '', name: '' };
+function getSuggestedFunctionalManagers(employee) {
+	const divisionId = employee.division_id;
+	return managerDirectory.filter(m => String(m.division_id) === String(divisionId));
 }
 
 function buildManagerSelectOptions(employee, managerType, selectedId) {
+	const divisionId = employee.division_id;
+	const departmentId = employee.department_id;
+
+	// Suggested: based on division/department
+	const suggested = managerDirectory.filter(m => 
+		String(m.division_id) === String(divisionId)
+	);
+	
+	const others = managerDirectory.filter(m => !suggested.some(s => String(s.id) === String(m.id)));
+	
 	let html = '<option value="">Pilih Manager...</option>';
-
-	const currentSelection = findManagerSelectionByEmployeeData(employee, managerType);
-	const resolvedSelectedId = selectedId ? String(selectedId) : (currentSelection.id || '');
-
-	managerDirectory.forEach((manager) => {
-		const isSelected = String(manager.id) === String(resolvedSelectedId);
-		html += `<option value="${escapeHtml(String(manager.id))}" ${isSelected ? 'selected' : ''}>${escapeHtml(manager.name)}${manager.division ? ' • ' + manager.division : ''}${manager.department ? ' • ' + manager.department : ''}</option>`;
+	
+	if (suggested.length > 0) {
+		html += '<optgroup label="Managers in Division">';
+		suggested.forEach(m => {
+			html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.department ? ' • ' + m.department : ''}</option>`;
+		});
+		html += '</optgroup>';
+		html += '<optgroup label="Other Managers">';
+	}
+	
+	others.forEach(m => {
+		html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.division ? ' • ' + m.division : ''}${m.department ? ' • ' + m.department : ''}</option>`;
 	});
-
+	
+	if (suggested.length > 0) {
+		html += '</optgroup>';
+	}
+	
 	return html;
 }
 
@@ -733,4 +768,6 @@ function removeParticipantRow(btn) {
 function escapeHtml(value) { return (value||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeHtmlAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-participants/index.blade.php ENDPATH**/ ?>

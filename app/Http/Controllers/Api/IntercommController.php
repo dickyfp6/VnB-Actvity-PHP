@@ -24,8 +24,8 @@ class IntercommController extends Controller
     ];
 
     private const REQUIRED_DEPARTMENTS = [
-        'People, Culture, and Experience',
-        'People, Culture, and Experiences',
+        'People, Culture and Experience',
+        'People, Culture and Experiences',
     ];
 
     /**
