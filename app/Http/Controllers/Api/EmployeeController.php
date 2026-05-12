@@ -75,7 +75,12 @@ class EmployeeController extends Controller
         }
 
         if ($request->filled('vnb_status')) {
-            $query->where('vnb_status', $request->vnb_status);
+            $vnbStatus = (string) $request->vnb_status;
+            if ($vnbStatus === 'assignable') {
+                $query->whereIn('vnb_status', ['not_started', 'canceled']);
+            } else {
+                $query->where('vnb_status', $vnbStatus);
+            }
         }
 
         if ($request->filled('employee_status')) {
@@ -667,16 +672,16 @@ class EmployeeController extends Controller
             'induction_date' => $prefix . 'required|date',
             'email' => [$prefix . 'required', 'email', $emailUniqueRule],
             'whatsapp' => 'nullable|string|max:20',
-                'employee_number' => [$prefix . 'required', 'string', 'max:50', $employeeNumberUniqueRule],
+            'employee_number' => [$prefix . 'required', 'string', 'max:50', $employeeNumberUniqueRule],
             'manager_functional_id' => 'nullable|exists:managers,id',
             'manager_operational_id' => 'nullable|exists:managers,id|different:manager_functional_id',
-            'company' => [$prefix . 'required', 'string', 'max:100', Rule::exists('master_companies', 'name')],
-            'division_id' => $prefix . 'required|exists:master_divisions,id',
-            'department_id' => $prefix . 'required|exists:master_departments,id',
-            'position_id' => $prefix . 'required|exists:master_positions,id',
-            'placement' => [$prefix . 'required', 'string', 'max:100', Rule::exists('master_placements', 'name')],
-            'level' => [$prefix . 'required', 'string', 'max:50', Rule::exists('master_levels', 'name')],
-            'employee_status' => [$prefix . 'required', 'string', 'max:50', Rule::exists('master_employee_statuses', 'name')],
+            'company' => [$prefix . 'required', 'string', 'max:100'],
+            'division_id' => $prefix . 'required|integer',
+            'department_id' => $prefix . 'required|integer',
+            'position_id' => $prefix . 'required|integer',
+            'placement' => [$prefix . 'required', 'string', 'max:100'],
+            'level' => [$prefix . 'required', 'string', 'max:50'],
+            'employee_status' => [$prefix . 'required', 'string', 'max:50'],
         ]);
 
         $this->assertEmployeeDuplicateRules($validated, $employeeId);

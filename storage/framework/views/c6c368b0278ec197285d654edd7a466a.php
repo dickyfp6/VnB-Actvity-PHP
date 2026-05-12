@@ -5,20 +5,18 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
-	<div class="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
-		<div>
-			<h2 class="font-semibold">Participants</h2>
-			<p class="text-sm text-gray-500">Daftar employee yang sudah di-assign oleh Intercomm / PCX Manager</p>
-		</div>
-
-		<div class="flex items-center gap-3">
-			<button class="px-4 py-2 rounded-lg text-white font-semibold" style="background-color:#144600;" onclick="openAssignModal()">Assign Employee</button>
-		</div>
-	</div>
-
 	<div class="bg-white rounded-xl shadow-sm p-4">
+		<div class="flex items-end justify-between gap-3 mb-4 participants-toolbar">
+			<div class="flex items-center gap-0 participants-tabs-wrapper">
+				<button type="button" class="participants-tab-btn active" data-tab="active" onclick="switchParticipantsTab('active')">Aktif <span id="tab-count-active" class="participants-tab-count">0</span></button>
+				<button type="button" class="participants-tab-btn" data-tab="completed" onclick="switchParticipantsTab('completed')">Lulus <span id="tab-count-completed" class="participants-tab-count">0</span></button>
+				<button type="button" class="participants-tab-btn" data-tab="canceled" onclick="switchParticipantsTab('canceled')">Cancel <span id="tab-count-canceled" class="participants-tab-count">0</span></button>
+			</div>
+			<button class="px-4 py-2 rounded-lg text-white font-semibold whitespace-nowrap" style="background-color:#144600;" onclick="openAssignModal()">Assign Employee</button>
+		</div>
+
 		<div class="overflow-x-auto">
-			<table class="table-modern w-full" id="participants-table">
+			<table class="table-modern" id="participants-table" style="width: max-content; min-width: 100%; table-layout: auto;">
 				<thead>
 					<tr>
 						<th>No</th>
@@ -57,6 +55,17 @@
 
 				<div class="p-5 space-y-4 overflow-y-auto">
 					<div id="assign-step-list" class="space-y-4">
+						<div id="assign-warning-unconfigured" class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 hidden">
+							<div class="flex items-start gap-3">
+								<div class="text-xl">⚠️</div>
+								<div>
+									<h4 class="font-semibold text-yellow-900">Career Stage Belum Dikonfigurasi</h4>
+									<p class="text-sm text-yellow-800 mt-1">Beberapa employee memiliki career stage yang belum dikonfigurasi di VnB Framework. Employee ini tidak bisa didaftarkan sampai framework sudah diatur.</p>
+									<p class="text-sm text-yellow-700 mt-2"><strong>Solusi:</strong> Buka menu VnB Framework dan tambahkan konfigurasi untuk career stage yang diperlukan.</p>
+								</div>
+							</div>
+						</div>
+
 						<div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
 							<div class="flex flex-wrap items-end gap-3">
 								<div class="flex-1 min-w-[240px]">
@@ -148,72 +157,340 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Error Modal -->
+	<div id="error-modal" class="fixed inset-0 z-50 hidden">
+		<div class="absolute inset-0 bg-black/40" onclick="closeErrorModal()"></div>
+		<div class="relative h-full w-full flex items-center justify-center p-4">
+			<div class="w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200">
+				<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+					<h3 class="text-lg font-bold text-gray-800">Peringatan</h3>
+					<button type="button" onclick="closeErrorModal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+				</div>
+				<div class="px-6 py-4">
+					<div id="error-modal-message" class="text-gray-700 text-sm">Pesan error</div>
+				</div>
+				<div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-200 bg-gray-50">
+					<button type="button" onclick="closeErrorModal()" class="px-4 py-2 rounded-lg text-white font-semibold" style="background-color:#144600;">OK</button>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startPush('styles'); ?>
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
 <style>
 /* small styles for participants page */
-#participants-table th, #participants-table td { padding: 0.6rem; text-align: left; }
+#participants-table th, #participants-table td { padding: 0.6rem; text-align: left; white-space: nowrap; }
 .assign-result { padding: 0.5rem; border-bottom: 1px solid #eee; cursor: pointer }
 .assign-result:hover { background: #f7faf7 }
 .assign-result.selected { background: #ecfdf5; }
-.assign-table-row.selected { background: #f0fdf4; }
 .assign-table-row { cursor: pointer; }
 .assign-checkbox { width: 1.2rem; height: 1.2rem; }
-
-/* TomSelect Customizations */
-.ts-control { border-radius: 0.5rem !important; border: 1px solid #d1d5db !important; padding: 0.5rem 0.75rem !important; font-size: 0.875rem !important; }
-.ts-wrapper.focus .ts-control { border-color: #144600 !important; box-shadow: 0 0 0 2px rgba(20, 70, 0, 0.1) !important; }
-.ts-dropdown { border-radius: 0.5rem !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; border: 1px solid #e5e7eb !important; }
-.ts-dropdown .optgroup-header { font-size: 0.65rem !important; font-weight: 700 !important; color: #9ca3af !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; background: #f9fafb !important; }
-.ts-dropdown .active { background-color: #f0fdf4 !important; color: #144600 !important; }
+.participants-tab-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.75rem 1rem;
+	border: none;
+	background: transparent;
+	color: #6b7280;
+	font-weight: 600;
+	font-size: 0.95rem;
+	cursor: pointer;
+	border-bottom: 3px solid transparent;
+	transition: all 0.2s ease;
+	margin-bottom: -1px;
+}
+.participants-tab-btn:hover {
+	color: #374151;
+}
+.participants-tab-btn.active {
+	background: transparent;
+	color: #144600;
+	border-bottom-color: #144600;
+	font-weight: 700;
+}
+.participants-tab-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.5rem;
+	height: 1.5rem;
+	margin-left: 0.4rem;
+	padding: 0 0.25rem;
+	border-radius: 50%;
+	background: #e5e7eb;
+	color: #374151;
+	font-size: 0.7rem;
+	font-weight: 700;
+}
+.participants-tab-btn.active .participants-tab-count {
+	background: #144600;
+	color: #ffffff;
+}
+.participants-toolbar { align-items: flex-end; }
+.participants-tabs-wrapper { flex: 1; min-width: 0; }
+@media (max-width: 768px) {
+	.participants-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.participants-toolbar > button {
+		width: 100%;
+	}
+}
+.participants-manager-link { color: #144600; font-weight: 700; }
+.participants-cancel-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 0.5rem;
+	border: 1px solid #dc2626;
+	background: #dc2626;
+	color: #ffffff;
+	font-size: 0.875rem;
+	font-weight: 700;
+}
+.participants-cancel-btn:hover { background: #b91c1c; border-color: #b91c1c; }
 </style>
 <?php $__env->stopPush(); ?>
 
 <?php $__env->startPush('scripts'); ?>
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
-let tomSelectInstances = {};
-
-function initSearchableSelects() {
-	// Destroy existing instances first
-	Object.values(tomSelectInstances).forEach(ts => ts.destroy());
-	tomSelectInstances = {};
-
-	document.querySelectorAll('select[id^="assign-"]').forEach(select => {
-		const id = select.id;
-		tomSelectInstances[id] = new TomSelect(select, {
-			create: false,
-			sortField: { field: "text", direction: "asc" },
-			placeholder: select.getAttribute('placeholder') || "Pilih manager...",
-			allowEmptyOption: true,
-		});
-	});
-}
 let selectedAssignEmployeeIds = new Set();
 let assignModalStep = 'list';
-let managerDirectory = [];
-let assignManagerSelections = {};
 let assignableEmployees = [];
+let allAssignableEmployees = [];
+let managerEmployeeDirectory = [];
+let unconfiguredCareerStages = new Set();
+let participantsRows = [];
+let currentParticipantsTab = 'active';
+
+function showErrorModal(message) {
+	const modal = document.getElementById('error-modal');
+	const msgEl = document.getElementById('error-modal-message');
+	if (modal && msgEl) {
+		msgEl.textContent = message || 'Terjadi kesalahan.';
+		modal.classList.remove('hidden');
+	}
+}
+
+function closeErrorModal() {
+	const modal = document.getElementById('error-modal');
+	if (modal) {
+		modal.classList.add('hidden');
+	}
+}
+
+async function loadParticipants() {
+	const tbody = document.getElementById('participants-body');
+	if (!tbody) {
+		return;
+	}
+
+	tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-gray-400">Memuat participants...</td></tr>';
+
+	try {
+		const response = await fetch('/api/vnb/participants', {
+			credentials: 'same-origin',
+			headers: { 'Accept': 'application/json' },
+		});
+		const data = await response.json();
+		participantsRows = Array.isArray(data?.data) ? data.data : [];
+		updateParticipantsTabCounts();
+		renderParticipantsTable();
+	} catch (error) {
+		tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-red-500">Gagal memuat participants.</td></tr>';
+	}
+}
+
+function renderParticipantsTable() {
+	const tbody = document.getElementById('participants-body');
+	if (!tbody) {
+		return;
+	}
+
+	const rows = participantsRows.filter((row) => String(row.vnb_status || 'active') === currentParticipantsTab);
+	updateParticipantsTabCounts();
+
+	if (!rows.length) {
+		const emptyMessage = currentParticipantsTab === 'completed'
+			? 'Belum ada participant yang lulus VnB.'
+			: currentParticipantsTab === 'canceled'
+				? 'Belum ada participant yang di-cancel.'
+				: 'Belum ada participants aktif.';
+		tbody.innerHTML = `<tr><td colspan="15" class="text-center py-8 text-gray-400">${emptyMessage}</td></tr>`;
+		return;
+	}
+
+	tbody.innerHTML = rows.map((row, index) => {
+		const progress = Math.max(0, Math.min(Number(row.progress || 0), 100));
+		const functionalManagerName = resolveFunctionalManagerDisplay(row);
+		const operationalManagerName = resolveOperationalManagerDisplay(row);
+		const functionalManagerLink = row.manager_functional_id ? `/employees?manager_id=${encodeURIComponent(row.manager_functional_id)}` : null;
+		const operationalManagerLink = row.manager_operational_id ? `/employees?manager_id=${encodeURIComponent(row.manager_operational_id)}` : null;
+		const statusLabel = getParticipantStatusLabel(row.vnb_status);
+		const statusBadgeClass = getParticipantStatusBadgeClass(row.vnb_status);
+		const actionHtml = renderParticipantAction(row);
+
+		return `
+			<tr>
+				<td>${index + 1}</td>
+				<td>${escapeHtml(row.employee_number || '-')}</td>
+				<td>${escapeHtml(row.name || '-')}</td>
+				<td>${escapeHtml(row.company || '-')}</td>
+				<td>${escapeHtml(row.division || '-')}</td>
+				<td>${escapeHtml(row.department || '-')}</td>
+				<td>${escapeHtml(row.career_stage || '-')}</td>
+				<td>${escapeHtml(row.phase || 'Planning')}</td>
+				<td>
+					<div class="flex items-center gap-2 min-w-[180px]">
+						<div class="h-2 w-28 rounded-full bg-gray-200 overflow-hidden">
+							<div class="h-full rounded-full" style="width:${progress}%; background: linear-gradient(90deg, #8dc63f, #144600);"></div>
+						</div>
+						<span class="text-sm font-semibold text-gray-700">${progress.toFixed(1).replace(/\.0$/, '')}%</span>
+					</div>
+				</td>
+				<td>
+					${functionalManagerLink
+						? `<a href="${functionalManagerLink}" class="participants-manager-link hover:underline">${escapeHtml(functionalManagerName)}</a>`
+						: escapeHtml(functionalManagerName)}
+				</td>
+				<td>
+					${operationalManagerLink
+						? `<a href="${operationalManagerLink}" class="participants-manager-link hover:underline">${escapeHtml(operationalManagerName)}</a>`
+						: escapeHtml(operationalManagerName)}
+				</td>
+				<td>${escapeHtml(row.vnb_period_start || '-')}</td>
+				<td>${escapeHtml(row.vnb_period_end || '-')}</td>
+				<td>${escapeHtml(row.induction_date || '-')}</td>
+				<td>
+					<div class="flex items-center gap-2">
+						<span class="text-xs px-2 py-1 rounded-full font-semibold ${statusBadgeClass}">${escapeHtml(statusLabel)}</span>
+						${actionHtml}
+					</div>
+				</td>
+			</tr>
+		`;
+	}).join('');
+}
+
+function switchParticipantsTab(tab) {
+	currentParticipantsTab = tab;
+	document.querySelectorAll('.participants-tab-btn').forEach((button) => {
+		button.classList.toggle('active', button.dataset.tab === tab);
+	});
+	renderParticipantsTable();
+}
+
+function updateParticipantsTabCounts() {
+	const counts = {
+		active: participantsRows.filter((row) => String(row.vnb_status || 'active') === 'active').length,
+		completed: participantsRows.filter((row) => String(row.vnb_status || '') === 'completed').length,
+		canceled: participantsRows.filter((row) => String(row.vnb_status || '') === 'canceled').length,
+	};
+
+	document.getElementById('tab-count-active').textContent = counts.active.toString();
+	document.getElementById('tab-count-completed').textContent = counts.completed.toString();
+	document.getElementById('tab-count-canceled').textContent = counts.canceled.toString();
+}
+
+function getParticipantStatusLabel(status) {
+	switch (String(status || 'active')) {
+		case 'completed':
+			return 'Lulus';
+		case 'canceled':
+			return 'Cancel';
+		default:
+			return 'Aktif';
+	}
+}
+
+function getParticipantStatusBadgeClass(status) {
+	switch (String(status || 'active')) {
+		case 'completed':
+			return 'bg-emerald-100 text-emerald-700';
+		case 'canceled':
+			return 'bg-rose-100 text-rose-700';
+		default:
+			return 'bg-green-100 text-green-700';
+	}
+}
+
+function renderParticipantAction(row) {
+	const status = String(row.vnb_status || 'active');
+	if (status === 'active') {
+		return `<button type="button" class="participants-cancel-btn" title="Cancel VnB" aria-label="Cancel VnB" onclick="cancelParticipantVnb(${row.employee_id}, ${JSON.stringify(row.name || row.employee_number || 'employee').replace(/"/g, '&quot;')})"><i class="fas fa-trash"></i></button>`;
+	}
+
+	if (status === 'canceled') {
+		return `<button type="button" class="participants-cancel-btn" title="Assign ulang" aria-label="Assign ulang" onclick="openAssignModalForEmployee(${row.employee_id})"><i class="fas fa-rotate-right"></i></button>`;
+	}
+
+	return `<span class="text-xs text-gray-400">-</span>`;
+}
+
+	async function cancelParticipantVnb(employeeId, employeeName) {
+		if (!employeeId) {
+			showErrorModal('Employee tidak valid.');
+			return;
+		}
+
+		if (!confirm(`Yakin ingin cancel VnB untuk ${employeeName}?`)) {
+			return;
+		}
+
+		const notesInput = prompt('Masukkan alasan cancel VnB. Kosongkan untuk pakai alasan default.', `Dibatalkan dari daftar participant VnB: ${employeeName}`);
+		if (notesInput === null) {
+			return;
+		}
+
+		const notes = notesInput.trim() || `Dibatalkan dari daftar participant VnB: ${employeeName}`;
+
+		try {
+			const response = await fetch(`/api/vnb/participants/${employeeId}/revoke`, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json',
+					'X-Requested-With': 'XMLHttpRequest',
+				},
+				body: JSON.stringify({
+					reason: 'others',
+					notes,
+				}),
+			});
+
+			const result = await response.json();
+			if (!response.ok || result?.success === false) {
+				throw new Error(result?.message || 'Gagal cancel participant VnB.');
+			}
+
+			await loadParticipants();
+		} catch (error) {
+			showErrorModal(error?.message || 'Gagal cancel participant VnB.');
+		}
+	}
 
 function openAssignModal() {
 	document.getElementById('assign-modal').classList.remove('hidden');
 	assignModalStep = 'list';
 	selectedAssignEmployeeIds = new Set();
-	assignManagerSelections = {};
 	updateAssignModalStep();
 	loadAssignableEmployees();
-	loadManagerDirectory();
+	loadManagerEmployeeDirectory();
 	bindAssignSearchInput();
 }
 function closeAssignModal() {
 	document.getElementById('assign-modal').classList.add('hidden');
 	assignModalStep = 'list';
 	selectedAssignEmployeeIds = new Set();
-	assignManagerSelections = {};
 	assignableEmployees = [];
 	document.getElementById('assign-search').value = '';
 	document.getElementById('assign-induction-date').value = '';
@@ -225,20 +502,135 @@ function closeAssignModal() {
 	document.getElementById('assign-select-all').checked = false;
 }
 
-async function loadManagerDirectory() {
+async function loadManagerEmployeeDirectory() {
 	try {
 		const response = await fetch('/api/managers-list', {
 			credentials: 'same-origin',
 			headers: { 'Accept': 'application/json' },
 		});
 		const data = await response.json();
-		managerDirectory = Array.isArray(data?.data) ? data.data : [];
+		managerEmployeeDirectory = Array.isArray(data?.data) ? data.data : [];
 	} catch (error) {
-		managerDirectory = [];
+		managerEmployeeDirectory = [];
 	}
+
 	if (assignModalStep === 'confirm') {
 		updateAssignConfirmList();
 	}
+}
+
+function normalizeText(value) {
+	return String(value || '').trim().toLowerCase();
+}
+
+function resolveGeneralManagerOfDivision(divisionId) {
+	const divisionKey = String(divisionId || '');
+	if (!divisionKey) return null;
+	return managerEmployeeDirectory.find((manager) => {
+		const sameDivision = String(manager.division_id || '') === divisionKey;
+		const isGeneralDept = normalizeText(manager.department) === 'general';
+		return sameDivision && isGeneralDept;
+	}) || null;
+}
+
+function resolveFunctionalManagerByHierarchy(employee) {
+	if (!managerEmployeeDirectory.length) {
+		return null;
+	}
+
+	const level = normalizeText(employee.level);
+	const careerStage = normalizeText(employee.career_stage);
+	const divisionKey = String(employee.division_id || '');
+	const departmentKey = String(employee.department_id || '');
+
+	const isOutsource = ['os', 'outsource', 'outsourcing', 'harian', 'mingguan', 'borongan'].some((k) => level.includes(k));
+	if (isOutsource) {
+		return null;
+	}
+
+	const isTopLevel = careerStage.includes('manage function') || careerStage.includes('manage manager') || level.includes('director') || level.includes('direktur');
+	if (isTopLevel) {
+		return null;
+	}
+
+	const isManagerLevel = careerStage.includes('manage other') || (level.includes('manager') && !level.includes('general manager'));
+	if (isManagerLevel) {
+		return resolveGeneralManagerOfDivision(divisionKey);
+	}
+
+	const deptManager = managerEmployeeDirectory.find((manager) => {
+		const sameDivision = String(manager.division_id || '') === divisionKey;
+		const sameDepartment = String(manager.department_id || '') === departmentKey;
+		return sameDivision && sameDepartment;
+	});
+
+	if (deptManager) {
+		return deptManager;
+	}
+
+	return resolveGeneralManagerOfDivision(divisionKey);
+}
+
+function resolveOperationalManagerByHierarchy(employee) {
+	if (!managerEmployeeDirectory.length) {
+		return null;
+	}
+
+	const level = normalizeText(employee.level);
+	const careerStage = normalizeText(employee.career_stage);
+	const divisionKey = String(employee.division_id || '');
+	const departmentKey = String(employee.department_id || '');
+
+	const isOutsource = ['os', 'outsource', 'outsourcing', 'harian', 'mingguan', 'borongan'].some((k) => level.includes(k));
+	if (isOutsource) {
+		return null;
+	}
+
+	const isTopLevel = careerStage.includes('manage function') || careerStage.includes('manage manager') || level.includes('director') || level.includes('direktur');
+	if (isTopLevel) {
+		return null;
+	}
+
+	const deptManager = managerEmployeeDirectory.find((manager) => {
+		const sameDivision = String(manager.division_id || '') === divisionKey;
+		const sameDepartment = String(manager.department_id || '') === departmentKey;
+		return sameDivision && sameDepartment;
+	});
+
+	if (deptManager && deptManager.name) {
+		return deptManager;
+	}
+
+	// If no operational manager is found, fallback to the resolved functional manager.
+	return resolveFunctionalManagerByHierarchy(employee);
+}
+
+function resolveFunctionalManagerDisplay(employee) {
+	const fromEmployee = employee.manager_functional_label || employee.manager_functional_name || employee.manager_functional || '';
+	if (String(fromEmployee || '').trim() !== '') {
+		return fromEmployee;
+	}
+
+	const derived = resolveFunctionalManagerByHierarchy(employee);
+	if (derived && derived.name) {
+		return derived.name;
+	}
+
+	return '-';
+}
+
+function resolveOperationalManagerDisplay(employee) {
+	const fromEmployee = employee.manager_operational_label || employee.manager_operational_name || employee.manager_operational || '';
+	if (String(fromEmployee || '').trim() !== '') {
+		return fromEmployee;
+	}
+
+	const derived = resolveOperationalManagerByHierarchy(employee);
+	if (derived && derived.name) {
+		return derived.name;
+	}
+
+	return '-';
 }
 
 function updateAssignModalStep() {
@@ -268,159 +660,13 @@ function updateAssignModalStep() {
 	}
 }
 
-function isGeneralDepartment(name) {
-	return String(name || '').trim().toLowerCase() === 'general';
-}
-
-function getEmployeeManagerSelection(employee) {
-	const key = String(employee.id);
-	if (!assignManagerSelections[key]) {
-		// Automation Logic:
-		// 1. Manager Fungsional (MF) = General Manager (GM) of Division
-		// 2. Manager Operasional (MO) = Manager of same Department
-		// 3. If no MO found, MO = MF
-		// 4. If employee is Staff in "General" dept, MF & MO = GM
-
-		const divisionId = employee.division_id;
-		const departmentId = employee.department_id;
-		const departmentName = String(employee.department || employee.department_name || '').trim().toLowerCase();
-
-		// Find GM (Manager in same division whose department is "General")
-		const gm = managerDirectory.find(m => 
-			String(m.division_id) === String(divisionId) && 
-			String(m.department || '').trim().toLowerCase() === 'general'
-		);
-
-		// Find Dept Manager (Manager in same division and department)
-		// Note: We avoid picking GM as Dept Manager if there's another manager in that dept
-		const deptManager = managerDirectory.find(m => 
-			String(m.division_id) === String(divisionId) && 
-			String(m.department_id) === String(departmentId) &&
-			String(m.department || '').trim().toLowerCase() !== 'general'
-		);
-
-		let mf = null;
-		let mo = null;
-
-		if (departmentName === 'general') {
-			mf = gm;
-			mo = gm;
-		} else {
-			mf = gm;
-			mo = deptManager || gm; // Fallback to GM if no dept manager
-		}
-
-		assignManagerSelections[key] = {
-			functional_id: mf ? String(mf.id) : '',
-			functional_name: mf ? (mf.name || '') : '',
-			operational_id: mo ? String(mo.id) : '',
-			operational_name: mo ? (mo.name || '') : '',
-		};
-	}
-	return assignManagerSelections[key];
-}
-
-function buildManagerOptionsHtml(managers, includeEmpty = true, includeSuggestedLabel = false) {
-	const options = [];
-	if (includeEmpty) {
-		options.push('<option value="">Kosong</option>');
-	}
-	if (includeSuggestedLabel && managers.length) {
-		options.push('<option value="__suggested__" disabled>Suggested</option>');
-	}
-	managers.forEach((manager) => {
-		const label = `${manager.name}${manager.division ? ' • ' + manager.division : ''}${manager.department ? ' • ' + manager.department : ''}`;
-		options.push(`<option value="${escapeHtml(String(manager.id))}">${escapeHtml(label)}</option>`);
-	});
-	return options.join('');
-}
-
-function getSuggestedFunctionalManagers(employee) {
-	const divisionId = employee.division_id;
-	return managerDirectory.filter(m => String(m.division_id) === String(divisionId));
-}
-
-function buildManagerSelectOptions(employee, managerType, selectedId) {
-	const divisionId = employee.division_id;
-	const departmentId = employee.department_id;
-
-	// Suggested: based on division/department
-	const suggested = managerDirectory.filter(m => 
-		String(m.division_id) === String(divisionId)
-	);
-	
-	const others = managerDirectory.filter(m => !suggested.some(s => String(s.id) === String(m.id)));
-	
-	let html = '<option value="">Pilih Manager...</option>';
-	
-	if (suggested.length > 0) {
-		html += '<optgroup label="Managers in Division">';
-		suggested.forEach(m => {
-			html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.department ? ' • ' + m.department : ''}</option>`;
-		});
-		html += '</optgroup>';
-		html += '<optgroup label="Other Managers">';
-	}
-	
-	others.forEach(m => {
-		html += `<option value="${m.id}" ${String(m.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(m.name)}${m.division ? ' • ' + m.division : ''}${m.department ? ' • ' + m.department : ''}</option>`;
-	});
-	
-	if (suggested.length > 0) {
-		html += '</optgroup>';
-	}
-	
-	return html;
-}
-
-function onManagerSelectChange(managerType, employeeId, selectEl) {
-	const key = String(employeeId);
-	if (!assignManagerSelections[key]) {
-		assignManagerSelections[key] = { functional_id: '', functional_name: '', operational_id: '', operational_name: '' };
-	}
-	
-	const val = selectEl.value;
-	const text = selectEl.options[selectEl.selectedIndex].text;
-	
-	if (managerType === 'functional') {
-		assignManagerSelections[key].functional_id = val;
-		assignManagerSelections[key].functional_name = val ? text.split(' • ')[0] : '';
-	} else {
-		assignManagerSelections[key].operational_id = val;
-		assignManagerSelections[key].operational_name = val ? text.split(' • ')[0] : '';
-	}
-}
-
-function updateManagerComboboxSelection(managerType, employeeId, managerId, managerName) {
-	const key = String(employeeId);
-	const current = assignManagerSelections[key] || {
-		functional_id: '',
-		functional_name: '',
-		operational_id: '',
-		operational_name: '',
-	};
-	if (managerType === 'functional') {
-		current.functional_id = String(managerId);
-		current.functional_name = managerName;
-	} else {
-		current.operational_id = String(managerId);
-		current.operational_name = managerName;
-	}
-	assignManagerSelections[key] = current;
-	const inputEl = document.getElementById(`assign-${managerType}-combo-${employeeId}`);
-	if (inputEl) {
-		inputEl.value = managerName;
-	}
-	closeManagerCombobox(managerType, employeeId);
-}
-
 async function loadAssignableEmployees(overrideQuery = null) {
 	const q = overrideQuery !== null ? overrideQuery : document.getElementById('assign-search').value.trim();
 	const container = document.getElementById('assign-results');
 	container.innerHTML = '<tr><td colspan="7" class="text-sm text-gray-500 p-4">Mencari...</td></tr>';
 	try {
 		const params = new URLSearchParams();
-		params.set('vnb_status', 'not_started');
+		params.set('vnb_status', 'assignable');
 		params.set('status', 'Aktif');
 		if (q) {
 			params.set('search', q);
@@ -430,10 +676,33 @@ async function loadAssignableEmployees(overrideQuery = null) {
 			headers: { 'Accept': 'application/json' },
 		});
 		const data = await response.json();
-		assignableEmployees = Array.isArray(data?.data) ? data.data : [];
+		allAssignableEmployees = Array.isArray(data?.data) ? data.data : [];
+		unconfiguredCareerStages.clear();
+		assignableEmployees = allAssignableEmployees.filter((emp) => {
+			const status = String(emp.vnb_status || 'not_started');
+			if (!['not_started', 'canceled'].includes(status)) {
+				return false;
+			}
+			if (!emp.career_stage || String(emp.career_stage || '').trim() === '') {
+				unconfiguredCareerStages.add(emp.level || 'Unknown');
+				return false;
+			}
+			return true;
+		});
+		updateWarningMessage();
 		renderAssignableEmployees();
 	} catch (err) {
 		container.innerHTML = '<tr><td colspan="7" class="text-sm text-red-500 p-4">Gagal memuat data employee</td></tr>';
+	}
+}
+
+function updateWarningMessage() {
+	const warningEl = document.getElementById('assign-warning-unconfigured');
+	if (!warningEl) return;
+	if (unconfiguredCareerStages.size > 0) {
+		warningEl.classList.remove('hidden');
+	} else {
+		warningEl.classList.add('hidden');
 	}
 }
 
@@ -590,7 +859,7 @@ function getSelectedAssignableEmployees() {
 
 function goToAssignConfirmStep() {
 	if (!selectedAssignEmployeeIds.size) {
-		alert('Pilih minimal satu employee terlebih dahulu.');
+		showErrorModal('Pilih minimal satu employee terlebih dahulu.');
 		return;
 	}
 	assignModalStep = 'confirm';
@@ -600,6 +869,13 @@ function goToAssignConfirmStep() {
 function backToAssignListStep() {
 	assignModalStep = 'list';
 	updateAssignModalStep();
+}
+
+function openAssignModalForEmployee(employeeId) {
+	openAssignModal();
+	if (!employeeId) {
+		return;
+	}
 }
 
 function updateAssignConfirmList() {
@@ -613,7 +889,8 @@ function updateAssignConfirmList() {
 	}
 
 	container.innerHTML = selectedEmployees.map((employee) => {
-		const selection = getEmployeeManagerSelection(employee);
+		const functionalManagerName = resolveFunctionalManagerDisplay(employee);
+		const operationalManagerName = resolveOperationalManagerDisplay(employee);
 		return `
 		<tr>
 			<td class="font-medium text-gray-800">${escapeHtml(employee.employee_number || '-')}</td>
@@ -621,42 +898,17 @@ function updateAssignConfirmList() {
 			<td>${escapeHtml(employee.division || '-')}</td>
 			<td>${escapeHtml(employee.department || '-')}</td>
 			<td>${escapeHtml(employee.career_stage || '-')}</td>
-			<td class="min-w-[250px]">
-				<select id="assign-functional-select-${employee.id}" class="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-none focus:border-[#144600]" onchange="onManagerSelectChange('functional', ${employee.id}, this)">
-					${buildManagerSelectOptions(employee, 'functional', selection.functional_id)}
-				</select>
-			</td>
-			<td class="min-w-[250px]">
-				<select id="assign-operational-select-${employee.id}" class="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:outline-none focus:border-[#144600]" onchange="onManagerSelectChange('operational', ${employee.id}, this)">
-					${buildManagerSelectOptions(employee, 'operational', selection.operational_id)}
-				</select>
-			</td>
+			<td>${escapeHtml(functionalManagerName)}</td>
+			<td>${escapeHtml(operationalManagerName)}</td>
 		</tr>
 		`;
 	}).join('');
-
-	selectedEmployees.forEach((employee) => {
-		const key = String(employee.id);
-		const selection = assignManagerSelections[key] || null;
-		if (!selection) return;
-		const functionalInput = container.querySelector(`#assign-functional-combo-${employee.id}`);
-		const operationalInput = container.querySelector(`#assign-operational-combo-${employee.id}`);
-		if (functionalInput) {
-			functionalInput.value = selection.functional_name || '';
-		}
-		if (operationalInput) {
-			operationalInput.value = selection.operational_name || '';
-		}
-	});
-
-	initSearchableSelects();
 }
 
 async function confirmAssignEmployees() {
 	const selectedEmployees = getSelectedAssignableEmployees();
 	if (!selectedEmployees.length) {
-		alert('Pilih minimal satu employee terlebih dahulu.');
-		return;
+			showErrorModal('Pilih minimal satu employee terlebih dahulu.');
 	}
 
 	const confirmButton = document.querySelector('#assign-step-confirm button[onclick="confirmAssignEmployees()"]');
@@ -667,35 +919,27 @@ async function confirmAssignEmployees() {
 
 	try {
 		for (const employee of selectedEmployees) {
-			const managerSelection = getEmployeeManagerSelection(employee);
-			try {
-				await fetch(`/api/vnb/participants/${employee.id}/assign`, {
-					method: 'POST',
-					credentials: 'same-origin',
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json',
-						'X-Requested-With': 'XMLHttpRequest',
-					},
-					body: JSON.stringify({
-						induction_date: getAssignInductionDate(),
-							manager_functional_id: managerSelection.functional_id || null,
-							manager_functional_name: managerSelection.functional_name || null,
-							manager_operational_id: managerSelection.operational_id || null,
-							manager_operational_name: managerSelection.operational_name || null,
-					}),
-				});
-			} catch (error) {
-				// Continue with local preview update even if the placeholder endpoint fails.
-			}
-			addParticipantRow({
-				...employee,
-				induction_date: getAssignInductionDate(),
-					manager_functional_name: managerSelection.functional_name || '',
-					manager_operational_name: managerSelection.operational_name || '',
+			const response = await fetch(`/api/vnb/participants/${employee.id}/assign`, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Accept': 'application/json',
+					'Content-Type': 'application/json',
+					'X-Requested-With': 'XMLHttpRequest',
+				},
+				body: JSON.stringify({
+					induction_date: getAssignInductionDate(),
+				}),
 			});
+			const result = await response.json();
+			if (!response.ok || result?.success === false) {
+				throw new Error(result?.message || 'Gagal mendaftarkan employee ke VnB.');
+			}
 		}
+		await loadParticipants();
 		closeAssignModal();
+	} catch (error) {
+		showErrorModal(error?.message || 'Gagal mendaftarkan employee ke VnB.');
 	} finally {
 		if (confirmButton) {
 			confirmButton.disabled = false;
@@ -732,8 +976,8 @@ function addParticipantRow(emp) {
 	const periodStart = emp.vnb_period_start || '';
 	const periodEnd = emp.vnb_period_end || '';
 	const inductionDate = emp.induction_date || '';
-	const functionalManagerName = emp.manager_functional_name || '';
-	const operationalManagerName = emp.manager_operational_name || '';
+	const functionalManagerName = resolveFunctionalManagerDisplay(emp);
+	const operationalManagerName = resolveOperationalManagerDisplay(emp);
 
 	const row = document.createElement('tr');
 	row.innerHTML = `
@@ -767,6 +1011,8 @@ function removeParticipantRow(btn) {
 // simple escape
 function escapeHtml(value) { return (value||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeHtmlAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+loadParticipants();
 </script>
 <?php $__env->stopPush(); ?>
 

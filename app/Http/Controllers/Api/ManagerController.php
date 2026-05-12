@@ -255,8 +255,8 @@ class ManagerController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:managers,email|unique:users,email',
             'employee_number' => 'required|string|max:50|unique:managers,employee_number',
-            'company' => ['nullable', 'string', 'max:100', Rule::exists('master_companies', 'name')],
-            'division' => ['nullable', 'string', 'max:100', Rule::exists('master_divisions', 'name')],
+            'company' => ['nullable', 'string', 'max:100'],
+            'division' => ['nullable', 'string', 'max:100'],
         ]);
         $rawPassword = null;
 
@@ -318,8 +318,8 @@ class ManagerController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|email|unique:managers,email,' . $id,
             'employee_number' => 'sometimes|required|string|max:50|unique:managers,employee_number,' . $id,
-            'company' => ['nullable', 'string', 'max:100', Rule::exists('master_companies', 'name')],
-            'division' => ['nullable', 'string', 'max:100', Rule::exists('master_divisions', 'name')],
+            'company' => ['nullable', 'string', 'max:100'],
+            'division' => ['nullable', 'string', 'max:100'],
             'status' => 'sometimes|in:active,inactive',
         ]);
 

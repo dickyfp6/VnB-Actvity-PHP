@@ -247,8 +247,8 @@ class HrisController extends Controller
                     'manager_operational' => (string) ($row->manager_operational ?? ''),
                 ];
 
-                $divisionId = $this->resolveMasterId('master_divisions', $mappedRow['division']);
-                $departmentId = $this->resolveMasterId('master_departments', $mappedRow['department']);
+                $divisionId = $this->getDivisionId($mappedRow['division']);
+                $departmentId = $this->getDepartmentId($divisionId, $mappedRow['department']);
 
                 if ($mappedRow['manager_functional'] === '') {
                     $mappedRow['manager_functional'] = $this->resolveManagerNameById(
@@ -305,7 +305,11 @@ class HrisController extends Controller
         $changes = [];
         foreach ($fieldMap as $sourceKey => $employeeField) {
             $sourceValue = (string) ($sourceRow[$sourceKey] ?? '');
-            $currentValue = $this->resolveEmployeeComparableValue($existing, $employeeField);
+            $currentValue = $this->resolveEmployeeComparableValue(
+                $existing,
+                $employeeField,
+                (string) ($sourceRow['source_system'] ?? '')
+            );
 
             if ($sourceKey === 'division' && trim($sourceValue) === '-') {
                 $sourceValue = '';
@@ -329,18 +333,18 @@ class HrisController extends Controller
         return $changes;
     }
 
-    private function resolveEmployeeComparableValue(Employee $employee, string $field): string
+    private function resolveEmployeeComparableValue(Employee $employee, string $field, string $sourceSystem = ''): string
     {
         if ($field === 'division_id') {
-            return (string) optional(DB::table('master_divisions')->where('id', $employee->division_id)->first())->name;
+            return (string) $this->getDivisionNameById($employee->division_id);
         }
 
         if ($field === 'department_id') {
-            return (string) optional(DB::table('master_departments')->where('id', $employee->department_id)->first())->name;
+            return (string) $this->getDepartmentNameById($employee->department_id, $sourceSystem);
         }
 
         if ($field === 'position_id') {
-            return (string) optional(DB::table('master_positions')->where('id', $employee->position_id)->first())->name;
+            return (string) $this->getPositionNameById($employee->position_id);
         }
 
         return (string) ($employee->{$field} ?? '');
@@ -408,9 +412,9 @@ class HrisController extends Controller
     private function mapSourceToEmployeePayload(array $sourceRow, ?Employee $existing): array
     {
         $divisionName = trim((string) ($sourceRow['division'] ?? ''));
-        $divisionId = $divisionName === '-' ? null : $this->resolveMasterId('master_divisions', $divisionName);
-        $departmentId = $this->resolveMasterId('master_departments', (string) ($sourceRow['department'] ?? ''));
-        $positionId = $this->resolveMasterId('master_positions', (string) ($sourceRow['position'] ?? ''));
+        $divisionId = $divisionName === '-' ? null : $this->getDivisionId($divisionName);
+        $departmentId = $this->getDepartmentId($divisionId, (string) ($sourceRow['department'] ?? ''));
+        $positionId = $this->getPositionId((string) ($sourceRow['position'] ?? ''));
         $managerFunctionalId = $this->resolveFunctionalManagerId($divisionId);
         $managerOperationalId = $this->resolveOperationalManagerId($divisionId, $departmentId, (string) ($sourceRow['department'] ?? ''));
         $status = $this->isInactiveEmployeeStatus((string) ($sourceRow['status'] ?? 'Aktif')) ? 'Inactive' : 'Aktif';
@@ -516,78 +520,170 @@ class HrisController extends Controller
         if (!$divisionId) {
             return null;
         }
-
-        // Find the "General" department ID
-        $generalDept = DB::table('master_departments')
-            ->where('name', 'General')
-            ->first();
-
-        if (!$generalDept) {
+        $generalDeptId = $this->getDepartmentId(null, 'General');
+        if (!$generalDeptId) {
             return null;
         }
 
         $managerId = Manager::query()
             ->where('division_id', $divisionId)
-            ->where('department_id', $generalDept->id)
+            ->where('department_id', $generalDeptId)
             ->where('status', 'active')
             ->value('id');
 
         return $managerId ? (int) $managerId : null;
     }
 
+    // Mapping helpers copied from SyncEmployeesSeeder to avoid master_* table lookups
+    private function getDivisionId(?string $divisionName): ?int
+    {
+        if (!$divisionName) {
+            return null;
+        }
+        $mapping = [
+            'General' => 1,
+            'Human Resource' => 2,
+            'Information Technology' => 3,
+            'FAT' => 9,
+        ];
+        return $mapping[$divisionName] ?? null;
+    }
+
+    private function getDivisionNameById(?int $id): string
+    {
+        if (!$id) return '';
+        $mapping = [
+            1 => 'General',
+            2 => 'Human Resource',
+            3 => 'Information Technology',
+            9 => 'FAT',
+        ];
+        return $mapping[$id] ?? '';
+    }
+
+    private function getDepartmentId(?int $divisionId, ?string $departmentName): ?int
+    {
+        if (!$divisionId || !$departmentName) {
+            return null;
+        }
+        $mapping = [
+            'General' => 1,
+            'People, Culture and Experiences' => 32,
+            'C&B and HRIS' => 33,
+            'Recruitment' => 34,
+            'Webapp Dev' => 35,
+            'Technical Support' => 36,
+            'IT - SAP' => 37,
+            'Factory Production' => 34,
+            'Accounting Purchase' => 35,
+            'Tax Record' => 36,
+        ];
+        return $mapping[$departmentName] ?? null;
+    }
+
+    private function getDepartmentNameById(?int $id, string $sourceSystem = ''): string
+    {
+        if (!$id) return '';
+
+        if (strtoupper($sourceSystem) === 'HRMS') {
+            $hrmsMapping = [
+                34 => 'Factory Production',
+                35 => 'Accounting Purchase',
+                36 => 'Tax Record',
+            ];
+
+            if (isset($hrmsMapping[$id])) {
+                return $hrmsMapping[$id];
+            }
+        }
+
+        $mapping = [
+            1 => 'General',
+            32 => 'People, Culture and Experiences',
+            33 => 'C&B and HRIS',
+            34 => 'Recruitment',
+            35 => 'Webapp Dev',
+            36 => 'Technical Support',
+            37 => 'IT - SAP',
+        ];
+        return $mapping[$id] ?? '';
+    }
+
+    private function getPositionId(?string $positionName): ?int
+    {
+        if (!$positionName) {
+            return null;
+        }
+        $mapping = [
+            'Direktur Utama' => 1,
+            'Manager' => 2,
+            'Internal Communication Specialist' => 3,
+            'General Manager' => 4,
+            'Web Junior Developer' => 5,
+            'Webapp Developer Manager' => 6,
+            'HR Bussiness Partner Staf' => 7,
+            'C&B and HRIS Manager' => 8,
+            'Employee Assurance Supervisor' => 9,
+            'HRIS Maintenance Staff' => 10,
+            'Recruitment Manager' => 11,
+            'Regional Supervisor' => 12,
+            'Recruitment Staff' => 13,
+            'TS Manager' => 14,
+            'Technical Support' => 15,
+            'SAP Manager' => 16,
+            'SAP Production' => 17,
+            'HRGA Specialist' => 18,
+            'Sekretaris HR' => 19,
+            'Network and Hardware Mainteance' => 20,
+            'IT Quality Audit' => 21,
+            'Production Staff' => 22,
+            'Cashflow Management Assisten' => 23,
+            'Tax Management Staff' => 24,
+        ];
+        return $mapping[$positionName] ?? null;
+    }
+
+    private function getPositionNameById(?int $id): string
+    {
+        if (!$id) return '';
+        $mapping = [
+            1 => 'Direktur Utama',
+            2 => 'Manager',
+            3 => 'Internal Communication Specialist',
+            4 => 'General Manager',
+            5 => 'Web Junior Developer',
+            6 => 'Webapp Developer Manager',
+            7 => 'HR Bussiness Partner Staf',
+            8 => 'C&B and HRIS Manager',
+            9 => 'Employee Assurance Supervisor',
+            10 => 'HRIS Maintenance Staff',
+            11 => 'Recruitment Manager',
+            12 => 'Regional Supervisor',
+            13 => 'Recruitment Staff',
+            14 => 'TS Manager',
+            15 => 'Technical Support',
+            16 => 'SAP Manager',
+            17 => 'SAP Production',
+            18 => 'HRGA Specialist',
+            19 => 'Sekretaris HR',
+            20 => 'Network and Hardware Mainteance',
+            21 => 'IT Quality Audit',
+            22 => 'Production Staff',
+            23 => 'Cashflow Management Assisten',
+            24 => 'Tax Management Staff',
+        ];
+        return $mapping[$id] ?? '';
+    }
+
     /**
      * Determine career stage during HRIS sync for manager routing.
+     *
+     * Note: Do not guess career_stage here. Career stage MUST be defined
+     * by the VnB Framework setup (vnb_framework_stage_level_maps).
      */
     private function determineCareeStageForSync(string $level, string $position, string $employeeStatus, string $company): ?string
     {
-        $levelLower = strtolower(trim($level));
-        $positionLower = strtolower(trim($position));
-
-        // Non-Staff levels (Contract, Intern, etc)
-        if (
-            str_contains($levelLower, 'non-staff') ||
-            str_contains($levelLower, 'contract') ||
-            str_contains($levelLower, 'intern')
-        ) {
-            return 'Manage Self (Non-Staff)';
-        }
-
-        // Staff & Supervisor levels
-        if (
-            str_contains($levelLower, 'staff') ||
-            str_contains($levelLower, 'supervisor')
-        ) {
-            return 'Manage Self (Staff dan Supervisor)';
-        }
-
-        // Manager levels
-        if (
-            str_contains($levelLower, 'manager') ||
-            str_contains($levelLower, 'tim leader') ||
-            str_contains($levelLower, 'lead')
-        ) {
-            return 'Manage Other (Manager)';
-        }
-
-        // General Manager / Direktur level (but not Kepala Divisi)
-        if (
-            (str_contains($levelLower, 'general manager') ||
-             str_contains($levelLower, 'direktur')) &&
-            !str_contains($levelLower, 'kepala')
-        ) {
-            return 'Manage Manager (Direktur)';
-        }
-
-        // Function/Division head levels
-        if (
-            str_contains($levelLower, 'kepala divisi') ||
-            str_contains($levelLower, 'kepala') ||
-            str_contains($levelLower, 'director') ||
-            str_contains($levelLower, 'head of division')
-        ) {
-            return 'Manage Function';
-        }
-
+        // Intentionally return null so sync does not hardcode career_stage.
         return null;
     }
 

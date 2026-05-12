@@ -76,7 +76,13 @@ class SyncEmployeesSeeder extends Seeder
         if (!$divisionName) {
             return null;
         }
-        return DB::table('master_divisions')->where('name', $divisionName)->value('id');
+        $mapping = [
+            'General' => 1,
+            'Human Resource' => 2,
+            'Information Technology' => 3,
+            'FAT' => 9,
+        ];
+        return $mapping[$divisionName] ?? null;
     }
 
     private function getDepartmentId(?int $divisionId, ?string $departmentName): ?int
@@ -84,10 +90,19 @@ class SyncEmployeesSeeder extends Seeder
         if (!$divisionId || !$departmentName) {
             return null;
         }
-        return DB::table('master_departments')
-            ->where('division_id', $divisionId)
-            ->where('name', $departmentName)
-            ->value('id');
+        $mapping = [
+            'General' => 1,
+            'People, Culture and Experiences' => 32,
+            'C&B and HRIS' => 33,
+            'Recruitment' => 34,
+            'Webapp Dev' => 35,
+            'Technical Support' => 36,
+            'IT - SAP' => 37,
+            'Factory Production' => 34,
+            'Accounting Purchase' => 35,
+            'Tax Record' => 36,
+        ];
+        return $mapping[$departmentName] ?? null;
     }
 
     private function getPositionId(?string $positionName): ?int
@@ -95,19 +110,39 @@ class SyncEmployeesSeeder extends Seeder
         if (!$positionName) {
             return null;
         }
-        return DB::table('master_positions')->where('name', $positionName)->value('id');
+        $mapping = [
+            'Direktur Utama' => 1,
+            'Manager' => 2,
+            'Internal Communication Specialist' => 3,
+            'General Manager' => 4,
+            'Web Junior Developer' => 5,
+            'Webapp Developer Manager' => 6,
+            'HR Bussiness Partner Staf' => 7,
+            'C&B and HRIS Manager' => 8,
+            'Employee Assurance Supervisor' => 9,
+            'HRIS Maintenance Staff' => 10,
+            'Recruitment Manager' => 11,
+            'Regional Supervisor' => 12,
+            'Recruitment Staff' => 13,
+            'TS Manager' => 14,
+            'Technical Support' => 15,
+            'SAP Manager' => 16,
+            'SAP Production' => 17,
+            'HRGA Specialist' => 18,
+            'Sekretaris HR' => 19,
+            'Network and Hardware Mainteance' => 20,
+            'IT Quality Audit' => 21,
+            'Production Staff' => 22,
+            'Cashflow Management Assisten' => 23,
+            'Tax Management Staff' => 24,
+        ];
+        return $mapping[$positionName] ?? null;
     }
 
-    private function getCareerStageForLevel(string $level): string
+    private function getCareerStageForLevel(string $level): ?string
     {
-        return match (strtolower($level)) {
-            'direktur' => 'Manage Function',
-            'manager' => 'Manage Manager (Direktur)',
-            'supervisor' => 'Manage Self (Staff dan Supervisor)',
-            'staff' => 'Manage Self (Staff dan Supervisor)',
-            'harian', 'mingguan', 'borongan' => 'Manage Self (OS)',
-            default => 'Manage Self (Staff dan Supervisor)',
-        };
+        // Seeders should not assume career stage mapping. Leave null so framework UI defines mappings.
+        return null;
     }
 
     private function isManagerLevel(string $level): bool

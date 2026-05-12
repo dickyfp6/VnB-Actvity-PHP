@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\VnbCancellation;
+use App\Models\VnbFrameworkItem;
 use App\Models\Manager;
 use App\Models\VnbActivityAssignment;
 use App\Models\VnbPlan;
 use App\Models\VnbPlanItem;
+use App\Models\VnbPeriod;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -220,14 +223,105 @@ class VnbActivityController extends Controller
      */
     public function getParticipants(Request $request): JsonResponse
     {
-        // TODO: Authorize: PCX, Intercomm only
-        // TODO: Get all employees with VnB activity assignment
-        // TODO: Show assignment status and dates
-        
+        $user = auth()->user();
+        abort_unless($user && ($user->hasRole('pcx_manager') || $user->hasRole('intercomm')), 403, 'Anda tidak memiliki akses ke daftar participants VnB.');
+
+        $employees = Employee::query()
+            ->whereIn('vnb_status', ['active', 'completed', 'canceled'])
+            ->with([
+                'division',
+                'department',
+                'position',
+                'managerFunctional',
+                'managerOperational',
+                'user',
+            ])
+            ->get();
+
+        $employeeIds = $employees->pluck('id')->values();
+
+        if ($employeeIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $assignmentsByUserId = VnbActivityAssignment::query()
+            ->whereIn('user_id', $employees->pluck('user.id')->filter()->values())
+            ->with('user.employee')
+            ->orderByDesc('assigned_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($assignments) => $assignments->first());
+
+        $progressMap = VnbPlanItem::query()
+            ->join('vnb_plans', 'vnb_plans.id', '=', 'vnb_plan_items.plan_id')
+            ->whereIn('vnb_plans.employee_id', $employeeIds)
+            ->selectRaw('vnb_plans.employee_id as employee_id, AVG(vnb_plan_items.completion_percentage) as avg_progress')
+            ->groupBy('vnb_plans.employee_id')
+            ->pluck('avg_progress', 'employee_id');
+
+        $latestPlanMap = VnbPlan::query()
+            ->whereIn('employee_id', $employeeIds)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->get(['employee_id', 'phase_number', 'status'])
+            ->groupBy('employee_id')
+            ->map(fn ($plans) => $plans->first());
+
+        $rows = $employees
+            ->map(function (Employee $employee) use ($assignmentsByUserId, $progressMap, $latestPlanMap) {
+                $assignment = $employee->user ? $assignmentsByUserId->get($employee->user->id) : null;
+                $latestPlan = $latestPlanMap->get($employee->id);
+                $periodStart = $assignment?->induction_date
+                    ?? $employee->induction_date
+                    ?? $employee->date_joined;
+                $periodEnd = $periodStart
+                    ? Carbon::parse($periodStart)->copy()->addYear()->subDay()
+                    : null;
+
+                $progress = $progressMap->get($employee->id);
+                if ($progress === null) {
+                    $progress = match ($employee->vnb_status) {
+                        'completed' => 100,
+                        default => 0,
+                    };
+                }
+
+                return [
+                    'assignment_id' => $assignment?->id,
+                    'employee_id' => $employee->id,
+                    'employee_number' => $employee->employee_number,
+                    'name' => $employee->name,
+                    'company' => $employee->company,
+                    'division_id' => $employee->division_id,
+                    'division' => $employee->division?->name ?? '-',
+                    'department_id' => $employee->department_id,
+                    'department' => $employee->department?->name ?? '-',
+                    'career_stage' => $employee->getCareerStage() ?? '-',
+                    'phase' => $this->deriveParticipantPhaseLabel($employee, $latestPlan),
+                    'progress' => round((float) $progress, 1),
+                    'manager_functional_id' => $employee->manager_functional_id,
+                    'manager_functional' => $employee->managerFunctional?->name ?? '-',
+                    'manager_functional_label' => $this->resolveParticipantManagerLabel($employee->managerFunctional?->name, $employee->manager_functional_id),
+                    'manager_operational_id' => $employee->manager_operational_id,
+                    'manager_operational' => $employee->managerOperational?->name ?? '-',
+                    'manager_operational_label' => $this->resolveParticipantManagerLabel($employee->managerOperational?->name, $employee->manager_operational_id),
+                    'vnb_period_start' => $periodStart ? Carbon::parse($periodStart)->toDateString() : null,
+                    'vnb_period_end' => $periodEnd ? $periodEnd->toDateString() : null,
+                    'induction_date' => optional($assignment?->induction_date)->toDateString(),
+                    'assigned_at' => optional($assignment?->assigned_at)->toDateTimeString(),
+                    'vnb_status' => $employee->vnb_status,
+                ];
+            })
+            ->filter()
+            ->values();
+
         return response()->json([
             'success' => true,
-            'message' => 'VnB participants list',
-            'data' => [],
+            'data' => $rows,
         ]);
     }
 
@@ -242,6 +336,24 @@ class VnbActivityController extends Controller
 
         $employee = Employee::query()->with('user')->findOrFail($employeeId);
         $user = $employee->user;
+        $periodStart = Carbon::parse($validated['induction_date'] ?? $employee->induction_date ?? $employee->date_joined ?? now());
+        $careerStageCode = $employee->getCareerStageCode();
+
+        if (in_array($employee->vnb_status, ['active', 'completed'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee yang sudah aktif atau lulus VnB tidak bisa di-assign ulang.',
+            ], 422);
+        }
+
+        // Disallow assign when career stage is not configured in VnB framework
+        $careerStage = $employee->getCareerStage();
+        if (!$careerStage) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Career stage employee belum terkonfigurasi di VnB framework. Silakan atur framework terlebih dahulu.',
+            ], 422);
+        }
 
         if (!$user) {
             return response()->json([
@@ -250,7 +362,19 @@ class VnbActivityController extends Controller
             ], 422);
         }
 
-        $assignment = DB::transaction(function () use ($user, $validated): VnbActivityAssignment {
+        $frameworkItems = VnbFrameworkItem::query()
+            ->where('career_stage', $careerStageCode)
+            ->get()
+            ->groupBy('phase');
+
+        if ($frameworkItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Framework belum tersedia untuk career stage employee ini. Silakan atur framework terlebih dahulu.',
+            ], 422);
+        }
+
+        $assignment = DB::transaction(function () use ($employee, $user, $validated, $periodStart, $frameworkItems): VnbActivityAssignment {
             $activeAssignment = VnbActivityAssignment::query()
                 ->where('user_id', $user->id)
                 ->where('is_active', true)
@@ -269,13 +393,21 @@ class VnbActivityController extends Controller
             if ($activeAssignment) {
                 $activeAssignment->update($payload);
 
+                $employee->update(['vnb_status' => 'active']);
+                $this->ensureParticipantVnbPlanSnapshot($employee->fresh(), $periodStart, $frameworkItems);
+
                 return $activeAssignment;
             }
 
-            return VnbActivityAssignment::create([
+            $assignment = VnbActivityAssignment::create([
                 'user_id' => $user->id,
                 ...$payload,
             ]);
+
+            $employee->update(['vnb_status' => 'active']);
+            $this->ensureParticipantVnbPlanSnapshot($employee->fresh(), $periodStart, $frameworkItems);
+
+            return $assignment;
         });
 
         return response()->json([
@@ -287,6 +419,7 @@ class VnbActivityController extends Controller
                 'assignment_id' => $assignment->id,
                 'induction_date' => optional($assignment->induction_date)->toDateString(),
                 'assigned_at' => optional($assignment->assigned_at)->toDateTimeString(),
+                'vnb_status' => 'active',
             ],
         ]);
     }
@@ -296,15 +429,63 @@ class VnbActivityController extends Controller
      */
     public function revokeParticipant(Request $request, int $employeeId): JsonResponse
     {
-        // TODO: Authorize: PCX, Intercomm only
-        // TODO: Find employee by ID
-        // TODO: Deactivate VnbActivityAssignment (set is_active = false)
-        // TODO: Record who revoked and when
-        
+        $user = Auth::user();
+        abort_unless($user && ($user->hasRole('pcx_manager') || $user->hasRole('intercomm')), 403, 'Anda tidak memiliki akses untuk membatalkan participant VnB.');
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'in:budaya_kerja,tidak_cocok_vnb,others'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $employee = Employee::query()->with('user')->findOrFail($employeeId);
+        $userAccount = $employee->user;
+
+        if (!$userAccount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee tidak memiliki akun user, tidak bisa di-revoke dari VnB.',
+            ], 422);
+        }
+
+        $assignment = VnbActivityAssignment::query()
+            ->where('user_id', $userAccount->id)
+            ->where('is_active', true)
+            ->latest('id')
+            ->first();
+
+        if (!$assignment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee ini tidak memiliki participant VnB yang aktif.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($employee, $assignment, $validated, $user) {
+            VnbCancellation::create([
+                'employee_id' => $employee->id,
+                'reason' => $validated['reason'] ?? 'others',
+                'notes' => $validated['notes'] ?? 'Dibatalkan dari daftar participant VnB.',
+                'canceled_by' => $user->id,
+                'canceled_at' => now(),
+            ]);
+
+            $assignment->update([
+                'is_active' => false,
+                'notes' => $validated['notes'] ?? $assignment->notes,
+                'revoked_at' => now(),
+            ]);
+
+            $employee->update(['vnb_status' => 'canceled']);
+        });
+
         return response()->json([
             'success' => true,
-            'message' => 'Employee revoked from VnB Activity',
-            'data' => [],
+            'message' => 'Employee berhasil di-cancel dari VnB Activity',
+            'data' => [
+                'employee_id' => $employee->id,
+                'assignment_id' => $assignment->id,
+                'vnb_status' => 'canceled',
+            ],
         ]);
     }
 
@@ -369,5 +550,139 @@ class VnbActivityController extends Controller
         }
 
         return $data;
+    }
+
+    private function deriveParticipantPhaseLabel(Employee $employee, mixed $latestPlan): string
+    {
+        if ($employee->vnb_status === 'completed') {
+            return 'Selesai';
+        }
+
+        if (!$latestPlan) {
+            return 'Planning';
+        }
+
+        $planStatus = (string) ($latestPlan->status ?? '');
+        if (in_array($planStatus, ['draft', 'waiting_manager_approval', 'rejected'], true)) {
+            return 'Planning';
+        }
+
+        $phaseNumber = (int) ($latestPlan->phase_number ?? 1);
+        if ($phaseNumber < 1 || $phaseNumber > 3) {
+            $phaseNumber = 1;
+        }
+
+        return 'Fase ' . $phaseNumber;
+    }
+
+    private function resolveParticipantManagerLabel(?string $managerName, ?int $managerId): string
+    {
+        $name = trim((string) $managerName);
+        if ($name !== '') {
+            return $name;
+        }
+
+        if ($managerId) {
+            return 'Manager #' . $managerId;
+        }
+
+        return '-';
+    }
+
+    private function ensureParticipantVnbPlanSnapshot(Employee $employee, Carbon $periodStart, $frameworkItems): ?VnbPlan
+    {
+        $existingPlan = VnbPlan::query()
+            ->where('employee_id', $employee->id)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($existingPlan) {
+            return $existingPlan;
+        }
+
+        $periods = $this->ensureParticipantVnbPeriods($employee, $periodStart);
+        $phaseOnePeriod = $periods->firstWhere('phase_number', 1) ?? $periods->first();
+
+        if (!$phaseOnePeriod) {
+            throw new \RuntimeException('Periode VnB tidak dapat dibuat untuk employee ini.');
+        }
+
+        $plan = VnbPlan::create([
+            'employee_id' => $employee->id,
+            'period_id' => $phaseOnePeriod->id,
+            'phase_number' => $phaseOnePeriod->phase_number,
+            'title' => 'Rencana VnB - ' . $employee->name,
+            'description' => 'Auto-generated dari framework ' . $employee->getCareerStageCode(),
+            'planning_mode' => 'adjust_all',
+            'status' => 'draft',
+        ]);
+
+        $itemsToInsert = [];
+        foreach ($frameworkItems as $phaseNumber => $items) {
+            foreach ($items as $item) {
+                $integrationParts = [];
+                if ($item->integration_1) {
+                    $integrationParts[] = $item->integration_1;
+                }
+                if ($item->integration_2) {
+                    $integrationParts[] = $item->integration_2;
+                }
+
+                $itemsToInsert[] = [
+                    'plan_id' => $plan->id,
+                    'framework_item_id' => $item->id,
+                    'activity_title' => $item->behaviour . ' - Phase ' . $phaseNumber,
+                    'description' => !empty($integrationParts) ? implode(' | ', $integrationParts) : 'Activity for ' . $item->behaviour,
+                    'integration_1' => $item->integration_1,
+                    'integration_2' => $item->integration_2,
+                    'due_date' => now()->addDays(7)->format('Y-m-d'),
+                    'activity_date' => now()->addDays(7)->format('Y-m-d'),
+                    'deliverables' => '-',
+                    'behavior_metrics' => json_encode([$item->behaviour, 'phase_' . $phaseNumber]),
+                    'submission_status' => 'draft',
+                    'status' => 'draft',
+                    'completion_percentage' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if (!empty($itemsToInsert)) {
+            VnbPlanItem::insert($itemsToInsert);
+        }
+
+        return $plan->fresh(['items', 'period']);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, VnbPeriod>
+     */
+    private function ensureParticipantVnbPeriods(Employee $employee, Carbon $periodStart)
+    {
+        $periods = collect();
+
+        for ($phase = 1; $phase <= 3; $phase++) {
+            $start = $periodStart->copy()->addMonths(($phase - 1) * 4);
+            $end = $phase === 3
+                ? $periodStart->copy()->addYear()->subDay()
+                : $start->copy()->addMonths(4)->subDay();
+
+            $periods->push(VnbPeriod::updateOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                    'phase_number' => $phase,
+                ],
+                [
+                    'start_date' => $start->toDateString(),
+                    'end_date' => $end->toDateString(),
+                    'cutoff_date' => $end->copy()->setDay(min(25, $end->daysInMonth))->toDateString(),
+                    'status' => now()->lt($start) ? 'not_started' : (now()->lte($end) ? 'in_progress' : 'completed'),
+                ]
+            ));
+        }
+
+        return $periods;
     }
 }

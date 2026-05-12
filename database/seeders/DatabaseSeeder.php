@@ -17,13 +17,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->resetSeededData();
 
-        // 1. FIRST: Create roles, permissions, and master data
+        // 1. FIRST: Create roles, permissions, and sync data
         $this->call([
             RolePermissionSeeder::class,
-            MasterDataSeeder::class,
             SyncSourceEmployeesSeeder::class,
-            SyncEmployeesSeeder::class,
-            EmployeeAndManagerSeeder::class,
         ]);
 
         // 2. Recreate the six core demo credentials

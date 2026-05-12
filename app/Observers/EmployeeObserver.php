@@ -7,6 +7,7 @@ use App\Models\Manager;
 use App\Models\User;
 use App\Traits\HandlesUserProvisioning;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class EmployeeObserver
 {
@@ -19,10 +20,15 @@ class EmployeeObserver
     public function saving(Employee $employee): void
     {
         // Auto-assign functional manager if creating and not set
-        if (!$employee->exists && $employee->manager_functional_id === null) {
-            $manager = $employee->findFunctionalManager();
-            if ($manager) {
-                $employee->manager_functional_id = $manager->id;
+        // Skip auto-assignment if manager IDs are already provided (HRIS sync case)
+        if (!$employee->exists && $employee->manager_functional_id === null && Schema::hasTable('master_positions')) {
+            try {
+                $manager = $employee->findFunctionalManager();
+                if ($manager) {
+                    $employee->manager_functional_id = $manager->id;
+                }
+            } catch (\Exception $e) {
+                // Silent fail during master table missing scenarios
             }
         }
 
@@ -54,9 +60,11 @@ class EmployeeObserver
      */
     public function updated(Employee $employee): void
     {
-        // Keep user info in sync
-        if ($employee->wasChanged(['name', 'email', 'whatsapp', 'status'])) {
-            $this->provisionEmployeeUserAccount($employee);
+        // Keep user info in sync (only if not during batch sync where managers are already set)
+        if (!$employee->wasChanged(['manager_functional_id', 'manager_operational_id'])) {
+            if ($employee->wasChanged(['name', 'email', 'whatsapp', 'status'])) {
+                $this->provisionEmployeeUserAccount($employee);
+            }
         }
 
         // Check if manager_functional_id or manager_operational_id changed
