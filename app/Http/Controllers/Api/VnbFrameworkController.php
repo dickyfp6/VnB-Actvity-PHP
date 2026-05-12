@@ -160,7 +160,7 @@ class VnbFrameworkController extends Controller
         $templates = [];
 
         for ($i = 1; $i <= $safeMax; $i++) {
-            $templates[] = $behaviour . ' | ' . $phaseLabel . ' | Integrasi ' . $i;
+            $templates[] = '';
         }
 
         return $templates;

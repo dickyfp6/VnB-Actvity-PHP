@@ -26,13 +26,13 @@
 						<th>Divisi</th>
 						<th>Departemen</th>
 						<th>Career Stage</th>
+						<th>Tanggal Induction</th>
 						<th>Fase</th>
 						<th>Progress</th>
 						<th>Manager Fungsional</th>
 						<th>Manager Operasional</th>
 						<th>Tanggal Mulai VnB</th>
 						<th>Tanggal Selesai VnB</th>
-						<th>Tanggal Induction</th>
 						<th>Aksi</th>
 					</tr>
 				</thead>
@@ -101,7 +101,8 @@
 										<th>Company</th>
 										<th>Divisi</th>
 										<th>Department</th>
-										<th>Career Stage</th>
+										<th>Career Stage</th><th>Tanggal Induction</th>
+						
 									</tr>
 								</thead>
 								<tbody id="assign-results"></tbody>
@@ -135,7 +136,8 @@
 											<th>Nama</th>
 											<th>Divisi</th>
 											<th>Department</th>
-											<th>Career Stage</th>
+											<th>Career Stage</th><th>Tanggal Induction</th>
+						
 											<th>Manager Fungsional</th>
 											<th>Manager Operasional</th>
 										</tr>
@@ -269,12 +271,23 @@ let managerEmployeeDirectory = [];
 let unconfiguredCareerStages = new Set();
 let participantsRows = [];
 let currentParticipantsTab = 'active';
+let pendingReassignEmployeeId = null;
 
-function showErrorModal(message) {
+function showErrorModal(message, showFrameworkButton = false) {
 	const modal = document.getElementById('error-modal');
 	const msgEl = document.getElementById('error-modal-message');
-	if (modal && msgEl) {
+	const actionsEl = document.getElementById('error-modal-actions');
+	if (modal && msgEl && actionsEl) {
 		msgEl.textContent = message || 'Terjadi kesalahan.';
+		
+		if (showFrameworkButton) {
+			actionsEl.innerHTML = `
+				<a href="/vnb/framework" class="px-4 py-2 rounded-lg text-white font-semibold" style="background-color:#144600; text-decoration: none; display: inline-block;">Framework VnB</a>
+				<button type="button" onclick="closeErrorModal()" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold">OK</button>
+			`;
+		} else {
+			actionsEl.innerHTML = `<button type="button" onclick="closeErrorModal()" class="px-4 py-2 rounded-lg text-white font-semibold" style="background-color:#144600;">OK</button>`;
+		}
 		modal.classList.remove('hidden');
 	}
 }
@@ -333,8 +346,6 @@ function renderParticipantsTable() {
 		const operationalManagerName = resolveOperationalManagerDisplay(row);
 		const functionalManagerLink = row.manager_functional_id ? `/employees?manager_id=${encodeURIComponent(row.manager_functional_id)}` : null;
 		const operationalManagerLink = row.manager_operational_id ? `/employees?manager_id=${encodeURIComponent(row.manager_operational_id)}` : null;
-		const statusLabel = getParticipantStatusLabel(row.vnb_status);
-		const statusBadgeClass = getParticipantStatusBadgeClass(row.vnb_status);
 		const actionHtml = renderParticipantAction(row);
 
 		return `
@@ -346,6 +357,7 @@ function renderParticipantsTable() {
 				<td>${escapeHtml(row.division || '-')}</td>
 				<td>${escapeHtml(row.department || '-')}</td>
 				<td>${escapeHtml(row.career_stage || '-')}</td>
+				<td>${escapeHtml(row.induction_date || '-')}</td>
 				<td>${escapeHtml(row.phase || 'Planning')}</td>
 				<td>
 					<div class="flex items-center gap-2 min-w-[180px]">
@@ -367,10 +379,8 @@ function renderParticipantsTable() {
 				</td>
 				<td>${escapeHtml(row.vnb_period_start || '-')}</td>
 				<td>${escapeHtml(row.vnb_period_end || '-')}</td>
-				<td>${escapeHtml(row.induction_date || '-')}</td>
 				<td>
 					<div class="flex items-center gap-2">
-						<span class="text-xs px-2 py-1 rounded-full font-semibold ${statusBadgeClass}">${escapeHtml(statusLabel)}</span>
 						${actionHtml}
 					</div>
 				</td>
@@ -477,10 +487,13 @@ function renderParticipantAction(row) {
 		}
 	}
 
-function openAssignModal() {
+function openAssignModal(preservePendingReassign = false) {
 	document.getElementById('assign-modal').classList.remove('hidden');
 	assignModalStep = 'list';
 	selectedAssignEmployeeIds = new Set();
+	if (!preservePendingReassign) {
+		pendingReassignEmployeeId = null;
+	}
 	updateAssignModalStep();
 	loadAssignableEmployees();
 	loadManagerEmployeeDirectory();
@@ -499,6 +512,7 @@ function closeAssignModal() {
 	document.getElementById('assign-results-count').textContent = '0';
 	document.getElementById('assign-confirm-count').textContent = '0';
 	document.getElementById('assign-select-all').checked = false;
+	pendingReassignEmployeeId = null;
 }
 
 async function loadManagerEmployeeDirectory() {
@@ -690,6 +704,12 @@ async function loadAssignableEmployees(overrideQuery = null) {
 		});
 		updateWarningMessage();
 		renderAssignableEmployees();
+		if (pendingReassignEmployeeId) {
+			selectedAssignEmployeeIds = new Set([pendingReassignEmployeeId]);
+			pendingReassignEmployeeId = null;
+			assignModalStep = 'confirm';
+			updateAssignModalStep();
+		}
 	} catch (err) {
 		container.innerHTML = '<tr><td colspan="7" class="text-sm text-red-500 p-4">Gagal memuat data employee</td></tr>';
 	}
@@ -699,9 +719,8 @@ function updateWarningMessage() {
 	const warningEl = document.getElementById('assign-warning-unconfigured');
 	if (!warningEl) return;
 	if (unconfiguredCareerStages.size > 0) {
-		warningEl.classList.remove('hidden');
-	} else {
-		warningEl.classList.add('hidden');
+		const stageList = Array.from(unconfiguredCareerStages).join(', ');
+		showErrorModal(`Career Stage Belum Dikonfigurasi: ${stageList}. Beberapa employee memiliki career stage yang belum dikonfigurasi di VnB Framework. Employee ini tidak bisa didaftarkan sampai framework sudah diatur.`, true);
 	}
 }
 
@@ -871,10 +890,8 @@ function backToAssignListStep() {
 }
 
 function openAssignModalForEmployee(employeeId) {
-	openAssignModal();
-	if (!employeeId) {
-		return;
-	}
+	pendingReassignEmployeeId = employeeId ? String(employeeId) : null;
+	openAssignModal(true);
 }
 
 function updateAssignConfirmList() {
@@ -910,6 +927,12 @@ async function confirmAssignEmployees() {
 			showErrorModal('Pilih minimal satu employee terlebih dahulu.');
 	}
 
+	const inductionDate = getAssignInductionDate();
+	if (!inductionDate || String(inductionDate).trim() === '') {
+		showErrorModal('Tanggal induction harus diisi sebelum mendaftarkan employee ke VnB.');
+		return;
+	}
+
 	const confirmButton = document.querySelector('#assign-step-confirm button[onclick="confirmAssignEmployees()"]');
 	if (confirmButton) {
 		confirmButton.disabled = true;
@@ -927,7 +950,7 @@ async function confirmAssignEmployees() {
 					'X-Requested-With': 'XMLHttpRequest',
 				},
 				body: JSON.stringify({
-					induction_date: getAssignInductionDate(),
+					induction_date: inductionDate,
 				}),
 			});
 			const result = await response.json();
@@ -1014,3 +1037,9 @@ function escapeHtmlAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;'
 loadParticipants();
 </script>
 @endpush
+
+
+
+
+
+
