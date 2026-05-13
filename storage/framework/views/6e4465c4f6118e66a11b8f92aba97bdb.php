@@ -1,15 +1,15 @@
-@extends('layouts.app')
-@section('title','Manage Employee')
-@section('page_title','Manage Employee')
-@section('page_subtitle','Kelola data employee, status lifecycle, dan proses penambahan atau impor data.')
-@section('content')
+
+<?php $__env->startSection('title','Manage Employee'); ?>
+<?php $__env->startSection('page_title','Manage Employee'); ?>
+<?php $__env->startSection('page_subtitle','Kelola data employee, status lifecycle, dan proses penambahan atau impor data.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
-    @php
+    <?php
             $canManageEmployee = auth()->user()?->hasAnyRole(['intercomm', 'pcx_manager']);
             // Temporary toggle: keep feature code, hide buttons from UI for now.
             $showEmployeeActionButtons = false;
-    @endphp
-    @if($canManageEmployee && $showEmployeeActionButtons)
+    ?>
+    <?php if($canManageEmployee && $showEmployeeActionButtons): ?>
         <div class="flex items-center gap-2">
             <button onclick="openImportModal()" class="px-4 py-2 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50">
                 <i class="fas fa-file-import mr-1"></i> Import Employee
@@ -18,7 +18,7 @@
                 <i class="fas fa-plus mr-1"></i> Add Employee
             </button>
         </div>
-    @endif
+    <?php endif; ?>
 
     <div class="bg-white rounded-xl shadow-sm p-4 mb-4 md:mb-0">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -267,7 +267,7 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let allEmployees = [];
 let currentLifecycle = 'active';
@@ -1560,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadEmployees();
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
 <div id="detail-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[85vh] overflow-y-auto">
@@ -1574,4 +1574,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div id="detail-body" class="divide-y divide-gray-100"></div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/employees/index.blade.php ENDPATH**/ ?>

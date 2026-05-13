@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeHistory;
 use App\Models\Manager;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -59,6 +60,8 @@ class HrisController extends Controller
         // Authorize: PCX, Intercomm only
         $this->authorizeHrisAccess('Hanya PCX dan Intercomm yang bisa melakukan sinkronisasi HRIS.');
 
+        $this->ensureManagersFromSourceRows($this->getCombinedSourceRows());
+
         $sourceRow = $this->getCombinedSourceRows()->firstWhere('id', $id);
         if (!$sourceRow) {
             return response()->json([
@@ -93,6 +96,8 @@ class HrisController extends Controller
 
         $comparison = $this->buildComparisonDataset();
         $pendingRows = collect($comparison['pending']);
+
+        $this->ensureManagersFromSourceRows($this->getCombinedSourceRows());
 
         $shouldSyncAll = (bool) $request->boolean('sync_all');
         $requestedIds = collect($request->input('ids', []))->map(fn ($id) => (int) $id)->unique()->values();
@@ -415,8 +420,18 @@ class HrisController extends Controller
         $divisionId = $divisionName === '-' ? null : $this->getDivisionId($divisionName);
         $departmentId = $this->getDepartmentId($divisionId, (string) ($sourceRow['department'] ?? ''));
         $positionId = $this->getPositionId((string) ($sourceRow['position'] ?? ''));
-        $managerFunctionalId = $this->resolveFunctionalManagerId($divisionId);
-        $managerOperationalId = $this->resolveOperationalManagerId($divisionId, $departmentId, (string) ($sourceRow['department'] ?? ''));
+        
+        // FIXED: Use manager names from source data, not auto-resolved managers
+        $managerFunctionalName = trim((string) ($sourceRow['manager_functional'] ?? ''));
+        $managerOperationalName = trim((string) ($sourceRow['manager_operational'] ?? ''));
+        
+        $managerFunctionalId = ($managerFunctionalName && $managerFunctionalName !== '-') 
+            ? $this->resolveManagerIdByName($managerFunctionalName)
+            : null;
+        $managerOperationalId = ($managerOperationalName && $managerOperationalName !== '-') 
+            ? $this->resolveManagerIdByName($managerOperationalName)
+            : null;
+        
         $status = $this->isInactiveEmployeeStatus((string) ($sourceRow['status'] ?? 'Aktif')) ? 'Inactive' : 'Aktif';
 
         return [
@@ -433,9 +448,9 @@ class HrisController extends Controller
             'email' => (string) $sourceRow['email'],
             'whatsapp' => (string) ($sourceRow['whatsapp'] ?? ''),
             'manager_functional_id' => $managerFunctionalId,
-            'manager_functional' => $this->resolveManagerNameById($managerFunctionalId),
+            'manager_functional' => $managerFunctionalName !== '-' ? $managerFunctionalName : null,
             'manager_operational_id' => $managerOperationalId,
-            'manager_operational' => $this->resolveManagerNameById($managerOperationalId),
+            'manager_operational' => $managerOperationalName !== '-' ? $managerOperationalName : null,
             // Every HRIS sync starts as VnB inactive until explicitly assigned.
             'vnb_status' => 'not_started',
             'vnb_period_start' => null,
@@ -512,6 +527,38 @@ class HrisController extends Controller
     }
 
     /**
+     * Resolve manager ID by name.
+     * First tries to find in employees table (since managers are also employees),
+     * then falls back to managers table.
+     */
+    private function resolveManagerIdByName(string $managerName): ?int
+    {
+        if (!$managerName || $managerName === '-') {
+            return null;
+        }
+
+        $managerName = trim($managerName);
+
+        // Try to find in employees table (managers are employees too)
+        $managerId = Employee::query()
+            ->where('name', $managerName)
+            ->where('status', 'Aktif')
+            ->value('id');
+
+        if ($managerId) {
+            return (int) $managerId;
+        }
+
+        // Fallback: Try managers table
+        $managerId = Manager::query()
+            ->where('name', $managerName)
+            ->where('status', 'active')
+            ->value('id');
+
+        return $managerId ? (int) $managerId : null;
+    }
+
+    /**
      * Find General Manager (direktur) ID of a division.
      * GM = Manager with department "General" in the given division.
      */
@@ -532,6 +579,72 @@ class HrisController extends Controller
             ->value('id');
 
         return $managerId ? (int) $managerId : null;
+    }
+
+    private function ensureManagersFromSourceRows(Collection $sourceRows): void
+    {
+        if ($sourceRows->isEmpty()) {
+            return;
+        }
+
+        $rowsByName = $sourceRows
+            ->mapWithKeys(function (array $row): array {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ($name === '') {
+                    return [];
+                }
+
+                return [mb_strtolower($name) => $row];
+            });
+
+        $referencedNames = [];
+        foreach ($sourceRows as $sourceRow) {
+            foreach (['manager_functional', 'manager_operational'] as $field) {
+                $name = trim((string) ($sourceRow[$field] ?? ''));
+                if ($name !== '' && $name !== '-') {
+                    $referencedNames[$name] = true;
+                }
+            }
+
+            $name = trim((string) ($sourceRow['name'] ?? ''));
+            if ($name !== '' && $this->isManagerLevel((string) ($sourceRow['level'] ?? ''))) {
+                $referencedNames[$name] = true;
+            }
+        }
+
+        foreach (array_keys($referencedNames) as $managerName) {
+            $sourceRow = $rowsByName[mb_strtolower($managerName)] ?? null;
+            if (!$sourceRow) {
+                continue;
+            }
+
+            $this->upsertManagerFromSourceRow($sourceRow);
+        }
+    }
+
+    private function upsertManagerFromSourceRow(array $sourceRow): Manager
+    {
+        $divisionId = $this->getDivisionId((string) ($sourceRow['division'] ?? ''));
+        $departmentId = $this->getDepartmentId($divisionId, (string) ($sourceRow['department'] ?? ''));
+
+        return Manager::updateOrCreate(
+            ['email' => (string) ($sourceRow['email'] ?? '')],
+            [
+                'name' => (string) ($sourceRow['name'] ?? ''),
+                'employee_number' => (string) ($sourceRow['employee_number'] ?? ''),
+                'company' => (string) ($sourceRow['company'] ?? ''),
+                'division' => (string) ($sourceRow['division'] ?? ''),
+                'division_id' => $divisionId,
+                'department_id' => $departmentId,
+                'status' => 'active',
+                'user_id' => null,
+            ]
+        );
+    }
+
+    private function isManagerLevel(string $level): bool
+    {
+        return in_array(mb_strtolower(trim($level)), ['direktur', 'manager'], true);
     }
 
     // Mapping helpers copied from SyncEmployeesSeeder to avoid master_* table lookups

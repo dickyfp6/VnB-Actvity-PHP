@@ -20,11 +20,46 @@ class SyncEmployeesSeeder extends Seeder
 
         $now = now();
         $sourceEmployees = DB::table('sync_source_employees')->get();
+        $managerIdMap = []; // Store manager names to IDs for reference resolution
 
+        // First pass: Create managers first, then create all employees with manager IDs from managers table
+        foreach ($sourceEmployees as $sourceEmp) {
+            // If employee is manager level, insert into managers table first
+            if ($this->isManagerLevel($sourceEmp->level)) {
+                $managerId = DB::table('managers')->insertGetId([
+                    'name' => $sourceEmp->name,
+                    'email' => $sourceEmp->email,
+                    'employee_number' => $sourceEmp->employee_number,
+                    'company' => $sourceEmp->company,
+                    'division' => $sourceEmp->division,
+                    'status' => 'active',
+                    'user_id' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+                // Map manager name to the manager ID (from managers table, not employees)
+                $managerIdMap[$sourceEmp->name] = $managerId;
+            }
+        }
+
+        // Second pass: Create all employees with manager IDs
         foreach ($sourceEmployees as $sourceEmp) {
             $divisionId = $this->getDivisionId($sourceEmp->division);
             $departmentId = $this->getDepartmentId($divisionId, $sourceEmp->department);
             $positionId = $this->getPositionId($sourceEmp->position);
+
+            // Resolve manager IDs before inserting employee
+            $managerFunctionalId = null;
+            $managerOperationalId = null;
+
+            if ($sourceEmp->manager_functional && $sourceEmp->manager_functional !== '-') {
+                $managerFunctionalId = $managerIdMap[$sourceEmp->manager_functional] ?? null;
+            }
+
+            if ($sourceEmp->manager_operational && $sourceEmp->manager_operational !== '-') {
+                $managerOperationalId = $managerIdMap[$sourceEmp->manager_operational] ?? null;
+            }
 
             // Insert into employees table
             DB::table('employees')->insert([
@@ -45,26 +80,13 @@ class SyncEmployeesSeeder extends Seeder
                 'manager_operational' => $sourceEmp->manager_operational,
                 'career_stage' => $this->getCareerStageForLevel($sourceEmp->level),
                 'vnb_status' => 'active',
+                'manager_functional_id' => $managerFunctionalId,
+                'manager_operational_id' => $managerOperationalId,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
-
-            // If employee is manager level, also insert into managers table
-            if ($this->isManagerLevel($sourceEmp->level)) {
-                DB::table('managers')->insert([
-                    'name' => $sourceEmp->name,
-                    'email' => $sourceEmp->email,
-                    'employee_number' => $sourceEmp->employee_number,
-                    'company' => $sourceEmp->company,
-                    'division_id' => $divisionId,
-                    'department_id' => $departmentId,
-                    'status' => 'active',
-                    'user_id' => null,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            }
         }
+
 
         $this->command->info('✅ Employees synchronized from source data:');
         $this->command->info('   - Total: ' . DB::table('employees')->count() . ' employees');

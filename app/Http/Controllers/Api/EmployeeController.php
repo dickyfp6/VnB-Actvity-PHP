@@ -95,6 +95,14 @@ class EmployeeController extends Controller
             });
         }
 
+        if ($request->filled('manager_name')) {
+            $managerName = $request->input('manager_name');
+            $query->where(function ($q) use ($managerName) {
+                $q->where('manager_functional', $managerName)
+                  ->orWhere('manager_operational', $managerName);
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {

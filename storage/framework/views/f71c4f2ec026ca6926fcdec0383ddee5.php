@@ -684,6 +684,67 @@
             color: var(--color-neutral-800);
         }
 
+        /* Modern table scrollbar: thin, subtle, and only visible on hover */
+        .table-scroll-host,
+        .overflow-x-auto:has(> table.table-modern),
+        .overflow-auto:has(> table.table-modern),
+        .overflow-x-auto:has(table.table-modern),
+        .overflow-auto:has(table.table-modern) {
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+
+        .table-scroll-host::-webkit-scrollbar,
+        .overflow-x-auto:has(> table.table-modern)::-webkit-scrollbar,
+        .overflow-auto:has(> table.table-modern)::-webkit-scrollbar,
+        .overflow-x-auto:has(table.table-modern)::-webkit-scrollbar,
+        .overflow-auto:has(table.table-modern)::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+
+        .table-scroll-host::-webkit-scrollbar-track,
+        .overflow-x-auto:has(> table.table-modern)::-webkit-scrollbar-track,
+        .overflow-auto:has(> table.table-modern)::-webkit-scrollbar-track,
+        .overflow-x-auto:has(table.table-modern)::-webkit-scrollbar-track,
+        .overflow-auto:has(table.table-modern)::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .table-scroll-host::-webkit-scrollbar-thumb,
+        .overflow-x-auto:has(> table.table-modern)::-webkit-scrollbar-thumb,
+        .overflow-auto:has(> table.table-modern)::-webkit-scrollbar-thumb,
+        .overflow-x-auto:has(table.table-modern)::-webkit-scrollbar-thumb,
+        .overflow-auto:has(table.table-modern)::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 999px;
+            transition: background 0.2s ease;
+        }
+
+        .table-scroll-host:hover,
+        .overflow-x-auto:has(> table.table-modern):hover,
+        .overflow-auto:has(> table.table-modern):hover,
+        .overflow-x-auto:has(table.table-modern):hover,
+        .overflow-auto:has(table.table-modern):hover {
+            scrollbar-color: rgba(20, 70, 0, 0.35) transparent;
+        }
+
+        .table-scroll-host:hover::-webkit-scrollbar-thumb,
+        .overflow-x-auto:has(> table.table-modern):hover::-webkit-scrollbar-thumb,
+        .overflow-auto:has(> table.table-modern):hover::-webkit-scrollbar-thumb,
+        .overflow-x-auto:has(table.table-modern):hover::-webkit-scrollbar-thumb,
+        .overflow-auto:has(table.table-modern):hover::-webkit-scrollbar-thumb {
+            background: rgba(20, 70, 0, 0.28);
+        }
+
+        .table-scroll-host:hover::-webkit-scrollbar-thumb:hover,
+        .overflow-x-auto:has(> table.table-modern):hover::-webkit-scrollbar-thumb:hover,
+        .overflow-auto:has(> table.table-modern):hover::-webkit-scrollbar-thumb:hover,
+        .overflow-x-auto:has(table.table-modern):hover::-webkit-scrollbar-thumb:hover,
+        .overflow-auto:has(table.table-modern):hover::-webkit-scrollbar-thumb:hover {
+            background: rgba(20, 70, 0, 0.4);
+        }
+
         /* Badge Status */
         .badge {
             display: inline-block;

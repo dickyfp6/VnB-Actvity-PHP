@@ -131,11 +131,17 @@ use App\Http\Controllers\Controller;
             ->first();
 
         if ($existingPlan) {
+            // Get phases for existing plan
+            $careerStageCode = $existingPlan->employee->getCareerStageCode();
+            $phasesList = $this->getPhasesList($careerStageCode, $existingPlan->employee->induction_date);
+
             return response()->json([
                 'success' => true,
                 'data' => $existingPlan->load(['items', 'period']),
                 'deadline' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->addDays(7)->toDateString() : null,
                 'career_stage' => $existingPlan->employee->getCareerStage(),
+                'induction_date' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->toDateString() : null,
+                'phases' => $phasesList,
             ]);
         }
 
@@ -224,13 +230,104 @@ use App\Http\Controllers\Controller;
             VnbPlanItem::insert($itemsToInsert);
         }
 
+        // Get phases list for response
+        $phasesList = $this->getPhasesList($careerStageCode, $employee->induction_date);
+
         return response()->json([
             'success' => true,
             'message' => 'Plan template berhasil dibuat',
             'data' => $plan->load(['items', 'period']),
             'deadline' => $employee->induction_date ? $employee->induction_date->addDays(7)->toDateString() : null,
             'career_stage' => $employee->getCareerStage(),
+            'induction_date' => $employee->induction_date ? $employee->induction_date->toDateString() : null,
+            'phases' => $phasesList,
         ], 201);
+    }
+
+    /**
+     * Helper: Get phases list for career stage from framework items
+     * Returns array like: [
+     *     { "phase": "Fase 1 (1 Bulan)", "label": "Fase 1", "duration": "1 bulan" },
+     *     { "phase": "Fase 2 (1 Bulan)", "label": "Fase 2", "duration": "1 bulan" },
+     *     ...
+     * ]
+     */
+    private function getPhasesList(string $careerStageCode, mixed $inductionDate = null): array
+    {
+        $phases = VnbFrameworkItem::where('career_stage', $careerStageCode)
+            ->distinct('phase')
+            ->pluck('phase')
+            ->map(function (string $phase): array {
+                preg_match('/Fase\s+(\d+)/i', $phase, $matches);
+
+                return [
+                    'phase' => $phase,
+                    'phase_number' => isset($matches[1]) ? (int) $matches[1] : 999,
+                ];
+            })
+            ->sortBy('phase_number')
+            ->values();
+
+        $phaseStart = $inductionDate ? Carbon::parse($inductionDate)->startOfDay() : null;
+
+        return $phases->map(function (array $phaseData, int $index) use (&$phaseStart) {
+            $phase = $phaseData['phase'];
+            $phaseNum = $index + 1;
+            $durationMonths = 1;
+            $label = "Fase $phaseNum";
+            $startDate = $phaseStart ? $phaseStart->copy() : null;
+            $endDate = null;
+
+            // Parse phase string to extract duration
+            // Expected formats:
+            // - "Fase 1 (1 Bulan)" 
+            // - "1-3"
+            // - "4-6"
+            // - "6+"
+            
+            if (preg_match('/Fase\s+(\d+)\s+\((\d+)\s+Bulan\)/i', $phase, $matches)) {
+                // Format: "Fase 1 (1 Bulan)"
+                $phaseNumInString = (int) $matches[1];
+                $durationMonths = (int) $matches[2];
+                $label = "Fase $phaseNumInString";
+            } elseif (preg_match('/^(\d+)-(\d+)$/', $phase, $matches)) {
+                // Format: "1-3", "4-6", "7-12"
+                $start = (int) $matches[1];
+                $end = (int) $matches[2];
+                $durationMonths = $end - $start + 1;
+            } elseif (preg_match('/^(\d+)\+$/', $phase, $matches)) {
+                // Format: "6+", "7+" (open-ended)
+                $start = (int) $matches[1];
+                $durationMonths = 12 - $start + 1; // Until end of year
+            } elseif (preg_match('/^\d+$/', $phase)) {
+                // Format: "1", "2", "3" (single month/phase)
+                $durationMonths = 1;
+            } else {
+                // Fallback: try to extract any number
+                if (preg_match('/\d+/', $phase, $matches)) {
+                    $durationMonths = (int) $matches[0];
+                }
+                if ($durationMonths < 1) {
+                    $durationMonths = 1;
+                }
+            }
+
+            $durationLabel = $durationMonths . ' bulan';
+
+            if ($startDate) {
+                $endDate = $startDate->copy()->addMonthsNoOverflow($durationMonths)->subDay()->startOfDay();
+                $phaseStart = $endDate->copy()->addDay();
+            }
+
+            return [
+                'phase' => $phase,
+                'label' => $label,
+                'duration' => $durationLabel,
+                'duration_months' => $durationMonths,
+                'start_date' => $startDate ? $startDate->toDateString() : null,
+                'end_date' => $endDate ? $endDate->toDateString() : null,
+            ];
+        })->toArray();
     }
 
     /**

@@ -226,9 +226,26 @@ class VnbActivityController extends Controller
         $user = auth()->user();
         abort_unless($user && ($user->hasRole('pcx_manager') || $user->hasRole('intercomm')), 403, 'Anda tidak memiliki akses ke daftar participants VnB.');
 
-        $employees = Employee::query()
-            ->whereIn('vnb_status', ['active', 'completed', 'canceled'])
-            ->with([
+        $query = Employee::query()
+            ->whereIn('vnb_status', ['active', 'completed', 'canceled']);
+
+        if ($request->filled('manager_id')) {
+            $managerId = (int) $request->manager_id;
+            $query->where(function ($q) use ($managerId) {
+                $q->where('manager_functional_id', $managerId)
+                  ->orWhere('manager_operational_id', $managerId);
+            });
+        }
+
+        if ($request->filled('manager_name')) {
+            $managerName = $request->manager_name;
+            $query->where(function ($q) use ($managerName) {
+                $q->where('manager_functional', $managerName)
+                  ->orWhere('manager_operational', $managerName);
+            });
+        }
+
+        $employees = $query->with([
                 'division',
                 'department',
                 'position',
@@ -275,9 +292,7 @@ class VnbActivityController extends Controller
             ->map(function (Employee $employee) use ($assignmentsByUserId, $progressMap, $latestPlanMap) {
                 $assignment = $employee->user ? $assignmentsByUserId->get($employee->user->id) : null;
                 $latestPlan = $latestPlanMap->get($employee->id);
-                $periodStart = $assignment?->induction_date
-                    ?? $employee->induction_date
-                    ?? $employee->date_joined;
+                $periodStart = $assignment?->induction_date;
                 $periodEnd = $periodStart
                     ? Carbon::parse($periodStart)->copy()->addYear()->subDay()
                     : null;
@@ -331,12 +346,12 @@ class VnbActivityController extends Controller
     public function assignParticipant(Request $request, int $employeeId): JsonResponse
     {
         $validated = $request->validate([
-            'induction_date' => ['nullable', 'date'],
+            'induction_date' => ['required', 'date'],
         ]);
 
         $employee = Employee::query()->with('user')->findOrFail($employeeId);
         $user = $employee->user;
-        $periodStart = Carbon::parse($validated['induction_date'] ?? $employee->induction_date ?? $employee->date_joined ?? now());
+        $periodStart = Carbon::parse($validated['induction_date']);
         $careerStageCode = $employee->getCareerStageCode();
 
         if (in_array($employee->vnb_status, ['active', 'completed'], true)) {
@@ -386,7 +401,7 @@ class VnbActivityController extends Controller
                 'is_active' => true,
                 'notes' => null,
                 'assigned_at' => now(),
-                'induction_date' => $validated['induction_date'] ?? null,
+                'induction_date' => $validated['induction_date'],
                 'revoked_at' => null,
             ];
 

@@ -12,6 +12,9 @@ return new class extends Migration
      * Make manager_functional_id NOT NULLABLE (required field)
      * Rule: Every employee MUST have a functional manager
      * Operational manager is OPTIONAL (can be null)
+     * 
+     * NOTE: This migration is superseded by 2026_05_04_000002 which reverts to NULLABLE
+     * to support OS (Outsource) employees. Keeping this for reference but it will be rolled back.
      */
     public function up(): void
     {
@@ -31,12 +34,8 @@ return new class extends Migration
                 ->update(['manager_functional_id' => $defaultManagerId]);
         }
 
-        Schema::table('employees', function (Blueprint $table) {
-            // Make manager_functional_id NOT NULL
-            $table->foreignId('manager_functional_id')
-                ->nullable(false)
-                ->change();
-        });
+        // Use raw SQL - more robust than Schema::change() for this type of modification
+        DB::statement('ALTER TABLE employees MODIFY manager_functional_id BIGINT UNSIGNED NOT NULL');
     }
 
     /**
@@ -44,11 +43,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            // Revert to nullable
-            $table->foreignId('manager_functional_id')
-                ->nullable()
-                ->change();
-        });
+        // Use raw SQL to change column back to nullable
+        DB::statement('ALTER TABLE employees MODIFY manager_functional_id BIGINT UNSIGNED NULL');
     }
 };
+

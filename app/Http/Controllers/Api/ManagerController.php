@@ -33,57 +33,71 @@ class ManagerController extends Controller
         // Get all managers from employee table
         $query = Employee::query()
             ->with(['division', 'department', 'position'])
-            ->where('status', 'Aktif')
+            ->where('employees.status', 'Aktif')
             ->where(function($q) {
-                $q->where('level', 'Manager')
-                  ->orWhere('level', 'Director')
-                  ->orWhere('level', 'manager') // extra safety
-                  ->orWhere('level', 'director');
+                $q->where('employees.level', 'Manager')
+                  ->orWhere('employees.level', 'Director')
+                  ->orWhere('employees.level', 'manager') // extra safety
+                  ->orWhere('employees.level', 'director');
             });
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('employee_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
+                $q->where('employees.name', 'like', '%' . $request->search . '%')
+                  ->orWhere('employees.employee_number', 'like', '%' . $request->search . '%')
+                  ->orWhere('employees.email', 'like', '%' . $request->search . '%');
             });
         }
 
-        $managers = $query->orderBy('name')->get();
+        $managers = $query->orderBy('employees.name')->get();
 
-        // Get subordinates count for each manager
-        $managerIds = $managers->pluck('id')->toArray();
+        // Get manager names for counting
+        $managerNames = $managers->pluck('name')->filter()->unique()->toArray();
         
-        // Count subordinates assigned to VnB based on active assignment records.
-        // This keeps VnB's Employee independent from employee.vnb_status.
-        if (Schema::hasTable('vnb_activity_assignments') && Schema::hasTable('users')) {
-            $subordinatesAssignedByManager = DB::table('employees')
-                ->leftJoin('users', 'users.employee_id', '=', 'employees.id')
-                ->join('vnb_activity_assignments', function ($join): void {
-                    $join->on('vnb_activity_assignments.user_id', '=', 'users.id')
-                        ->where('vnb_activity_assignments.is_active', true);
+        $subordinatesAssignedByManager = collect();
+        $subordinatesTotalByManager = collect();
+
+        if (!empty($managerNames)) {
+            // Count subordinates assigned to VnB based on active assignment records.
+            if (Schema::hasTable('vnb_activity_assignments') && Schema::hasTable('users')) {
+                $allAssignedSubordinates = DB::table('employees')
+                    ->leftJoin('users', 'users.employee_id', '=', 'employees.id')
+                    ->join('vnb_activity_assignments', function ($join): void {
+                        $join->on('vnb_activity_assignments.user_id', '=', 'users.id')
+                            ->where('vnb_activity_assignments.is_active', true);
+                    })
+                    ->where(function($q) use ($managerNames) {
+                        $q->whereIn('employees.manager_functional', $managerNames)
+                          ->orWhereIn('employees.manager_operational', $managerNames);
+                    })
+                    ->get(['employees.id', 'employees.manager_functional', 'employees.manager_operational']);
+
+                foreach ($managerNames as $name) {
+                    $subordinatesAssignedByManager[$name] = $allAssignedSubordinates->filter(fn($row) => 
+                        $row->manager_functional === $name || $row->manager_operational === $name
+                    )->unique('id')->count();
+                }
+            }
+
+            // Count total subordinates for each manager name
+            $allTotalSubordinates = DB::table('employees')
+                ->where(function($q) use ($managerNames) {
+                    $q->whereIn('manager_functional', $managerNames)
+                      ->orWhereIn('manager_operational', $managerNames);
                 })
-                ->whereIn('employees.manager_functional_id', $managerIds)
-                ->groupBy('employees.manager_functional_id')
-                ->selectRaw('employees.manager_functional_id, COUNT(DISTINCT employees.id) as count')
-                ->pluck('count', 'employees.manager_functional_id');
-        } else {
-            $subordinatesAssignedByManager = collect();
+                ->get(['id', 'manager_functional', 'manager_operational']);
+
+            foreach ($managerNames as $name) {
+                $subordinatesTotalByManager[$name] = $allTotalSubordinates->filter(fn($row) => 
+                    $row->manager_functional === $name || $row->manager_operational === $name
+                )->unique('id')->count();
+            }
         }
 
-        // Count total subordinates for each manager (functional role)
-        $subordinatesTotalByManager = DB::table('employees')
-            ->whereIn('manager_functional_id', $managerIds)
-            ->groupBy('manager_functional_id')
-            ->selectRaw('manager_functional_id, COUNT(*) as count')
-            ->pluck('count', 'manager_functional_id');
-
-        $rows = $managers->map(function (Employee $manager) use ($subordinatesAssignedByManager, $subordinatesTotalByManager) {
-            $subordinatesAssigned = $subordinatesAssignedByManager[$manager->id] ?? 0;
-            $subordinatesTotal = $subordinatesTotalByManager[$manager->id] ?? 0;
-
-            // TODO: Count STAR submissions by this manager (when STAR module is fully implemented)
-            $starSubmissions = 0;
+        $rows = $managers->map(function ($manager) use ($subordinatesAssignedByManager, $subordinatesTotalByManager) {
+            $name = $manager->name;
+            $subordinatesAssigned = $subordinatesAssignedByManager[$name] ?? 0;
+            $subordinatesTotal = $subordinatesTotalByManager[$name] ?? 0;
 
             return [
                 'id' => $manager->id,
@@ -100,7 +114,8 @@ class ManagerController extends Controller
                 'status' => $manager->status,
                 'vnb_employee_count' => $subordinatesAssigned,
                 'total_subordinates' => $subordinatesTotal,
-                'star_submissions_count' => $starSubmissions,
+                'total_employee_count' => $subordinatesTotal,
+                'star_submissions_count' => 0,
             ];
         })->values();
 
