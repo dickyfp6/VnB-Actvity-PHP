@@ -67,9 +67,9 @@
 
                         <!-- Action Buttons (On the same line) -->
                         <div class="flex items-center gap-3">
-                            <button id="save-draft-btn" onclick="saveDraft()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200" title="Simpan sebagai draft">
-                                <i class="fas fa-floppy-disk text-xs"></i>
-                                <span class="text-sm font-bold">Simpan Draft</span>
+                            <button id="save-draft-btn" onclick="toggleDraftMode()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200" title="Masuk mode edit draft">
+                                <i class="fas fa-pen-to-square text-xs"></i>
+                                <span class="text-sm font-bold">Ubah Draft</span>
                             </button>
                             <button id="submit-plan-btn" onclick="submitPlan()" class="btn-primary px-7 py-2.5 flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200" title="Ajukan rencana untuk approval">
                                 <i class="fas fa-paper-plane text-xs"></i>
@@ -92,6 +92,7 @@
 <script>
 let currentPlan = null;
 let hasUnsavedChanges = false;
+let isDraftEditingMode = false;
 let editingIntegrations = new Set(); // Track which (itemId_integIdx) pairs are in edit mode
 let phases = {}; // Will be populated dynamically from API response
 
@@ -171,6 +172,8 @@ async function loadEmployeePlan() {
         currentPlan.career_stage = res.career_stage;
         currentPlan.induction_date = res.induction_date;
         hasUnsavedChanges = false;
+        isDraftEditingMode = false;
+        editingIntegrations.clear();
         
         // Render phase boxes dynamically if phases data is available
         if (res.phases && res.phases.length > 0) {
@@ -180,6 +183,7 @@ async function loadEmployeePlan() {
         renderItemsByPhase();
         updateProgressBar();
         renderEmployeeHeader();
+        syncDraftActionButton();
         
         // Disable buttons if waiting for approval
         const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
@@ -409,10 +413,9 @@ function renderPhaseTable(bodyId, items) {
             });
         }
         
-        // Check if this item has been saved (has deliverables content)
-        // Empty deliverables = not saved yet
         const isSaved = item.deliverables && item.deliverables.trim().length > 0 && item.deliverables.trim() !== '-';
         const deliverables = item.deliverables || '';
+        const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
         
         // For each integration, create a row
         if (item.id === 1) console.log(`Rendering ${integrationList.length} integrations for item ${item.id}`);
@@ -434,7 +437,11 @@ function renderPhaseTable(bodyId, items) {
             // Get status for THIS specific integration based on its rencana
             const statusConfig = getItemStatusConfig(item, currentPlan?.status, thisIntegrationRencana);
             
-            const textareaId = `act_${item.id}`;
+            const textareaId = integIdx === 0 ? `act_${item.id}` : `plan_${item.id}_${integIdx}`;
+            const currentRencana = integIdx === 0
+                ? (deliverables.split('\n---\n')[0] || '')
+                : ((isSaved ? item.deliverables.split('\n---\n')[integIdx] : '') || '');
+            const displayRencana = currentRencana === '-' ? '' : currentRencana;
             const statusCell = `<td class="px-4 py-3 w-1/6 align-top">
                 <div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusConfig.bgColor}; color: ${statusConfig.textColor}; border-left: 3px solid ${statusConfig.borderColor};">
                     <span>${statusConfig.badge}</span>
@@ -443,138 +450,45 @@ function renderPhaseTable(bodyId, items) {
                 ${statusConfig.hasNotes ? `<div class="mt-2 text-xs italic text-red-700 bg-red-50 p-2 rounded border-l-2 border-red-300">"${escapeHtml(statusConfig.notes)}"</div>` : ''}
             </td>`;
             
-            if (integIdx === 0) {
-                // First row: include behaviour and deliverables section
-                // Integration column is always READ-ONLY (display only)
-                
-                // Check if THIS specific integration's rencana is saved
-                const firstRencana = deliverables.split('\n---\n')[0] || '';
-                const isThisIntegrationSaved = isSaved && firstRencana.trim().length > 0 && firstRencana.trim() !== '-';
-                const isThisIntegrationEditing = editingIntegrations.has(`${item.id}_${integIdx}`);
-                
-                if (isThisIntegrationEditing) {
-                    // EDIT MODE: Integration display-only, rencana is editable textarea
-                    html += `
+            if (isDraftEditingMode) {
+                html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
+                <td class="px-4 py-3 ${integIdx === 0 ? 'text-sm font-medium w-1/6 align-top' : ''}">${integIdx === 0 ? escapeHtml(behaviour) : ''}</td>
                 <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
                 <td class="px-4 py-3 w-1/3 align-top">
-                    <div class="flex gap-2 items-start">
-                        <textarea id="${textareaId}" rows="3" class="flex-1 border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;">${escapeHtml(firstRencana === '-' ? '' : firstRencana)}</textarea>
-                        <button onclick="cancelEditIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap self-start hover:bg-red-200">✕</button>
-                    </div>
+                    <textarea id="${textareaId}" rows="3" class="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." ${isWaitingApproval ? 'disabled' : ''} onchange="hasUnsavedChanges = true;">${escapeHtml(displayRencana)}</textarea>
                 </td>
                 ${statusCell}
             </tr>
-                    `;
-                } else if (isThisIntegrationSaved) {
-                    // SAVED MODE: Both display-only with Edit button for THIS integration only
-                    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
-                    const editButton = !isWaitingApproval 
-                        ? `<button onclick="editIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded whitespace-nowrap hover:bg-blue-200">✎ Edit</button>`
-                        : '';
-                    html += `
+                `;
+            } else if (displayRencana.trim().length > 0) {
+                html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
+                <td class="px-4 py-3 ${integIdx === 0 ? 'text-sm font-medium w-1/6 align-top' : ''}">${integIdx === 0 ? escapeHtml(behaviour) : ''}</td>
                 <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
                 <td class="px-4 py-3 w-1/3 align-top">
-                    <div class="flex justify-between gap-3 items-start">
-                        <div class="flex-1 text-sm text-gray-800 bg-gray-50 rounded px-3 py-2">${escapeHtml(firstRencana).replace(/\n/g, '<br>')}</div>
-                        ${editButton}
-                    </div>
+                    <div class="text-sm text-gray-800 bg-gray-50 rounded px-3 py-2">${escapeHtml(displayRencana).replace(/\n/g, '<br>')}</div>
                 </td>
                 ${statusCell}
             </tr>
-                    `;
-                } else {
-                    // UNSAVED MODE: Integration display-only, rencana empty textbox (NO button)
-                    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
-                    const textareaDisabled = isWaitingApproval ? 'disabled' : '';
-                    const textareaBgClass = isWaitingApproval ? 'bg-gray-50 cursor-not-allowed' : '';
-                    html += `
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium w-1/6 align-top">${escapeHtml(behaviour)}</td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
-                </td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <textarea id="${textareaId}" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${textareaBgClass}" placeholder="Rencana aktivitas..." ${textareaDisabled} onchange="hasUnsavedChanges = true;"></textarea>
-                </td>
-                ${statusCell}
-            </tr>
-                    `;
-                }
+                `;
             } else {
-                // Subsequent rows: integration (display only) + rencana (editable with own button)
-                
-                // Check if THIS specific integration's rencana is saved
-                const rencanaLines = isSaved ? item.deliverables.split('\n---\n') : [];
-                const thisRencana = rencanaLines[integIdx] ? rencanaLines[integIdx].trim() : '';
-                const isThisIntegrationSaved = thisRencana.length > 0 && thisRencana !== '-';
-                const isThisIntegrationEditing = editingIntegrations.has(`${item.id}_${integIdx}`);
-                
-                // Always render subsequent integrations (don't skip)
-                
-                if (isThisIntegrationEditing) {
-                    // Edit mode - integration display-only, rencana editable
-                    html += `
+                html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3"></td>
+                <td class="px-4 py-3 ${integIdx === 0 ? 'text-sm font-medium w-1/6 align-top' : ''}">${integIdx === 0 ? escapeHtml(behaviour) : ''}</td>
                 <td class="px-4 py-3 w-1/3 align-top">
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
                 <td class="px-4 py-3 w-1/3 align-top">
-                    <div class="flex gap-2 items-start">
-                        <textarea id="plan_${item.id}_${integIdx}" rows="3" class="flex-1 border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." onchange="hasUnsavedChanges = true;">${escapeHtml(thisRencana === '-' ? '' : thisRencana)}</textarea>
-                        <button onclick="cancelEditIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded whitespace-nowrap self-start hover:bg-red-200">✕</button>
-                    </div>
+                    <div class="text-sm text-gray-400 italic bg-gray-50 rounded px-3 py-2">-</div>
                 </td>
                 ${statusCell}
             </tr>
-                    `;
-                } else if (isThisIntegrationSaved) {
-                    // Saved mode for subsequent integrations - text display with Edit button for THIS integration
-                    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
-                    const editButton = !isWaitingApproval 
-                        ? `<button onclick="editIntegration(${item.id}, ${integIdx})" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded whitespace-nowrap hover:bg-blue-200">✎ Edit</button>`
-                        : '';
-                    html += `
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3"></td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
-                </td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <div class="flex justify-between gap-3 items-start">
-                        <div class="flex-1 text-sm text-gray-800 bg-gray-50 rounded px-3 py-2">${escapeHtml(thisRencana).replace(/\n/g, '<br>')}</div>
-                        ${editButton}
-                    </div>
-                </td>
-                ${statusCell}
-            </tr>
-                    `;
-                } else {
-                    // Unsaved mode for subsequent integrations - integration display only, rencana textbox (NO button)
-                    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
-                    const textareaDisabled = isWaitingApproval ? 'disabled' : '';
-                    const textareaBgClass = isWaitingApproval ? 'bg-gray-50 cursor-not-allowed' : '';
-                    html += `
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3"></td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
-                </td>
-                <td class="px-4 py-3 w-1/3 align-top">
-                    <textarea id="plan_${item.id}_${integIdx}" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${textareaBgClass}" placeholder="Rencana aktivitas..." ${textareaDisabled} onchange="hasUnsavedChanges = true;"></textarea>
-                </td>
-                ${statusCell}
-            </tr>
-                    `;
-                }
+                `;
             }
         }
     });
@@ -582,22 +496,49 @@ function renderPhaseTable(bodyId, items) {
     tbody.innerHTML = html;
 }
 
-function editIntegration(itemId, integIdx) {
-    editingIntegrations.add(`${itemId}_${integIdx}`);
-    renderItemsByPhase();
-    
-    // Focus textarea after render
-    setTimeout(() => {
-        const textarea = integIdx === 0 ? 
-            document.getElementById(`act_${itemId}`) :
-            document.getElementById(`plan_${itemId}_${integIdx}`);
-        if (textarea) textarea.focus();
-    }, 0);
+function syncDraftActionButton() {
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    if (!saveDraftBtn) {
+        return;
+    }
+
+    const icon = saveDraftBtn.querySelector('i');
+    const label = saveDraftBtn.querySelector('span');
+    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
+
+    saveDraftBtn.disabled = isWaitingApproval;
+    saveDraftBtn.classList.toggle('opacity-50', isWaitingApproval);
+    saveDraftBtn.style.cursor = isWaitingApproval ? 'not-allowed' : 'pointer';
+
+    if (icon) {
+        icon.className = isDraftEditingMode ? 'fas fa-floppy-disk text-xs' : 'fas fa-pen-to-square text-xs';
+    }
+
+    if (label) {
+        label.textContent = isDraftEditingMode ? 'Simpan Draft' : 'Ubah Draft';
+    }
+
+    saveDraftBtn.title = isDraftEditingMode
+        ? 'Simpan semua perubahan draft'
+        : 'Masuk mode edit untuk semua integrasi';
 }
 
-function cancelEditIntegration(itemId, integIdx) {
-    editingIntegrations.delete(`${itemId}_${integIdx}`);
-    renderItemsByPhase();
+function toggleDraftMode() {
+    const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
+    if (isWaitingApproval) {
+        showAlert('Rencana sedang menunggu approval dari manager. Tidak bisa diubah.', 'warning');
+        return;
+    }
+
+    if (!isDraftEditingMode) {
+        isDraftEditingMode = true;
+        editingIntegrations.clear();
+        renderItemsByPhase();
+        syncDraftActionButton();
+        return;
+    }
+
+    saveDraft();
 }
 
 function extractBehaviour(title) {
@@ -796,12 +737,9 @@ function collectUpdatedItems() {
                 allRencanaList.push(rencana);
             }
             
-            // Filter only non-empty rencana and join with separator
-            const filledRencana = allRencanaList
-                .filter(r => r.trim().length > 0)
-                .join('\n---\n');
-            
-            finalDeliverables = filledRencana.trim().length === 0 ? '' : filledRencana;
+            // Preserve ALL slots with separator (use '-' for empty slots to maintain positions)
+            const rencanaWithPlaceholders = allRencanaList.map(r => r.trim().length > 0 ? r : '-');
+            finalDeliverables = rencanaWithPlaceholders.join('\n---\n');
         } else {
             // Textareas don't exist in DOM (already saved, just displaying)
             // Use existing deliverables from currentPlan
@@ -840,12 +778,14 @@ async function saveDraft() {
     
     if (res.success) {
         hasUnsavedChanges = false;
-        editingIntegrations.clear(); // Clear all editing modes after save
+        isDraftEditingMode = false;
+        editingIntegrations.clear();
         currentPlan = res.data;
         
         // Render items first
         renderItemsByPhase();
         updateProgressBar();
+        syncDraftActionButton();
         
         // Get updated progress for notification
         let totalSlots = 0;
@@ -933,13 +873,14 @@ async function submitPlan() {
                 textareaValue = textarea.value || '';
             } else {
                 // Textarea doesn't exist - get from currentPlan.deliverables (already saved)
-                if (item.deliverables && item.deliverables.trim().length > 0 && item.deliverables.trim() !== '-') {
+                if (item.deliverables && item.deliverables.trim().length > 0) {
                     const rencanaLines = item.deliverables.split('\n---\n');
                     textareaValue = rencanaLines[integIdx] ? rencanaLines[integIdx].trim() : '';
                 }
             }
             
-            if (!textareaValue || textareaValue.trim().length === 0) {
+            // Check empty: undefined, empty string, only whitespace, or placeholder "-"
+            if (!textareaValue || textareaValue.trim().length === 0 || textareaValue.trim() === '-') {
                 emptyFields.push({ itemId: item.id, integIdx: integIdx });
             }
         }
@@ -980,9 +921,13 @@ async function submitPlan() {
 
     const res = await apiPost(`/api/vnb-plans/${currentPlan.id}/submit-approval`, {});
     if (res.success) {
+        hasUnsavedChanges = false;
+        isDraftEditingMode = false;
+        editingIntegrations.clear();
         showAlert(res.message || 'Rencana berhasil diajukan');
         currentPlan = res.data;
         renderItemsByPhase();
+        syncDraftActionButton();
     } else {
         showAlert(res.message || res.error || 'Gagal mengajukan rencana', 'error');
     }

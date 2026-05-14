@@ -291,6 +291,8 @@ class HrisController extends Controller
             'division' => 'division_id',
             'department' => 'department_id',
             'position' => 'position_id',
+            'manager_functional' => 'manager_functional',
+            'manager_operational' => 'manager_operational',
         ];
         $fieldLabels = [
             'name' => 'Nama',
@@ -305,6 +307,8 @@ class HrisController extends Controller
             'division' => 'Divisi',
             'department' => 'Departemen',
             'position' => 'Jabatan',
+            'manager_functional' => 'Manager Fungsional',
+            'manager_operational' => 'Manager Operasional',
         ];
 
         $changes = [];
@@ -317,6 +321,10 @@ class HrisController extends Controller
             );
 
             if ($sourceKey === 'division' && trim($sourceValue) === '-') {
+                $sourceValue = '';
+            }
+
+            if (in_array($sourceKey, ['manager_functional', 'manager_operational'], true) && trim($sourceValue) === '-') {
                 $sourceValue = '';
             }
 
@@ -539,23 +547,12 @@ class HrisController extends Controller
 
         $managerName = trim($managerName);
 
-        // Try to find in employees table (managers are employees too)
-        $managerId = Employee::query()
-            ->where('name', $managerName)
-            ->where('status', 'Aktif')
-            ->value('id');
-
-        if ($managerId) {
-            return (int) $managerId;
-        }
-
-        // Fallback: Try managers table
-        $managerId = Manager::query()
+        // ALWAYS resolve from managers table as manager_functional_id/manager_operational_id
+        // are foreign keys referencing the managers table, not the employees table.
+        return (int) Manager::query()
             ->where('name', $managerName)
             ->where('status', 'active')
             ->value('id');
-
-        return $managerId ? (int) $managerId : null;
     }
 
     /**

@@ -13,13 +13,14 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 
 class VnbPlanController extends Controller
 {
     /**
      * Map employee level (from HRIS) to career stage code
-     * Uses the same logic as Employee::mapLevelToCareerStage() 
-use App\Http\Controllers\Controller;
+     * Uses the same logic as Employee::mapLevelToCareerStage()
      * Returns the underscore-format code for framework lookups
      */
     private function mapLevelToCareerStageCode($level): string
@@ -138,7 +139,7 @@ use App\Http\Controllers\Controller;
             return response()->json([
                 'success' => true,
                 'data' => $existingPlan->load(['items', 'period', 'employee.managerFunctional', 'employee.managerOperational']),
-                'deadline' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->addDays(7)->toDateString() : null,
+                'deadline' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->copy()->addDays(7)->toDateString() : null,
                 'career_stage' => $existingPlan->employee->getCareerStage(),
                 'induction_date' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->toDateString() : null,
                 'phases' => $phasesList,
@@ -237,7 +238,7 @@ use App\Http\Controllers\Controller;
             'success' => true,
             'message' => 'Plan template berhasil dibuat',
             'data' => $plan->load(['items', 'period', 'employee.managerFunctional', 'employee.managerOperational']),
-            'deadline' => $employee->induction_date ? $employee->induction_date->addDays(7)->toDateString() : null,
+            'deadline' => $employee->induction_date ? $employee->induction_date->copy()->addDays(7)->toDateString() : null,
             'career_stage' => $employee->getCareerStage(),
             'induction_date' => $employee->induction_date ? $employee->induction_date->toDateString() : null,
             'phases' => $phasesList,
@@ -268,7 +269,7 @@ use App\Http\Controllers\Controller;
             ->sortBy('phase_number')
             ->values();
 
-        $phaseStart = $inductionDate ? Carbon::parse($inductionDate)->startOfDay() : null;
+        $phaseStart = $inductionDate ? Carbon::parse($inductionDate)->startOfDay() : now()->startOfDay();
 
         return $phases->map(function (array $phaseData, int $index) use (&$phaseStart) {
             $phase = $phaseData['phase'];
@@ -315,7 +316,8 @@ use App\Http\Controllers\Controller;
             $durationLabel = $durationMonths . ' bulan';
 
             if ($startDate) {
-                $endDate = $startDate->copy()->addMonthsNoOverflow($durationMonths)->startOfDay();
+                // Inclusive range: subtract 1 day from end date (e.g., 13 May to 12 June)
+                $endDate = $startDate->copy()->addMonthsNoOverflow($durationMonths)->subDay()->startOfDay();
                 $phaseStart = $endDate->copy()->addDay();
             }
 

@@ -1,8 +1,7 @@
-@extends('layouts.app')
-@section('title','Detail Employee')
-@section('page_title','Detail Employee')
-@section('page_subtitle','Lihat detail profil dan status kemajuan VnB untuk satu employee.')
-@section('content')
+<?php $__env->startSection('title','Detail Employee'); ?>
+<?php $__env->startSection('page_title','Detail Employee'); ?>
+<?php $__env->startSection('page_subtitle','Lihat detail profil dan status kemajuan VnB untuk satu employee.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6">
     <!-- Header Card -->
     <div class="card-glass rounded-xl p-6 md:p-8 flex flex-col md:flex-row md:justify-between md:items-center gap-6">
@@ -11,7 +10,7 @@
             <p class="text-sm text-gray-500 mt-1" id="header-employee-role">Memuat...</p>
         </div>
         <div class="flex gap-2 flex-shrink-0">
-            <a href="{{ $backUrl }}" class="btn-secondary flex items-center gap-2 hover:bg-gray-50">
+            <a href="<?php echo e($backUrl); ?>" class="btn-secondary flex items-center gap-2 hover:bg-gray-50">
                 <i class="fas fa-arrow-left"></i> Kembali
             </a>
         </div>
@@ -259,9 +258,9 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
-const employeeId = @json($employeeId);
+const employeeId = <?php echo json_encode($employeeId, 15, 512) ?>;
 
 function switchTab(tabId) {
     // Hide all tabs
@@ -926,5 +925,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDetail();
 });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/employees/detail.blade.php ENDPATH**/ ?>

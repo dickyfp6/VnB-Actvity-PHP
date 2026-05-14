@@ -1,8 +1,8 @@
-@extends('layouts.app')
-@section('title','Manager - Approval Request')
-@section('page_title','Manager Approval Request')
-@section('page_subtitle','Review dan setujui permintaan yang masuk dari employee dalam satu dashboard.')
-@section('content')
+
+<?php $__env->startSection('title','Manager - Approval Request'); ?>
+<?php $__env->startSection('page_title','Manager Approval Request'); ?>
+<?php $__env->startSection('page_subtitle','Review dan setujui permintaan yang masuk dari employee dalam satu dashboard.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
   <!-- Tab Navigation -->
   <div class="flex gap-2 border-b border-gray-200">
@@ -60,7 +60,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let planRows = [];
 let activityRows = [];
@@ -187,6 +187,8 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   document.addEventListener('DOMContentLoaded', loadRequests);
 }
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/manager-approval/index.blade.php ENDPATH**/ ?>

@@ -330,10 +330,18 @@ class EmployeeController extends Controller
             ? str_replace('_', ' ', (string) $latestPlan->status)
             : 'draft / belum diajukan';
 
+        $employeeData = [
+            ...$employee->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods.plans', 'user'])->toArray(),
+            'date_joined' => optional($employee->date_joined)->format('d M Y'),
+            'induction_date' => optional($employee->induction_date)->format('d M Y'),
+            'vnb_period_start' => optional($periodStart)->format('d M Y'),
+            'vnb_period_end' => optional($periodEnd)->format('d M Y'),
+        ];
+
         return response()->json([
             'success' => true,
             'data' => [
-                ...$employee->load(['division', 'department', 'position', 'managerFunctional', 'managerOperational', 'vnbPeriods.plans', 'user'])->toArray(),
+                ...$employeeData,
                 'career_stage' => $employee->getCareerStage(),
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $latestPlan),
                 'progress' => $progress,
@@ -342,6 +350,7 @@ class EmployeeController extends Controller
                 'manager_functional_label' => $this->resolveManagerEmployeeLabel($employee->managerFunctional),
                 'manager_operational_label' => $this->resolveManagerEmployeeLabel($employee->managerOperational),
                 'account_credential_preview' => $this->buildCredentialPreview($employee->fresh(['user'])),
+                            'current_manager_role' => $this->resolveCurrentManagerRole($employee),
             ],
         ]);
     }
@@ -962,6 +971,46 @@ class EmployeeController extends Controller
 
         return trim((string) ($manager->name ?? $manager->email ?? '-')) ?: '-';
     }
+
+    private function resolveCurrentManagerRole(?Employee $employee = null): ?string
+        {
+            $user = auth()->user();
+            if (!$user) {
+                return null;
+            }
+
+            // Check if user has manager roles
+            $isFunctional = $user->hasRole('manager_functional');
+            $isOperational = $user->hasRole('manager_operational');
+
+            if (!$isFunctional && !$isOperational) {
+                return null;
+            }
+
+            // If employee provided, only return role if manager is responsible for that employee
+            if ($employee) {
+                $managerId = $user->manager?->id;
+                if (!$managerId) {
+                    return null;
+                }
+
+                $managesEmployee = ((int) $employee->manager_functional_id === $managerId && $isFunctional)
+                    || ((int) $employee->manager_operational_id === $managerId && $isOperational);
+
+                if (!$managesEmployee) {
+                    return null;
+                }
+            }
+
+            // Return role type
+            if ($isFunctional && $isOperational) {
+                return 'both';
+            } elseif ($isFunctional) {
+                return 'functional';
+            } else {
+                return 'operational';
+            }
+        }
 
     // Removed resolveEmployeeRoleName and buildDefaultPasswordFromEmployee as they are in the trait
 

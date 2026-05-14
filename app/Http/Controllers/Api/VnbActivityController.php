@@ -409,6 +409,11 @@ class VnbActivityController extends Controller
                 $activeAssignment->update($payload);
 
                 $employee->update(['vnb_status' => 'active']);
+                // Persist induction date on employee record so detail view shows it
+                $employee->update([
+                    'induction_date' => $validated['induction_date'],
+                    'vnb_period_start' => $validated['induction_date'],
+                ]);
                 $this->ensureParticipantVnbPlanSnapshot($employee->fresh(), $periodStart, $frameworkItems);
 
                 return $activeAssignment;
@@ -419,7 +424,12 @@ class VnbActivityController extends Controller
                 ...$payload,
             ]);
 
-            $employee->update(['vnb_status' => 'active']);
+            // Persist induction date on employee record so detail view shows it
+            $employee->update([
+                'vnb_status' => 'active',
+                'induction_date' => $validated['induction_date'],
+                'vnb_period_start' => $validated['induction_date'],
+            ]);
             $this->ensureParticipantVnbPlanSnapshot($employee->fresh(), $periodStart, $frameworkItems);
 
             return $assignment;
