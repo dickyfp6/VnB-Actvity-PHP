@@ -7,42 +7,79 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header Section -->
-    <div class="card-glass rounded-xl p-6 md:p-8">
-        <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
-            <div class="flex-1">
-                <div id="career-stage-info" class="mt-3" style="display: none;"></div>
-                <div id="deadline-info" class="mt-2" style="display: none;"></div>
+    <div class="card-glass rounded-xl p-6 md:p-8 overflow-hidden relative">
+        <!-- Background accent decoration -->
+        <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 items-stretch relative z-10">
+            <!-- Left Column: Employee & Manager Info (1/4) -->
+            <div class="md:col-span-1 flex flex-col justify-center border-r border-gray-200/50 pr-8">
+                <div class="space-y-3">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-gray-900 tracking-tight leading-none" id="employee-name">{{ auth()->user()->name }}</h2>
+                        <div id="career-stage-info" class="mt-1" style="display: none;"></div>
+                    </div>
+                    <div class="space-y-2.5 pt-1">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] uppercase tracking-widest font-black text-gray-400">Manager Fungsional</span>
+                            <span class="text-sm font-bold text-gray-700 leading-tight" id="manager-functional">-</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] uppercase tracking-widest font-black text-gray-400">Manager Operasional</span>
+                            <span class="text-sm font-bold text-gray-700 leading-tight" id="manager-operational">-</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="flex gap-3 flex-shrink-0">
-                <button id="save-draft-btn" onclick="saveDraft()" class="btn-secondary flex items-center gap-2 hover:bg-green-50" title="Simpan sebagai draft">
-                    <i class="fas fa-floppy-disk"></i>
-                    <span>Simpan Draft</span>
-                </button>
-                <button id="submit-plan-btn" onclick="submitPlan()" class="btn-primary flex items-center gap-2" title="Ajukan rencana untuk approval">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Ajukan</span>
-                </button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Progress Bar -->
-    <div id="progress-container" class="card-glass rounded-xl p-6" style="display: none;">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h3 class="text-sm font-semibold text-gray-900">Progres Pengisian</h3>
-                <p class="text-xs text-gray-500 mt-1">Jumlah aktivitas yang sudah direncanakan</p>
-            </div>
-            <div class="text-right">
-                <p class="text-3xl font-bold text-green-600"><span id="progress-percent">0</span>%</p>
+            <!-- Right Column: Progress & Actions (3/4) -->
+            <div class="md:col-span-3 flex flex-col justify-between pl-2">
+                <!-- Top Part: Progress Bar -->
+                <div id="progress-container" class="w-full" style="display: none;">
+                    <div class="flex items-end justify-between mb-4">
+                        <div class="space-y-1">
+                            <h3 class="text-base font-bold text-gray-800">Progres Rencana VnB</h3>
+                            <p class="text-xs text-gray-500 font-medium">Lengkapi seluruh rencana aktivitas Anda untuk periode ini</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="flex items-baseline justify-end gap-1">
+                                <span class="text-5xl font-black text-green-600 tracking-tighter leading-none"><span id="progress-percent">0</span></span>
+                                <span class="text-xl font-bold text-green-500">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modern Progress Bar -->
+                    <div class="w-full bg-gray-100 h-5 rounded-full overflow-hidden shadow-inner border border-gray-200/50 p-1">
+                        <div id="progress-bar" class="h-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 rounded-full transition-all duration-1000 ease-out shadow-lg relative" style="width: 0%">
+                            <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-6">
+                        <div class="flex items-center gap-4">
+                            <p class="text-sm font-black text-gray-700 flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
+                                <i class="fas fa-clipboard-list mr-2.5 text-green-500 text-base"></i>
+                                <span id="filled-count">0</span> / <span id="total-count">0</span> Aktivitas
+                            </p>
+                            <div id="deadline-info" class="text-xs" style="display: none;"></div>
+                        </div>
+
+                        <!-- Action Buttons (On the same line) -->
+                        <div class="flex items-center gap-3">
+                            <button id="save-draft-btn" onclick="saveDraft()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200" title="Simpan sebagai draft">
+                                <i class="fas fa-floppy-disk text-xs"></i>
+                                <span class="text-sm font-bold">Simpan Draft</span>
+                            </button>
+                            <button id="submit-plan-btn" onclick="submitPlan()" class="btn-primary px-7 py-2.5 flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200" title="Ajukan rencana untuk approval">
+                                <i class="fas fa-paper-plane text-xs"></i>
+                                <span class="text-sm font-bold">Ajukan</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="w-full bg-gray-200/50 h-3 rounded-full overflow-hidden">
-            <div id="progress-bar" class="h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500" style="width: 0%"></div>
-        </div>
-        <p class="text-xs text-gray-600 mt-3">
-            <span id="filled-count">0</span> dari <span id="total-count">0</span> rencana aktivitas terisi
-        </p>
     </div>
 
     <!-- Phase Tables -->
@@ -75,6 +112,7 @@ function renderPhaseBoxes(phasesList) {
     
     // Build phases map for renderItemsByPhase
     phases = {};
+    let phaseCursorDate = parseIsoDate(currentPlan?.induction_date || phasesList?.[0]?.start_date || null);
     
     const colorGradients = [
         'from-blue-500/10 to-blue-600/10',
@@ -87,6 +125,8 @@ function renderPhaseBoxes(phasesList) {
     phasesList.forEach((phaseInfo, index) => {
         const bodyId = `phase-${phaseInfo.phase}-body`;
         phases[phaseInfo.phase] = bodyId;
+        const computedRange = buildPhaseDateRange(phaseInfo, phaseCursorDate);
+        phaseCursorDate = computedRange.nextCursorDate;
         
         const colorClass = colorGradients[index % colorGradients.length];
         
@@ -95,8 +135,7 @@ function renderPhaseBoxes(phasesList) {
         phaseBox.innerHTML = `
             <div class="px-6 py-4 bg-gradient-to-r ${colorClass} border-b border-gray-200/50">
                 <h2 class="text-lg font-semibold text-gray-900">${phaseInfo.label}</h2>
-                <p class="text-sm text-gray-600 mt-1">${phaseInfo.duration}</p>
-                <p class="text-xs text-gray-500 mt-1">${formatPhaseDateRange(phaseInfo.start_date, phaseInfo.end_date)}</p>
+                <p class="text-sm text-gray-600 mt-1">${formatPhaseDurationRange(phaseInfo.duration, computedRange.startDate, computedRange.endDate)}</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="table-modern">
@@ -140,6 +179,7 @@ async function loadEmployeePlan() {
         
         renderItemsByPhase();
         updateProgressBar();
+        renderEmployeeHeader();
         
         // Disable buttons if waiting for approval
         const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
@@ -156,94 +196,87 @@ async function loadEmployeePlan() {
             submitPlanBtn.classList.add('opacity-50');
             submitPlanBtn.style.cursor = 'not-allowed';
         }
-        
-        // Display career stage below title - with blue highlight
-        if (res.career_stage) {
-            // Convert snake_case to Title Case
-            let stage = res.career_stage
-                .split('_')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                .join(' ');
-            
-            // Special formatting for specific stages
-            if (res.career_stage === 'manage_self_staff') {
-                stage = 'Manage Self (Staff)';
-            } else if (res.career_stage === 'manage_self_non_staff') {
-                stage = 'Manage Self (Non-Staff)';
-            } else if (res.career_stage === 'manage_others') {
-                stage = 'Manage Others';
-            } else if (res.career_stage === 'manage_managers') {
-                stage = 'Manage Managers';
-            }
-            
-            const careerStageEl = document.getElementById('career-stage-info');
-            if (careerStageEl) {
-                careerStageEl.innerHTML = `<span style="display: inline-block; background-color: #3B82F6; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: 500;">${stage}</span>`;
-                careerStageEl.style.display = 'block';
-            }
-        }
-        
-        // Display deadline with compact countdown badge
-        if (res.deadline) {
-            const deadlineEl = document.getElementById('deadline-info');
-            const deadlineDate = new Date(res.deadline);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            deadlineDate.setHours(0, 0, 0, 0);
-            
-            // Calculate days remaining
-            const daysRemaining = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
-            
-            const formattedDate = deadlineDate.toLocaleDateString('id-ID', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            
-            // Determine countdown text and color based on days remaining
-            let countdownText = '';
-            let badgeBgColor = '#FEF3C7';
-            let badgeTextColor = '#D97706';
-            let badgeIcon = 'fa-exclamation-triangle';
-            
-            if (daysRemaining < 0) {
-                // Overdue
-                countdownText = 'Lewat Batas Waktu Pengumpulan';
-                badgeBgColor = '#FEE2E2';
-                badgeTextColor = '#DC2626';
-                badgeIcon = 'fa-times-circle';
-            } else if (daysRemaining === 0) {
-                countdownText = 'Hari ini';
-                badgeBgColor = '#FEF3C7';
-                badgeTextColor = '#D97706';
-                badgeIcon = 'fa-exclamation-triangle';
-            } else {
-                countdownText = `${daysRemaining} hari lagi`;
-                badgeBgColor = '#FEF3C7';
-                badgeTextColor = '#D97706';
-                badgeIcon = 'fa-exclamation-triangle';
-            }
-
-            const countdownHTML = `
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px; color: #4B5563; font-size: 16px;">
-                        <i class="fas fa-clock" style="font-size: 18px; color: #6B7280;"></i>
-                        <span>Deadline:</span>
-                        <span style="font-weight: 700; color: #1F2937;">${formattedDate}</span>
-                    </div>
-                    <div style="display: inline-flex; align-items: center; gap: 8px; width: fit-content; background-color: ${badgeBgColor}; color: ${badgeTextColor}; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600;">
-                        <i class="fas ${badgeIcon}" style="font-size: 13px;"></i>
-                        <span>${countdownText}</span>
-                    </div>
-                </div>
-            `;
-            
-            deadlineEl.innerHTML = countdownHTML;
-            deadlineEl.style.display = 'block';
-        }
     } catch (e) {
         console.error('Error loading plan:', e);
         showAlert('Gagal memuat rencana VnB', 'error');
+    }
+}
+
+/**
+ * Render Employee & Manager Info in the header
+ */
+function renderEmployeeHeader() {
+    if (!currentPlan) return;
+
+    // Display career stage
+    if (currentPlan.career_stage) {
+        // Convert snake_case to Title Case
+        let stage = currentPlan.career_stage
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        
+        // Special formatting for specific stages
+        if (currentPlan.career_stage === 'manage_self_staff') {
+            stage = 'Manage Self (Staff)';
+        } else if (currentPlan.career_stage === 'manage_self_non_staff') {
+            stage = 'Manage Self (Non-Staff)';
+        } else if (currentPlan.career_stage === 'manage_others') {
+            stage = 'Manage Others';
+        } else if (currentPlan.career_stage === 'manage_managers' || currentPlan.career_stage === 'manage_manager') {
+            stage = 'Manage Managers';
+        }
+        
+        const careerStageEl = document.getElementById('career-stage-info');
+        if (careerStageEl) {
+            careerStageEl.innerHTML = `<span class="text-xs font-bold text-green-600">${stage}</span>`;
+            careerStageEl.style.display = 'block';
+        }
+    }
+    
+    // Display manager names
+    if (currentPlan.employee) {
+        const functionalName = (currentPlan.employee.manager_functional?.name || currentPlan.employee.managerFunctional?.name) || '-';
+        const operationalName = (currentPlan.employee.manager_operational?.name || currentPlan.employee.managerOperational?.name) || '-';
+        
+        const functionalEl = document.getElementById('manager-functional');
+        const operationalEl = document.getElementById('manager-operational');
+        
+        if (functionalEl) functionalEl.textContent = functionalName;
+        if (operationalEl) operationalEl.textContent = operationalName;
+        
+        const nameEl = document.getElementById('employee-name');
+        if (nameEl && currentPlan.employee.name) {
+            nameEl.textContent = currentPlan.employee.name;
+        }
+    }
+
+    // Display deadline
+    if (currentPlan.deadline) {
+        const deadlineEl = document.getElementById('deadline-info');
+        if (!deadlineEl) return;
+
+        const deadlineDate = new Date(currentPlan.deadline);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        deadlineDate.setHours(0, 0, 0, 0);
+        
+        const daysRemaining = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+        const formattedDate = deadlineDate.toLocaleDateString('id-ID', { 
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        let countdownText = daysRemaining < 0 ? 'Lewat Batas Waktu' : (daysRemaining === 0 ? 'Hari ini' : `${daysRemaining} hari lagi`);
+        let badgeColor = daysRemaining < 0 ? 'red' : 'amber';
+        let badgeIcon = daysRemaining < 0 ? 'fa-times-circle' : 'fa-exclamation-triangle';
+
+        deadlineEl.innerHTML = `
+            <div class="inline-flex items-center gap-2 bg-${badgeColor}-50 text-${badgeColor}-700 px-2.5 py-1 rounded-md font-semibold border border-${badgeColor}-200 shadow-sm">
+                <i class="fas ${badgeIcon} text-[10px]"></i>
+                <span class="whitespace-nowrap">Deadline: ${formattedDate} (${countdownText})</span>
+            </div>
+        `;
+        deadlineEl.style.display = 'block';
     }
 }
 
@@ -606,6 +639,60 @@ function formatPhaseDateRange(startDate, endDate) {
     const endLabel = end.toLocaleDateString('id-ID', formatOptions);
 
     return `${startLabel} - ${endLabel}`;
+}
+
+function formatPhaseDurationRange(duration, startDate, endDate) {
+    const dateRange = formatPhaseDateRange(startDate, endDate);
+    if (!dateRange) {
+        return duration || '';
+    }
+
+    return `${duration || ''} (${dateRange})`;
+}
+
+function parseIsoDate(dateString) {
+    if (!dateString) return null;
+
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function buildPhaseDateRange(phaseInfo, cursorDate) {
+    const explicitStart = parseIsoDate(phaseInfo.start_date);
+    const explicitEnd = parseIsoDate(phaseInfo.end_date);
+
+    if (explicitStart && explicitEnd) {
+        return {
+            startDate: explicitStart,
+            endDate: explicitEnd,
+            nextCursorDate: new Date(explicitEnd.getTime() + (1000 * 60 * 60 * 24)),
+        };
+    }
+
+    const startDate = explicitStart || cursorDate;
+    if (!startDate) {
+        return {
+            startDate: null,
+            endDate: null,
+            nextCursorDate: null,
+        };
+    }
+
+    const durationMonths = extractDurationMonths(phaseInfo.duration);
+    const endDate = new Date(startDate.getTime());
+    endDate.setMonth(endDate.getMonth() + durationMonths);
+
+    return {
+        startDate: startDate,
+        endDate: endDate,
+        nextCursorDate: new Date(endDate.getTime() + (1000 * 60 * 60 * 24)),
+    };
+}
+
+function extractDurationMonths(durationText) {
+    const match = String(durationText || '').match(/(\d+)/);
+    const months = match ? parseInt(match[1], 10) : 1;
+    return Number.isFinite(months) && months > 0 ? months : 1;
 }
 
 function parseIntegrations(description) {

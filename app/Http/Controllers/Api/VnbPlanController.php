@@ -137,7 +137,7 @@ use App\Http\Controllers\Controller;
 
             return response()->json([
                 'success' => true,
-                'data' => $existingPlan->load(['items', 'period']),
+                'data' => $existingPlan->load(['items', 'period', 'employee.managerFunctional', 'employee.managerOperational']),
                 'deadline' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->addDays(7)->toDateString() : null,
                 'career_stage' => $existingPlan->employee->getCareerStage(),
                 'induction_date' => $existingPlan->employee->induction_date ? $existingPlan->employee->induction_date->toDateString() : null,
@@ -236,7 +236,7 @@ use App\Http\Controllers\Controller;
         return response()->json([
             'success' => true,
             'message' => 'Plan template berhasil dibuat',
-            'data' => $plan->load(['items', 'period']),
+            'data' => $plan->load(['items', 'period', 'employee.managerFunctional', 'employee.managerOperational']),
             'deadline' => $employee->induction_date ? $employee->induction_date->addDays(7)->toDateString() : null,
             'career_stage' => $employee->getCareerStage(),
             'induction_date' => $employee->induction_date ? $employee->induction_date->toDateString() : null,
@@ -315,7 +315,7 @@ use App\Http\Controllers\Controller;
             $durationLabel = $durationMonths . ' bulan';
 
             if ($startDate) {
-                $endDate = $startDate->copy()->addMonthsNoOverflow($durationMonths)->subDay()->startOfDay();
+                $endDate = $startDate->copy()->addMonthsNoOverflow($durationMonths)->startOfDay();
                 $phaseStart = $endDate->copy()->addDay();
             }
 
