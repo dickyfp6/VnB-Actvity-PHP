@@ -2,6 +2,28 @@
 @section('title','Detail Employee')
 @section('page_title','Detail Employee')
 @section('page_subtitle','Lihat detail profil dan status kemajuan VnB untuk satu employee.')
+@push('styles')
+<style>
+    .tab-button-active {
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+        color: #166534;
+        border: 1px solid rgba(34, 197, 94, 0.18);
+        box-shadow: 0 4px 12px rgba(22, 101, 52, 0.07);
+    }
+
+    .tab-button-inactive {
+        color: #6b7280;
+        background: transparent;
+        border: 1px solid transparent;
+    }
+
+    .tab-button-inactive:hover {
+        color: #111827;
+        background: rgba(249, 250, 251, 0.9);
+        border-color: rgba(229, 231, 235, 1);
+    }
+</style>
+@endpush
 @section('content')
 <div class="space-y-6">
     <!-- Header Card -->
@@ -17,23 +39,23 @@
         </div>
     </div>
 
-    <!-- Tabs Navigation -->
-    <div class="card-glass rounded-xl px-2 pt-2">
-        <nav class="flex space-x-4 border-b border-gray-200 overflow-x-auto" aria-label="Tabs">
-            <button onclick="switchTab('profil')" id="tab-btn-profil" class="whitespace-nowrap px-4 py-3 border-b-2 font-medium text-sm transition-colors duration-200 border-green-500 text-green-600 focus:outline-none">
-                <i class="fas fa-user-circle mr-2"></i>Profil
-            </button>
-            <button onclick="switchTab('star')" id="tab-btn-star" class="whitespace-nowrap px-4 py-3 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                <i class="fas fa-star mr-2"></i>STAR
-            </button>
-            <button onclick="switchTab('vnb')" id="tab-btn-vnb" class="whitespace-nowrap px-4 py-3 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                <i class="fas fa-tasks mr-2"></i>VnB Activity
-            </button>
-        </nav>
-    </div>
+    <!-- Tabs + Content -->
+    <div class="card-glass rounded-2xl overflow-hidden shadow-sm">
+        <div class="bg-white/80 px-4 pt-2">
+            <nav class="grid grid-cols-1 gap-2 sm:grid-cols-3 rounded-2xl bg-gray-100/90 p-1.5" aria-label="Tabs">
+                <button onclick="switchTab('profil')" id="tab-btn-profil" class="tab-button tab-button-active w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none">
+                    <i class="fas fa-user-circle mr-2"></i>Profil
+                </button>
+                <button onclick="switchTab('star')" id="tab-btn-star" class="tab-button tab-button-inactive w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none">
+                    <i class="fas fa-star mr-2"></i>STAR
+                </button>
+                <button onclick="switchTab('vnb')" id="tab-btn-vnb" class="tab-button tab-button-inactive w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none">
+                    <i class="fas fa-tasks mr-2"></i>VnB Activity
+                </button>
+            </nav>
+        </div>
 
-    <!-- Tab Contents -->
-    <div class="tab-content-container">
+        <div class="tab-content-container px-4 md:px-6 py-6 space-y-6 bg-white/70">
         
         <!-- TAB 1: Profil -->
         <div id="tab-profil" class="tab-content block space-y-6 animate-fade-in">
@@ -271,8 +293,8 @@ function switchTab(tabId) {
     });
     // Reset all buttons
     document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
-        btn.classList.remove('border-green-500', 'text-green-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
+        btn.classList.remove('tab-button-active');
+        btn.classList.add('tab-button-inactive');
     });
 
     // Show target tab
@@ -281,8 +303,8 @@ function switchTab(tabId) {
     
     // Highlight target button
     const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-    activeBtn.classList.remove('border-transparent', 'text-gray-500');
-    activeBtn.classList.add('border-green-500', 'text-green-600');
+    activeBtn.classList.remove('tab-button-inactive');
+    activeBtn.classList.add('tab-button-active');
 }
 
 function escapeHtml(value) {
@@ -814,9 +836,10 @@ function updateApproveAllButtonState() {
     const submitBtn = document.getElementById('batch-submit-btn-header');
     if (!approveAllBtn || !submitBtn) return;
     const managerRole = detailData?.current_manager_role; // 'functional' | 'operational' | 'both' | null
-    if (managerRole === 'operational') {
-        approveAllBtn.disabled = true; approveAllBtn.style.opacity = '0.5'; approveAllBtn.style.backgroundColor = '#9ca3af'; approveAllBtn.style.cursor = 'not-allowed'; approveAllBtn.style.pointerEvents = 'none'; approveAllBtn.title = 'Hanya Manager Fungsional yang bisa menyetujui planning. Anda adalah Manager Operasional.';
-        submitBtn.disabled = true; submitBtn.style.backgroundColor = '#9ca3af'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; submitBtn.title = 'Hanya Manager Fungsional yang bisa menyetujui planning. Anda adalah Manager Operasional.';
+    const canReviewPlanning = ['functional', 'operational', 'both'].includes(managerRole);
+    if (!canReviewPlanning) {
+        approveAllBtn.disabled = true; approveAllBtn.style.opacity = '0.5'; approveAllBtn.style.backgroundColor = '#9ca3af'; approveAllBtn.style.cursor = 'not-allowed'; approveAllBtn.style.pointerEvents = 'none'; approveAllBtn.title = 'Anda tidak memiliki otorisasi untuk mereview planning employee ini.';
+        submitBtn.disabled = true; submitBtn.style.backgroundColor = '#9ca3af'; submitBtn.style.opacity = '0.5'; submitBtn.style.cursor = 'not-allowed'; submitBtn.title = 'Anda tidak memiliki otorisasi untuk mereview planning employee ini.';
     } else {
         approveAllBtn.disabled = false; approveAllBtn.style.opacity = '1'; approveAllBtn.style.backgroundColor = '#16a34a'; approveAllBtn.style.cursor = 'pointer'; approveAllBtn.style.pointerEvents = 'auto'; approveAllBtn.title = '';
         submitBtn.style.cursor = 'pointer'; submitBtn.title = '';

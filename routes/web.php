@@ -84,8 +84,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/vnb-plans', [PageController::class, 'vnbPlans'])->name('vnb-plans');
     Route::get('/vnb-activity', [PageController::class, 'vnbActivity'])->name('vnb-activity');
     Route::get('/review-activity', [PageController::class, 'reviewActivity'])->name('review-activity');
-    Route::get('/manager/employees', [PageController::class, 'managerEmployees'])->name('manager.employees');
-    Route::get('/manager/employees/{employeeId}', [PageController::class, 'managerEmployeeDetail'])->name('manager.employee.detail');
-    Route::get('/manager/employees/{employeeId}/planning-history', [PageController::class, 'managerPlanningHistory'])->name('manager.employee.planning-history');
     Route::redirect('/manager/approval-requests', '/vnb/vnb-approval')->name('manager.approval-requests');
 });

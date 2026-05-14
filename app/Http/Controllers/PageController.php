@@ -40,18 +40,6 @@ class PageController extends Controller
         return view('employees.detail', compact('employeeId', 'backUrl'));
     }
 
-    public function managerEmployees(Request $request)
-    {
-        $this->ensureActiveRole($request, ['manager']);
-
-        $managerId = auth()->user()?->manager?->id;
-        if ($managerId) {
-            return redirect('/employees?manager_id=' . $managerId);
-        }
-
-        return view('manager-employees.index');
-    }
-
     public function vnbPlans(Request $request)
     {
         $this->ensureActiveRole($request, ['employee']);
@@ -109,18 +97,6 @@ class PageController extends Controller
     {
         $this->ensureActiveRole($request, ['intercomm', 'pcx_manager']);
         return view('master-data.index');
-    }
-
-    public function managerEmployeeDetail(Request $request, int $employeeId)
-    {
-        $this->ensureActiveRole($request, ['manager']);
-        return view('manager-employees.detail', compact('employeeId'));
-    }
-
-    public function managerPlanningHistory(Request $request, int $employeeId)
-    {
-        $this->ensureActiveRole($request, ['manager']);
-        return view('manager-employees.planning-history', compact('employeeId'));
     }
 
     public function managerApprovalRequests(Request $request)

@@ -1020,9 +1020,7 @@ class VnbPlanController extends Controller
 
             abort_unless($isAssigned, 403, 'Anda tidak berwenang approve plan Employee ini.');
 
-            // ✅ NEW: Check if manager is the owner of planning stage
-            $isStageOwner = $this->isManagerStageOwner($employee, 'planning', $manager->id);
-            abort_unless($isStageOwner, 403, 'Hanya Manager Fungsional yang bisa approve planning. Anda adalah Manager Operasional.');
+            // Both assigned managers (functional/operational) are allowed to approve planning.
         }
 
         if (!in_array($plan->status, ['waiting_manager_approval'], true)) {
