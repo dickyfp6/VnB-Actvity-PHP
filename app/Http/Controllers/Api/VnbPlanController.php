@@ -648,7 +648,7 @@ class VnbPlanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Plan submitted for manager approval',
-            'data' => $plan
+            'data' => $plan->fresh()->load(['items', 'period', 'employee.managerFunctional', 'employee.managerOperational'])
         ]);
     }
 

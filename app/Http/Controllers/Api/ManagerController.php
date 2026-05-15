@@ -594,6 +594,7 @@ class ManagerController extends Controller
                     'placement' => $employee->placement,
                     'level' => $employee->level,
                     'employee_status' => $employee->employee_status,
+                    'induction_date' => $employee->induction_date ? $employee->induction_date->toDateString() : null,
                     'manager_functional' => $employee->managerFunctional?->name,
                     'manager_operational' => $employee->managerOperational?->name,
                 ],
@@ -633,6 +634,7 @@ class ManagerController extends Controller
                         'activity_description' => $item->activity_description,
                         'activity_date' => optional($item->activity_date)->toDateString(),
                         'submission_status' => $item->submission_status,
+                        'manager_review_snapshot' => $item->manager_review_snapshot,
                         'revision_notes' => $item->revision_notes,
                         'completion_percentage' => (int) $item->completion_percentage,
                         'approval_type' => $approvalType, // 'functional', 'operational', or 'all_approved'
@@ -1568,6 +1570,9 @@ class ManagerController extends Controller
             'reviews' => 'required|array',
             'reviews.*.id' => 'required|integer|exists:vnb_plan_items,id',
             'reviews.*.action' => 'required|in:approve,revise',
+            'reviews.*.sub_idx' => 'required|integer|min:0',
+            'reviews.*.integration_text' => 'nullable|string',
+            'reviews.*.deliverables_text' => 'nullable|string',
             'reviews.*.notes' => 'nullable|string',
         ]);
 
@@ -1583,56 +1588,66 @@ class ManagerController extends Controller
         try {
             DB::beginTransaction();
 
-            $reviews = $request->input('reviews');
+            $reviewsByItem = collect($request->input('reviews', []))->groupBy('id');
             $hasRevisions = false;
-            $revisionRecord = null;
             $managerId = $manager->id;
 
-            foreach ($reviews as $review) {
-                $item = VnbPlanItem::where('id', $review['id'])->where('plan_id', $planId)->first();
+            foreach ($reviewsByItem as $itemId => $itemReviews) {
+                $item = VnbPlanItem::where('id', $itemId)->where('plan_id', $planId)->lockForUpdate()->first();
                 if (!$item) continue;
 
-                if ($review['action'] === 'approve') {
-                    if ($stage === 'planning') {
-                        // Functional manager approves planning items
-                        $item->approved_functional_by = $managerId;
-                        $item->approved_functional_at = now();
-                    } else {
-                        // Operational manager approves activity items
-                        $item->approved_operational_by = $managerId;
-                        $item->approved_operational_at = now();
-                    }
-                    $item->save();
-                } elseif ($review['action'] === 'revise') {
-                    $hasRevisions = true;
-
-                    // Group all revisions into one revision round
-                    if (!$revisionRecord) {
-                        $latestRevision = $plan->revisions()->orderByDesc('revision_number')->first();
-                        $newRevisionNumber = ($latestRevision?->revision_number ?? 0) + 1;
-
-                        $revisionRecord = VnbPlanRevision::create([
-                            'vnb_plan_id' => $plan->id,
-                            'revision_number' => $newRevisionNumber,
-                            'requested_by' => $managerId,
-                            'stage' => $stage,
-                            'revision_notes' => 'Grouped batch revision',
-                            'status' => 'pending',
-                            'requested_at' => now(),
-                        ]);
-                    }
-
-                    VnbPlanRevisionDetail::create([
-                        'vnb_plan_revision_id' => $revisionRecord->id,
-                        'vnb_plan_item_id' => $item->id,
-                        'changed_by' => $managerId,
-                        'old_values' => json_encode($item->only(['activity_title', 'description', 'implementation_date', 'deliverables'])),
-                    ]);
-
-                    $item->update([
-                        'revision_notes' => $review['notes'],
-                    ]);
+                $snapshot = $item->manager_review_snapshot;
+                if (!is_array($snapshot)) {
+                    $snapshot = [];
                 }
+
+                $existingIntegrations = array_map('trim', explode('|', (string) ($item->description ?? '')));
+                $existingDeliverables = array_map('trim', explode("\n---\n", (string) ($item->deliverables ?? '')));
+
+                $itemHasRevision = false;
+
+                foreach ($itemReviews as $review) {
+                    $subIdx = (int) $review['sub_idx'];
+                    $integrationText = (string) ($review['integration_text'] ?? ($existingIntegrations[$subIdx] ?? '-'));
+                    $deliverablesText = (string) ($review['deliverables_text'] ?? ($existingDeliverables[$subIdx] ?? '-'));
+                    $action = $review['action'];
+
+                    if ($action === 'revise') {
+                        $hasRevisions = true;
+                        $itemHasRevision = true;
+                    }
+
+                    $snapshot[$subIdx] = [
+                        'action' => $action,
+                        'integration_text' => $integrationText,
+                        'deliverables_text' => $deliverablesText,
+                        'reviewed_by' => $managerId,
+                        'reviewed_at' => now()->toDateTimeString(),
+                    ];
+                }
+
+                ksort($snapshot);
+
+                $normalizedIntegrations = [];
+                $normalizedDeliverables = [];
+                foreach ($snapshot as $entry) {
+                    $normalizedIntegrations[] = trim((string) ($entry['integration_text'] ?? '-'));
+                    $normalizedDeliverables[] = trim((string) ($entry['deliverables_text'] ?? '-'));
+                }
+
+                if ($stage === 'planning') {
+                    $item->approved_functional_by = $managerId;
+                    $item->approved_functional_at = now();
+                } else {
+                    $item->approved_operational_by = $managerId;
+                    $item->approved_operational_at = now();
+                }
+
+                $item->description = implode(' | ', $normalizedIntegrations);
+                $item->deliverables = implode("\n---\n", $normalizedDeliverables);
+                $item->submission_status = $itemHasRevision ? 'revision_required' : 'completed';
+                $item->manager_review_snapshot = $snapshot;
+                $item->save();
             }
 
             // Check if all items are fully approved for current stage
@@ -1643,26 +1658,12 @@ class ManagerController extends Controller
 
                 if ($allApproved && in_array($plan->status, ['waiting_manager_approval', 'submitted'])) {
                     $plan->update([
-                        'status' => 'approved',
+                        'status' => $hasRevisions ? 'approved_with_revision' : 'approved',
                         'approved_by' => $managerId,
                         'approved_at' => now(),
                     ]);
                 }
-            } else {
-                $allApproved = VnbPlanItem::where('plan_id', $planId)
-                    ->whereNull('approved_operational_by')
-                    ->count() === 0;
-
-                if ($allApproved && $plan->status === 'waiting_execution_approval') {
-                    $plan->update([
-                        'status' => 'activity_approved',
-                        'approved_by' => $managerId,
-                        'approved_at' => now(),
-                    ]);
-                }
-            }
-
-            if ($hasRevisions) {
+            } elseif ($hasRevisions) {
                 $plan->update([
                     'status' => 'revision_requested',
                     'revision_count' => $plan->revision_count + 1,
