@@ -1858,8 +1858,11 @@ class ManagerController extends Controller
             return auth()->user()?->hasRole('direktur_utama') ?? false;
         }
 
-        $ownerManagerId = $this->getStageOwnerManagerId($employee, $stage);
-        return $manager->id === $ownerManagerId;
+        // Allow both functional and operational managers to review
+        $isFunctionalManager = $manager->id === $employee->manager_functional_id;
+        $isOperationalManager = $manager->id === $employee->manager_operational_id;
+        
+        return $isFunctionalManager || $isOperationalManager;
     }
 
     /**

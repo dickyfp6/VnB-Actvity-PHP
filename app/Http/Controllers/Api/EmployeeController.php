@@ -220,9 +220,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-    /**
-     * UC-01: Add New Employee & Assign Manager
-     */
+
     public function store(Request $request): JsonResponse
     {
         $validated = $this->validateEmployeePayload($request);
