@@ -37,7 +37,7 @@ class VnbActivityController extends Controller
             $q->where('employee_id', $employee->id)
               ->where('status', 'approved');
         })
-        ->with(['plan.employee.position'])
+        ->with(['plan.employee.position', 'evidences'])
         ->get()
         ->map(function (VnbPlanItem $item): array {
             return $this->formatActivityItem($item);
@@ -66,7 +66,7 @@ class VnbActivityController extends Controller
 
         $validated = $request->validate([
             'activity_description' => 'required|string',
-            'activity_date' => 'required|date',
+            'activity_date' => 'required|string',
         ]);
 
         $item->update([
@@ -96,7 +96,7 @@ class VnbActivityController extends Controller
 
         $validated = $request->validate([
             'activity_description' => 'nullable|string',
-            'activity_date' => 'nullable|date',
+            'activity_date' => 'nullable|string',
         ]);
 
         $item->update($validated);
@@ -556,6 +556,11 @@ class VnbActivityController extends Controller
             'approved_operational_by' => $item->approved_operational_by,
             'approved_operational_at' => $item->approved_operational_at,
             'completion_percentage'   => $item->completion_percentage,
+            'evidences'            => $item->evidences->map(fn($ev) => [
+                'id' => $ev->id,
+                'file_name' => $ev->file_name,
+                'description' => $ev->description,
+            ])->toArray(),
         ];
 
         if ($withEmployee && $item->relationLoaded('plan')) {

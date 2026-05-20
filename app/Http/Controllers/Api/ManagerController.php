@@ -612,7 +612,7 @@ class ManagerController extends Controller
                 'phase' => $this->deriveEmployeePhaseLabel($employee, $plan),
                 'progress' => $progress,
                 'approval_requests' => [
-                    'planning_waiting' => (bool) ($plan && $plan->status === 'waiting_manager_approval'),
+                    'planning_waiting' => (bool) ($plan && in_array($plan->status, ['waiting_manager_approval', 'approved', 'approved_with_revision'])),
                     'activity_waiting_count' => $activityWaitingCount,
                 ],
                 'items' => $items->map(function (VnbPlanItem $item) use ($employee) {
@@ -632,7 +632,7 @@ class ManagerController extends Controller
                         'implementation_date' => optional($item->implementation_date)->toDateString(),
                         'behavior_metrics' => $item->behavior_metrics,
                         'activity_description' => $item->activity_description,
-                        'activity_date' => optional($item->activity_date)->toDateString(),
+                        'activity_date' => is_string($item->activity_date) ? $item->activity_date : (optional($item->activity_date)->toDateString()),
                         'submission_status' => $item->submission_status,
                         'manager_review_snapshot' => $item->manager_review_snapshot,
                         'revision_notes' => $item->revision_notes,
@@ -1657,9 +1657,16 @@ class ManagerController extends Controller
                     ->count() === 0;
 
                 if ($allApproved && in_array($plan->status, ['waiting_manager_approval', 'submitted'])) {
+                    // Get the employee ID from the manager's user record
+                    $approvedByEmployeeId = null;
+                    if ($manager->user_id) {
+                        $user = User::find($manager->user_id);
+                        $approvedByEmployeeId = $user?->employee_id;
+                    }
+
                     $plan->update([
                         'status' => $hasRevisions ? 'approved_with_revision' : 'approved',
-                        'approved_by' => $managerId,
+                        'approved_by' => $approvedByEmployeeId,
                         'approved_at' => now(),
                     ]);
                 }

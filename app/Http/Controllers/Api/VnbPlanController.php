@@ -125,6 +125,18 @@ class VnbPlanController extends Controller
             ], 404);
         }
 
+        // Cek apakah employee sudah di-assign ke VnB oleh InterComm/PCX
+        $isVnbParticipant = $user->vnbActivityAssignments()
+            ->where('is_active', true)
+            ->exists();
+        
+        if (!$isVnbParticipant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda belum di-assign untuk mengikuti program VnB. Hubungi InterComm atau PCX untuk informasi lebih lanjut.'
+            ], 403);
+        }
+
         // Cek apakah sudah ada plan draft atau submitted
         $existingPlan = VnbPlan::where('employee_id', $employee->id)
             ->whereIn('status', ['draft', 'waiting_manager_approval', 'approved', 'in_progress', 'rejected'])
@@ -337,6 +349,31 @@ class VnbPlanController extends Controller
      */
     public function show(VnbPlan $plan): JsonResponse
     {
+        $user = auth()->user();
+        $employee = $user->employee;
+        
+        // Verify authorization: user can only view their own plan or manager approval
+        if ($plan->employee_id !== $employee->id && !$user->hasRole(['manager', 'intercomm', 'pcx_manager'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk melihat plan ini'
+            ], 403);
+        }
+        
+        // For employee role, verify VnB participation
+        if ($user->isEmployee()) {
+            $isVnbParticipant = $user->vnbActivityAssignments()
+                ->where('is_active', true)
+                ->exists();
+            
+            if (!$isVnbParticipant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda belum di-assign untuk mengikuti program VnB'
+                ], 403);
+            }
+        }
+        
         return response()->json([
             'success' => true,
             'data' => $plan->load([
@@ -370,6 +407,26 @@ class VnbPlanController extends Controller
         ]);
 
         $employee = Employee::find($validated['employee_id']);
+        
+        // Cek apakah employee sudah di-assign ke VnB
+        $user = $employee->user;
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data user untuk employee tidak ditemukan'
+            ], 404);
+        }
+        
+        $isVnbParticipant = $user->vnbActivityAssignments()
+            ->where('is_active', true)
+            ->exists();
+        
+        if (!$isVnbParticipant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda belum di-assign untuk mengikuti program VnB. Hubungi InterComm atau PCX untuk informasi lebih lanjut.'
+            ], 403);
+        }
         
         $plan = VnbPlan::create([
             'employee_id' => $validated['employee_id'],

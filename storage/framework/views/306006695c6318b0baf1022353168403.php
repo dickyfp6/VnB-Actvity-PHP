@@ -1,8 +1,8 @@
-@extends('layouts.app')
-@section('title','Aktivitas VnB') 
-@section('page_title','Aktivitas VnB')
-@section('page_subtitle','Pantau dan kerjakan aktivitas pengembangan setelah rencana disetujui.')
-@section('content')
+
+<?php $__env->startSection('title','Aktivitas VnB'); ?> 
+<?php $__env->startSection('page_title','Aktivitas VnB'); ?>
+<?php $__env->startSection('page_subtitle','Pantau dan kerjakan aktivitas pengembangan setelah rencana disetujui.'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6">
   <!-- Plan Status Check Container -->
   <div id="plan-status-container"></div>
@@ -71,7 +71,7 @@
   </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let activities = [];
 let activePhase = '';
@@ -595,5 +595,7 @@ async function submitActivity(id, integIdx) {
 // Check plan status on page load
 checkPlanStatus();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/vnb-activity/index.blade.php ENDPATH**/ ?>

@@ -46,7 +46,6 @@ class VnbPlanItem extends Model
     protected $casts = [
         'implementation_date' => 'date',
         'behavior_metrics' => 'json',
-        'activity_date' => 'date',
         'submitted_at' => 'datetime',
         'due_date' => 'date',
         'manager_review_snapshot' => 'array',
@@ -66,11 +65,11 @@ class VnbPlanItem extends Model
 
     public function evidences(): HasMany
     {
-        return $this->hasMany(VnbEvidence::class);
+        return $this->hasMany(VnbEvidence::class, 'plan_item_id');
     }
 
     public function progress(): HasMany
     {
-        return $this->hasMany(VnbProgress::class);
+        return $this->hasMany(VnbProgress::class, 'plan_item_id');
     }
 }

@@ -185,8 +185,8 @@ async function loadEmployeePlan() {
         renderEmployeeHeader();
         syncDraftActionButton();
         
-        // Disable buttons if waiting for approval
-        const isWaitingApproval = currentPlan?.status === 'waiting_manager_approval' || currentPlan?.status === 'submitted';
+        // Disable buttons if waiting for approval or already approved
+        const isWaitingApproval = ['waiting_manager_approval', 'submitted', 'approved', 'approved_with_revision'].includes(currentPlan?.status);
         const saveDraftBtn = document.getElementById('save-draft-btn');
         const submitPlanBtn = document.getElementById('submit-plan-btn');
         

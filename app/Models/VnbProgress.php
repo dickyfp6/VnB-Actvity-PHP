@@ -24,6 +24,6 @@ class VnbProgress extends Model
 
     public function planItem(): BelongsTo
     {
-        return $this->belongsTo(VnbPlanItem::class);
+        return $this->belongsTo(VnbPlanItem::class, 'plan_item_id');
     }
 }

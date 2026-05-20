@@ -56,9 +56,30 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+function extractBehaviour(activityTitle) {
+  if (!activityTitle) return '-';
+  const parts = activityTitle.split(' - ');
+  return parts[0].trim() || '-';
+}
+
+function extractPhase(activityTitle) {
+  if (!activityTitle) return '-';
+  const parts = activityTitle.split(/\s+-\s+(?:Phase|Fase)\s+/i);
+  if (parts.length > 1) {
+    return 'Fase ' + parts[1].replace(/^Fase\s+/i, '');
+  }
+  return '-';
+}
+
+function parseIntegrations(description) {
+  if (!description) return '-';
+  const parts = description.split('|').map(s => s.trim()).filter(s => s.length > 0);
+  return parts.length === 0 ? '-' : parts.join('\n');
+}
+
 function renderEmployeeNameLink(row) {
-  const employeeId = row?.employee_id ?? row?.id;
-  const name = escapeHtml(row?.employee_name || '-');
+  const employeeId = row?.employee?.id ?? row?.employee_id ?? row?.id;
+  const name = escapeHtml(row?.employee?.name || row?.employee_name || '-');
   if (!employeeId) {
     return name;
   }
@@ -79,32 +100,79 @@ function renderPending() {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-400">Tidak ada aktivitas menunggu review</td></tr>';
     return;
   }
-  tbody.innerHTML = pending.map(p => `
-    <tr class="hover:bg-gray-50">
-      <td class="px-4 py-3" data-column-key="employee_name">${renderEmployeeNameLink(p)}</td>
-      <td class="px-4 py-3" data-column-key="behaviour">${p.behaviour || '-'}</td>
-      <td class="px-4 py-3" data-column-key="phase">${p.phase || '-'}</td>
-      <td class="px-4 py-3" data-column-key="activity_description">${p.activity_description || '-'}</td>
-      <td class="px-4 py-3" data-column-key="activity_date">${p.activity_date || '-'}</td>
-      <td class="px-4 py-3 text-right">
-        <button onclick="openReviewModal(${p.id})" class="px-3 py-1.5 text-white rounded text-xs transition" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Review</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = pending.map(p => {
+    const behaviour = extractBehaviour(p.activity_title);
+    const phase = extractPhase(p.activity_title);
+    
+    // Split descriptions and dates by newline-dash
+    const descParts = (p.activity_description || '').split('\n---\n').map(s => s.trim()).filter(s => s && s !== '-');
+    const dateParts = (p.activity_date || '').split('\n---\n').map(s => s.trim()).filter(s => s && s !== '-');
+    
+    const descFormatted = descParts.map((d, i) => `[Int ${i+1}] ${escapeHtml(d)}`).join('<br>');
+    const dateFormatted = dateParts.map((d, i) => `[Int ${i+1}] ${escapeHtml(d)}`).join('<br>');
+
+    return `
+      <tr class="hover:bg-gray-50 align-top">
+        <td class="px-4 py-3" data-column-key="employee_name">${renderEmployeeNameLink(p)}</td>
+        <td class="px-4 py-3" data-column-key="behaviour">${escapeHtml(behaviour)}</td>
+        <td class="px-4 py-3" data-column-key="phase">${escapeHtml(phase)}</td>
+        <td class="px-4 py-3 text-xs leading-relaxed" data-column-key="activity_description">${descFormatted || '-'}</td>
+        <td class="px-4 py-3 text-xs leading-relaxed" data-column-key="activity_date">${dateFormatted || '-'}</td>
+        <td class="px-4 py-3 text-right">
+          <button onclick="openReviewModal(${p.id})" class="px-3 py-1.5 text-white rounded text-xs transition animate-pulse-subtle" style="background-color: #144600; cursor: pointer;" onmouseover="this.style.backgroundColor='#37AA05'" onmouseout="this.style.backgroundColor='#144600'">Review</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function openReviewModal(id) {
   selected = pending.find(x => x.id == id);
   if (!selected) return;
   document.getElementById('revision-notes').value = '';
-  document.getElementById('detail-box').innerHTML = `
-    <p><span class="font-semibold">Employee:</span> ${renderEmployeeNameLink(selected)}</p>
-    <p><span class="font-semibold">Behaviour:</span> ${selected.behaviour || '-'}</p>
-    <p><span class="font-semibold">Phase:</span> ${selected.phase || '-'}</p>
-    <p><span class="font-semibold">Rencana:</span> ${selected.plan_description || '-'}</p>
-    <p><span class="font-semibold">Aktivitas:</span> ${selected.activity_description || '-'}</p>
-    <p><span class="font-semibold">Tanggal Aktivitas:</span> ${selected.activity_date || '-'}</p>
+  
+  const behaviour = extractBehaviour(selected.activity_title);
+  const phase = extractPhase(selected.activity_title);
+  
+  const integrations = parseIntegrations(selected.description);
+  const integrationList = integrations === '-' ? ['-'] : integrations.split('\n').filter(s => s);
+  
+  const descList = (selected.activity_description || '').split('\n---\n').map(s => s.trim());
+  const dateList = (selected.activity_date || '').split('\n---\n').map(s => s.trim());
+  
+  let detailsHtml = `
+    <div class="space-y-1.5 pb-3 border-b mb-4">
+      <p><span class="font-semibold text-gray-700 text-sm">Employee:</span> ${renderEmployeeNameLink(selected)}</p>
+      <p><span class="font-semibold text-gray-700 text-sm">Behaviour:</span> ${escapeHtml(behaviour)}</p>
+      <p><span class="font-semibold text-gray-700 text-sm">Phase:</span> ${escapeHtml(phase)}</p>
+    </div>
+    <div class="space-y-3.5">
+      <h3 class="font-bold text-gray-900 text-sm">Detail Pelaksanaan per Integrasi:</h3>
   `;
+  
+  integrationList.forEach((integ, idx) => {
+    const desc = descList[idx] || '-';
+    const date = dateList[idx] || '-';
+    const matchingEvidence = (selected.evidences || []).find(ev => ev.description === 'Integration ' + idx);
+    const hasEvidence = !!matchingEvidence;
+    const fileHtml = hasEvidence 
+      ? `<a href="/storage/${matchingEvidence.file_path}" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-[#144600] font-bold hover:underline bg-[#144600]/10 px-2.5 py-1 rounded mt-1.5 border border-[#144600]/20"><i class="fas fa-file-download"></i> ${escapeHtml(matchingEvidence.file_name)}</a>`
+      : `<span class="text-xs text-gray-400 italic">Belum ada file bukti</span>`;
+
+    detailsHtml += `
+      <div class="bg-gray-50/50 p-4 rounded-xl border border-gray-200/60 shadow-sm space-y-1.5 hover:shadow-md transition-all">
+        <p class="font-bold text-xs text-[#144600]">Integrasi ${idx + 1}: ${escapeHtml(integ)}</p>
+        <p class="text-xs text-gray-700 leading-relaxed"><span class="font-semibold text-gray-800">Implementasi:</span> ${escapeHtml(desc)}</p>
+        <p class="text-xs text-gray-700"><span class="font-semibold text-gray-800">Tanggal:</span> ${escapeHtml(date)}</p>
+        <div class="pt-1 flex items-center gap-2">
+          <span class="text-xs font-semibold text-gray-800">Bukti:</span> ${fileHtml}
+        </div>
+      </div>
+    `;
+  });
+  detailsHtml += '</div>';
+  
+  document.getElementById('detail-box').innerHTML = detailsHtml;
   document.getElementById('review-modal').classList.remove('hidden');
 }
 
