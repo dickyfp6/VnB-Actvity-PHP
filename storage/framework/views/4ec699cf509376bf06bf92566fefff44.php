@@ -67,9 +67,10 @@
 
                         <!-- Action Buttons (On the same line) -->
                         <div class="flex items-center gap-3">
-                            <button id="save-draft-btn" onclick="toggleDraftMode()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200" title="Masuk mode edit draft">
+                            <button id="save-draft-btn" onclick="toggleDraftMode()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200 relative" title="Masuk mode edit draft">
                                 <i class="fas fa-pen-to-square text-xs"></i>
                                 <span class="text-sm font-bold">Ubah Draft</span>
+                                <span id="save-draft-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] bg-red-600 text-white hidden">•</span>
                             </button>
                             <button id="submit-plan-btn" onclick="submitPlan()" class="btn-primary px-7 py-2.5 flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200" title="Ajukan rencana untuk approval">
                                 <i class="fas fa-paper-plane text-xs"></i>
@@ -481,7 +482,7 @@ function renderPhaseTable(bodyId, items) {
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
                 <td class="px-4 py-3 w-1/3 align-top">
-                    <textarea id="${textareaId}" rows="3" class="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." ${isWaitingApproval ? 'disabled' : ''} onchange="hasUnsavedChanges = true;">${escapeHtml(displayRencana)}</textarea>
+                    <textarea id="${textareaId}" rows="3" class="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." ${isWaitingApproval ? 'disabled' : ''} onchange="hasUnsavedChanges = true; syncDraftActionButton();">${escapeHtml(displayRencana)}</textarea>
                 </td>
                 ${statusCell}
             </tr>
@@ -544,6 +545,14 @@ function syncDraftActionButton() {
     saveDraftBtn.title = isDraftEditingMode
         ? 'Simpan semua perubahan draft'
         : 'Masuk mode edit untuk semua integrasi';
+
+    // Show the badge only while draft editing is active and there are unsaved changes.
+    // Once the draft is saved, or when the button is disabled, the badge stays hidden.
+    const saveBadge = document.getElementById('save-draft-badge');
+    if (saveBadge) {
+        const showSaveBadge = !isWaitingApproval && isDraftEditingMode && hasUnsavedChanges;
+        saveBadge.classList.toggle('hidden', !showSaveBadge);
+    }
 }
 
 function toggleDraftMode() {

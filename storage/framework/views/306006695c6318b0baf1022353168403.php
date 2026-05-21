@@ -213,14 +213,14 @@ function renderEvidencePreviewBlock(fileName, fileType, previewUrl = '') {
   const onClick = `openEvidencePreview('${escapeJsString(previewUrl)}','${escapeJsString(fileName)}','${escapeJsString(fileType)}')`;
 
   if (previewUrl && isImageExtension(ext)) {
-    return `<button type="button" onclick="${onClick}" class="w-14 h-12 overflow-hidden block hover:opacity-90" title="Lihat preview"><img src="${previewUrl}" alt="preview" class="w-14 h-12 object-cover"></button>`;
+    return `<button type="button" onclick="${onClick}" class="w-12 h-10 overflow-hidden block rounded-lg hover:opacity-90" title="Lihat preview"><img src="${previewUrl}" alt="preview" class="w-12 h-10 object-cover"></button>`;
   }
 
   if (previewUrl && isVideoExtension(ext)) {
-    return `<button type="button" onclick="${onClick}" class="w-14 h-12 overflow-hidden block hover:opacity-90" title="Lihat preview"><video src="${previewUrl}" class="w-14 h-12 object-cover" muted></video></button>`;
+    return `<button type="button" onclick="${onClick}" class="w-12 h-10 overflow-hidden block rounded-lg hover:opacity-90" title="Lihat preview"><video src="${previewUrl}" class="w-12 h-10 object-cover" muted></video></button>`;
   }
 
-  return `<button type="button" onclick="${onClick}" class="w-14 h-12 inline-flex items-center justify-center text-gray-500 bg-gray-50 hover:bg-gray-100" title="Lihat preview"><i class="${fileIconClass(ext)} text-base"></i></button>`;
+  return `<button type="button" onclick="${onClick}" class="w-12 h-10 inline-flex items-center justify-center text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-lg" title="Lihat preview"><i class="${fileIconClass(ext)} text-base"></i></button>`;
 }
 
 function renderEvidenceItems(id, integIdx) {
@@ -261,12 +261,12 @@ function renderEvidenceItems(id, integIdx) {
   return html;
 }
 
-function renderEvidenceUploader(id, integIdx) {
+function renderEvidenceUploader(id, integIdx, isEditable = true) {
   const hasAnyEvidence = getExistingEvidenceList(id, integIdx).length > 0 || getPendingEvidenceList(id, integIdx).length > 0;
 
   if (!hasAnyEvidence) {
     return `
-      <label for="file-${id}-${integIdx}" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-gray-300 rounded-xl bg-white hover:bg-gray-50 cursor-pointer text-sm text-gray-600">
+      <label for="file-${id}-${integIdx}" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3 border border-dashed border-gray-300 rounded-xl bg-white ${isEditable ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-not-allowed opacity-60 pointer-events-none'} text-sm text-gray-600">
         <i class="fas fa-cloud-upload-alt text-sm"></i>
         <span class="font-semibold">Unggah Bukti</span>
       </label>
@@ -274,21 +274,21 @@ function renderEvidenceUploader(id, integIdx) {
   }
 
   return `
-    <label for="file-${id}-${integIdx}" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-gray-300 rounded-xl bg-white hover:bg-gray-50 cursor-pointer text-sm text-gray-600">
+    <label for="file-${id}-${integIdx}" class="w-full h-10 inline-flex items-center justify-center gap-2 px-3 border border-dashed border-gray-300 rounded-xl bg-white ${isEditable ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-not-allowed opacity-60 pointer-events-none'} text-sm text-gray-600">
       <i class="fas fa-plus text-sm"></i>
       <span class="font-semibold">Tambah Bukti lainnya</span>
     </label>
   `;
 }
 
-function renderEvidenceCellContent(id, integIdx) {
+function renderEvidenceCellContent(id, integIdx, isEditable = true) {
   const itemsHtml = renderEvidenceItems(id, integIdx);
   const hasItems = itemsHtml.trim().length > 0;
 
   return `
     <div class="flex flex-col">
-      ${hasItems ? `<div class="space-y-2">${itemsHtml}</div><div class="mt-2">${renderEvidenceUploader(id, integIdx)}</div>` : renderEvidenceUploader(id, integIdx)}
-      <input type="file" id="file-${id}-${integIdx}" onchange="addEvidenceFiles(${id}, ${integIdx}, this)" class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" multiple>
+      ${hasItems ? `<div class="space-y-2">${itemsHtml}</div><div class="mt-2">${renderEvidenceUploader(id, integIdx, isEditable)}</div>` : renderEvidenceUploader(id, integIdx, isEditable)}
+      <input type="file" id="file-${id}-${integIdx}" onchange="addEvidenceFiles(${id}, ${integIdx}, this)" class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z" multiple ${isEditable ? '' : 'disabled'}>
       <p class="text-[10px] text-red-500 hidden mt-1" id="file-error-${id}-${integIdx}"></p>
     </div>
   `;
@@ -297,7 +297,9 @@ function renderEvidenceCellContent(id, integIdx) {
 function rerenderEvidenceRow(id, integIdx) {
   const cellContainer = document.getElementById(`evidence-cell-${id}-${integIdx}`);
   if (cellContainer) {
-    cellContainer.innerHTML = renderEvidenceCellContent(id, integIdx);
+    const activity = getActivityById(id);
+    const isEditable = activity ? (isEditableSubmissionStatus(activity.submission_status) || isCurrentActivityPhaseEditable(activity)) : false;
+    cellContainer.innerHTML = renderEvidenceCellContent(id, integIdx, isEditable);
   }
 }
 
@@ -560,7 +562,9 @@ function formatIndonesianDate(dateStr) {
 
 function formatDateDisplay(dateStr) {
   if (!dateStr) return '';
-  const date = new Date(dateStr);
+  const normalized = parseDateValue(dateStr);
+  if (!normalized) return '';
+  const date = new Date(normalized);
   if (isNaN(date.getTime())) return '';
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -568,21 +572,60 @@ function formatDateDisplay(dateStr) {
   return `${day}/${month}/${year}`;
 }
 
+function parseDateValue(dateStr) {
+  if (!dateStr) return '';
+
+  const raw = String(dateStr).trim();
+  if (!raw) return '';
+
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return raw;
+  }
+
+  const dmyMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(raw);
+  if (isNaN(parsed.getTime())) return '';
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDisplayDateValue(dateStr) {
+  const normalized = parseDateValue(dateStr);
+  return normalized ? formatDateDisplay(normalized) : '';
+}
+
 function applyDateFieldState(input) {
   if (!input) return;
 
-  const isoValue = input.dataset.isoValue || '';
+  const isoValue = parseDateValue(input.dataset.isoValue || input.value || '');
+  input.dataset.isoValue = isoValue;
   input.type = 'text';
-  input.value = '';
+  input.value = isoValue ? formatDateDisplay(isoValue) : '';
   input.dataset.hasValue = isoValue ? 'true' : 'false';
-  input.classList.add('text-gray-400');
-  input.classList.remove('text-gray-700');
+  if (isoValue) {
+    input.classList.remove('text-gray-400');
+    input.classList.add('text-gray-700');
+  } else {
+    input.classList.add('text-gray-400');
+    input.classList.remove('text-gray-700');
+  }
 }
 
 function focusDateField(input) {
   if (!input) return;
-  if (input.dataset.isoValue) {
-    input.value = input.dataset.isoValue;
+  const isoValue = parseDateValue(input.dataset.isoValue || input.value || '');
+  if (isoValue) {
+    input.dataset.isoValue = isoValue;
+    input.value = isoValue;
   } else {
     input.value = '';
   }
@@ -594,14 +637,14 @@ function focusDateField(input) {
 function blurDateField(input) {
   if (!input) return;
   if (input.type === 'date' && input.value) {
-    input.dataset.isoValue = input.value;
+    input.dataset.isoValue = parseDateValue(input.value) || input.value;
   }
   applyDateFieldState(input);
 }
 
 function getDateFieldValue(input) {
   if (!input) return '';
-  return input.dataset.isoValue || input.value.trim();
+  return parseDateValue(input.dataset.isoValue || input.value.trim());
 }
 
 let countdownInterval = null;
@@ -741,6 +784,51 @@ function parseIntegrations(description) {
   return parts.length === 0 ? '-' : parts.join('\\n');
 }
 
+function getActivityById(id) {
+  return activities.find(x => x.id === id) || null;
+}
+
+function isEditableSubmissionStatus(status) {
+  return ['draft', 'revision_required'].includes((status || 'draft'));
+}
+
+function getActivityPhaseNumber(activityTitle) {
+  const phaseNumMatch = String(activityTitle || '').match(/Fase\s*(\d+)/i);
+  return phaseNumMatch ? parseInt(phaseNumMatch[1], 10) : 1;
+}
+
+function getActivityPhasePeriod(activity) {
+  if (!activity) return null;
+  const phaseNumber = getActivityPhaseNumber(activity.activity_title || '');
+  return window.employeePeriods ? window.employeePeriods.find(p => Number(p.phase_number) === phaseNumber) : null;
+}
+
+function isCurrentActivityPhaseEditable(activity) {
+  const period = getActivityPhasePeriod(activity);
+  return period ? period.status === 'in_progress' : false;
+}
+
+function canEditActivityItem(id) {
+  const activity = getActivityById(id);
+  if (!activity) return false;
+  return isEditableSubmissionStatus(activity.submission_status) || isCurrentActivityPhaseEditable(activity);
+}
+
+function isSubmittedActivityStatus(status) {
+  return ['waiting_approval', 'submitted', 'completed'].includes(String(status || '').toLowerCase());
+}
+
+function getSubmissionStatusLabel(status) {
+  const map = {
+    draft: 'draft',
+    revision_required: 'revisi',
+    waiting_approval: 'menunggu approval',
+    submitted: 'sudah diajukan',
+    completed: 'sudah completed',
+  };
+  return map[status] || (status || 'tidak diketahui');
+}
+
 function renderActivities() {
   const container = document.getElementById('activities-container');
   const tabsContainer = document.getElementById('phase-tabs');
@@ -773,7 +861,7 @@ function renderActivities() {
   // Trigger Countdown Widget dynamically
   const phaseNumMatch = activePhase.match(/\d+/);
   const phaseNumber = phaseNumMatch ? parseInt(phaseNumMatch[0]) : 1;
-  const period = window.employeePeriods ? window.employeePeriods.find(p => p.phase_number === phaseNumber) : null;
+  const period = window.employeePeriods ? window.employeePeriods.find(p => Number(p.phase_number) === phaseNumber) : null;
   
   if (period) {
     startCountdown(period);
@@ -804,6 +892,7 @@ function renderActivities() {
   } else {
     filteredActivities.forEach((a) => {
       const behaviour = extractBehaviour(a.activity_title);
+      const isEditable = isEditableSubmissionStatus(a.submission_status) || isCurrentActivityPhaseEditable(a);
       const integrations = parseIntegrations(a.description);
       const integrationList = integrations === '-' ? ['-'] : integrations.split('\\n').filter(s => s);
       const deliverableList = (a.deliverables || '-').split(/\r?\n---\r?\n/).map(s => s.trim());
@@ -830,26 +919,28 @@ function renderActivities() {
             ` : ''}
             <td class="px-4 py-4 text-xs border-b border-gray-100 w-64 text-gray-700">${escapeHtml(integration).replace(/\\n/g, '<br>')}</td>
             <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverable).replace(/\\n/g, '<br>')}</td>
-            <td class="px-4 py-4 border-b border-gray-100 min-w-[220px]">
-              <textarea id="desc-${a.id}-${integIdx}" rows="1" onfocus="expandImplementationField(this)" onblur="collapseImplementationField(this)" class="w-full h-10 border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none overflow-hidden focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white" placeholder="Jelaskan implementasi...">${escapeHtml(thisDesc)}</textarea>
+            <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
+              <textarea id="desc-${a.id}-${integIdx}" rows="2" onfocus="expandImplementationField(this)" onblur="collapseImplementationField(this)" class="w-full min-h-[72px] border border-gray-300 rounded-lg px-3 py-2 text-sm leading-5 resize-none overflow-hidden focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white ${isEditable ? '' : 'bg-gray-50 text-gray-500 cursor-not-allowed'}" placeholder="Jelaskan implementasi..." ${isEditable ? '' : 'readonly'}>${escapeHtml(thisDesc)}</textarea>
               ${a.revision_notes ? `<div class="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded border border-red-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(a.revision_notes)}</div>` : ''}
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-44">
               <div class="relative">
-                <input id="date-${a.id}-${integIdx}" type="text" inputmode="numeric" autocomplete="off" placeholder="Masukkan tanggal" data-iso-value="${thisDate}" onfocus="focusDateField(this)" onblur="blurDateField(this)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white placeholder:text-gray-400 text-gray-400" value="">
+                <input id="date-${a.id}-${integIdx}" type="text" inputmode="numeric" autocomplete="off" placeholder="Masukkan tanggal" data-iso-value="${thisDate}" onfocus="focusDateField(this)" onblur="blurDateField(this)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white placeholder:text-gray-400 ${thisDate ? 'text-gray-700' : 'text-gray-400'} ${isEditable ? '' : 'bg-gray-50 text-gray-500 cursor-not-allowed'}" value="${getDisplayDateValue(thisDate)}" ${isEditable ? '' : 'disabled'}>
               </div>
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-64">
-              <div id="evidence-cell-${a.id}-${integIdx}">${renderEvidenceCellContent(a.id, integIdx)}</div>
+              <div id="evidence-cell-${a.id}-${integIdx}" class="${isEditable ? '' : 'pointer-events-none opacity-60'}">${renderEvidenceCellContent(a.id, integIdx, isEditable)}</div>
             </td>
             <td class="px-3 py-3 text-right whitespace-nowrap border-b border-gray-100 align-top w-24">
               <div class="flex items-start justify-end gap-1">
-                <button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm" title="Simpan draft" aria-label="Simpan draft">
+                <button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 transition-all shadow-sm ${isEditable ? 'hover:bg-gray-50 hover:border-gray-400' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Simpan draft' : 'Tidak bisa diubah karena status ' + getSubmissionStatusLabel(a.submission_status)}" aria-label="Simpan draft" ${isEditable ? '' : 'disabled'}>
                   <i class="far fa-save text-lg"></i>
                 </button>
-                <button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 text-white rounded-lg transition-all shadow-sm hover:shadow-md submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] hover:from-[#0f3600] hover:to-[#144600]" title="Ajukan" aria-label="Ajukan">
-                  <i class="fas fa-paper-plane text-sm"></i>
-                </button>
+                ${isSubmittedActivityStatus(a.submission_status)
+                  ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Diajukan</span>`
+                  : `<button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 text-white rounded-lg transition-all shadow-sm submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] ${isEditable ? 'hover:shadow-md hover:from-[#0f3600] hover:to-[#144600]' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Ajukan' : 'Tidak bisa diajukan karena status ' + getSubmissionStatusLabel(a.submission_status)}" aria-label="Ajukan" ${isEditable ? '' : 'disabled'}>
+                    <i class="fas fa-paper-plane text-sm"></i>
+                  </button>`}
               </div>
             </td>
           </tr>
@@ -970,9 +1061,15 @@ async function uploadPendingEvidenceFiles(id, integIdx) {
 }
 
 async function saveDraft(id, integIdx) {
+  if (!canEditActivityItem(id)) {
+    const activity = getActivityById(id);
+    showAlert(`Tidak bisa simpan draft. Status aktivitas: ${getSubmissionStatusLabel(activity?.submission_status)}.`, 'error');
+    return;
+  }
+
   const btn = document.querySelector(`button[onclick="saveDraft(${id}, ${integIdx})"]`);
   const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   btn.disabled = true;
 
   const uploadSuccess = await uploadPendingEvidenceFiles(id, integIdx);
@@ -995,6 +1092,12 @@ async function saveDraft(id, integIdx) {
 }
 
 async function submitActivity(id, integIdx) {
+  if (!canEditActivityItem(id)) {
+    const activity = getActivityById(id);
+    showAlert(`Tidak bisa ajukan. Status aktivitas: ${getSubmissionStatusLabel(activity?.submission_status)}.`, 'error');
+    return;
+  }
+
   const validation = validateIntegrationRowsBeforeSubmit(id);
   if (!validation.valid) {
     showAlert(validation.message, 'warning');
@@ -1005,7 +1108,7 @@ async function submitActivity(id, integIdx) {
   
   const btn = document.querySelector(`button[onclick="submitActivity(${id}, ${integIdx})"]`);
   const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   btn.disabled = true;
 
   const uploadSuccess = await uploadPendingEvidenceFiles(id, integIdx);

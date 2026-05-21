@@ -7,6 +7,7 @@ use App\Models\VnbEvidence;
 use App\Models\VnbProgress;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class EvidenceController extends Controller
 {
@@ -31,15 +32,14 @@ class EvidenceController extends Controller
 
         $file = $request->file('file');
 
-        // TODO: Upload to Supabase Storage
-        // $storagePath = Storage::disk('s3')->put('evidence', $file);
-        // $s3_url = Storage::disk('s3')->url($storagePath);
+        // Store evidence on public disk so it can be served via /storage/*
+        $storedPath = $file->store('evidence', 'public');
 
         $evidence = VnbEvidence::create([
             'plan_item_id' => $validated['plan_item_id'],
             'uploaded_by' => $user->employee_id,
             'file_name' => $file->getClientOriginalName(),
-            'file_path' => 'evidence/' . $file->hashName(), // placeholder
+            'file_path' => $storedPath,
             'file_type' => $file->extension(),
             'file_size' => $file->getSize(),
             'description' => $validated['description'] ?? null,
@@ -95,6 +95,10 @@ class EvidenceController extends Controller
                 'success' => false,
                 'message' => 'Anda tidak memiliki akses untuk menghapus bukti ini.'
             ], 403);
+        }
+
+        if ($evidence->file_path && Storage::disk('public')->exists($evidence->file_path)) {
+            Storage::disk('public')->delete($evidence->file_path);
         }
 
         $evidence->delete();

@@ -546,11 +546,11 @@ function syncDraftActionButton() {
         ? 'Simpan semua perubahan draft'
         : 'Masuk mode edit untuk semua integrasi';
 
-    // Show a small badge on the Save button when the plan is already approved
-    // but there are unsaved changes (e.g., manager approved locally but hasn't saved)
+    // Show the badge only while draft editing is active and there are unsaved changes.
+    // Once the draft is saved, or when the button is disabled, the badge stays hidden.
     const saveBadge = document.getElementById('save-draft-badge');
     if (saveBadge) {
-        const showSaveBadge = (currentPlan?.status === 'approved' || currentPlan?.status === 'approved_with_revision') && hasUnsavedChanges;
+        const showSaveBadge = !isWaitingApproval && isDraftEditingMode && hasUnsavedChanges;
         saveBadge.classList.toggle('hidden', !showSaveBadge);
     }
 }

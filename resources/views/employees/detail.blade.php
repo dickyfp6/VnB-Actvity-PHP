@@ -230,6 +230,7 @@
 <script>
 const employeeId = @json($employeeId);
 let activityReviewActivePhase = '';
+let isPlanRevisionMode = false;
 
 function switchTab(tabId) {
     // Hide all tabs
@@ -295,6 +296,50 @@ function getEmployeeStatusLabel(status) {
     return status || '-';
 }
 
+function isApprovedPlanStatus(status) {
+    return ['approved', 'approved_with_revision'].includes(String(status || '').toLowerCase());
+}
+
+function getTodayStartDate() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+function isFuturePhaseRange(computedRange) {
+    if (!computedRange?.startDate) return false;
+
+    const startDate = new Date(computedRange.startDate);
+    if (Number.isNaN(startDate.getTime())) return false;
+
+    startDate.setHours(0, 0, 0, 0);
+    return startDate > getTodayStartDate();
+}
+
+function isPastPhaseRange(computedRange) {
+    if (!computedRange?.endDate) return false;
+
+    const endDate = new Date(computedRange.endDate);
+    if (Number.isNaN(endDate.getTime())) return false;
+
+    endDate.setHours(0, 0, 0, 0);
+    return endDate < getTodayStartDate();
+}
+
+function isCurrentPhaseRange(computedRange) {
+    if (!computedRange?.startDate || !computedRange?.endDate) return false;
+
+    const startDate = new Date(computedRange.startDate);
+    const endDate = new Date(computedRange.endDate);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return false;
+
+    const today = getTodayStartDate();
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    return startDate <= today && today <= endDate;
+}
+
 async function loadDetail() {
     const profileBox = document.getElementById('profile-box');
     if (profileBox) profileBox.innerHTML = '<div class="text-sm text-gray-500 py-2">Memuat detail...</div>';
@@ -351,6 +396,7 @@ async function loadDetail() {
                 const mgrRes = await apiGet(`/api/manager/employees/${employeeId}`);
                 if (mgrRes && mgrRes.success && mgrRes.data) {
                     detailData = mgrRes.data;
+                    isPlanRevisionMode = false;
                     
                     // Restore pending decisions
                     if (detailData?.plan?.id) {
@@ -586,6 +632,7 @@ function buildPhaseDateRange(phaseInfo, cursorDate) {
 function updateSubmitButtonState(detail) {
     const headerBtn = document.getElementById('batch-submit-btn-header');
     if (!headerBtn) return;
+    const isApprovedPlan = isApprovedPlanStatus(detail?.plan?.status);
     const items = detail.items || [];
     const hasWaitingItems = detail.approval_requests?.planning_waiting && items.length > 0;
     
@@ -607,14 +654,25 @@ function updateSubmitButtonState(detail) {
     
     const hasNewPendingDecisions = Object.keys(pendingDecisions).length > 0;
     const allRowsDecided = totalSubRows > 0 && decidedSubRows >= totalSubRows;
-    
-    if (!hasWaitingItems || !allRowsDecided || !hasNewPendingDecisions) {
-        headerBtn.disabled = true;
-        headerBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    if (isApprovedPlan) {
+        headerBtn.disabled = !isPlanRevisionMode || !hasNewPendingDecisions;
+        if (headerBtn.disabled) {
+            headerBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            headerBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     } else {
-        headerBtn.disabled = false;
-        headerBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (!hasWaitingItems || !allRowsDecided || !hasNewPendingDecisions) {
+            headerBtn.disabled = true;
+            headerBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            headerBtn.disabled = false;
+            headerBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
+
+    updateApproveAllButtonState();
 }
 
 function renderPhaseContent(detail) {
@@ -637,7 +695,8 @@ function renderPhaseContent(detail) {
     if (navContainer) navContainer.classList.remove('hidden');
     
     const planningWaiting = detail.approval_requests?.planning_waiting;
-    const isPlanApproved = detail.plan?.status === 'approved' || detail.plan?.status === 'in_progress' || detail.plan?.status === 'completed';
+    const isPlanApproved = isApprovedPlanStatus(detail.plan?.status) || detail.plan?.status === 'in_progress' || detail.plan?.status === 'completed';
+    const todayStart = getTodayStartDate();
 
     totalPlanningSubRows = 0;
     const items = detail.items || [];
@@ -697,6 +756,10 @@ function renderPhaseContent(detail) {
         const phaseInfo = { duration: duration };
         const computedRange = buildPhaseDateRange(phaseInfo, phaseCursorDate);
         phaseCursorDate = computedRange.nextCursorDate;
+        const phaseIsFuture = isFuturePhaseRange(computedRange);
+        const phaseIsCurrent = isCurrentPhaseRange(computedRange);
+        const phaseIsPast = isPastPhaseRange(computedRange);
+        const phaseCanEdit = !isPlanApproved || (isPlanRevisionMode && phaseIsCurrent);
         
         const desc = formatPhaseDurationRange(phaseInfo.duration, computedRange.startDate, computedRange.endDate);
         const colorClass = colorGradients[index % colorGradients.length];
@@ -733,7 +796,7 @@ function renderPhaseContent(detail) {
             </div>
         `;
         if (container) container.insertAdjacentHTML('beforeend', planPhaseHtml);
-        renderPhaseActivityTable(`${phaseId}-body`, phaseItems, planningWaiting);
+        renderPhaseActivityTable(`${phaseId}-body`, phaseItems, planningWaiting, phaseCanEdit, isPlanApproved, phaseIsFuture);
 
         // Render Content Block for "Fase X" Tab
         let phaseContentHtml = '';
@@ -746,6 +809,30 @@ function renderPhaseContent(detail) {
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">VnB Plan Belum Disetujui</h3>
                         <p class="text-gray-500 max-w-md">VnB Plan dari Employee ini belum disetujui sepenuhnya. Silakan lakukan review dan persetujuan di tab <b>Plan</b> terlebih dahulu sebelum dapat melakukan monitoring fase ini.</p>
+                    </div>
+                </div>
+            `;
+        } else if (isPlanRevisionMode && phaseIsCurrent) {
+            phaseContentHtml = `
+                <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
+                    <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                        <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
+                            <i class="fas fa-pen-to-square text-3xl text-amber-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Fase ${label} Sedang Berjalan</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini sedang berjalan, jadi rencana aktivitasnya masih bisa diedit. Gunakan tab <b>Plan</b> untuk menyesuaikan detail aktivitas fase ini.</p>
+                    </div>
+                </div>
+            `;
+        } else if (isPlanRevisionMode && (phaseIsFuture || phaseIsPast)) {
+            phaseContentHtml = `
+                <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
+                    <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                        <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4 border border-amber-100">
+                            <i class="fas fa-lock text-3xl text-amber-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${phaseIsFuture ? 'Fase Belum Berjalan' : 'Fase Sudah Berlalu'}</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini tidak dapat diedit lagi. Hanya fase yang sedang berjalan yang bisa direvisi pada mode Ubah Plan.</p>
                     </div>
                 </div>
             `;
@@ -805,7 +892,7 @@ function switchManagerVnbTab(tabId) {
     }
 }
 
-function renderPhaseActivityTable(bodyId, items, planningWaiting = false) {
+function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseCanEdit = true, isPlanApproved = false, phaseIsFuture = false) {
     const tbody = document.getElementById(bodyId);
     if (!tbody) return;
     if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>'; return; }
@@ -826,19 +913,32 @@ function renderPhaseActivityTable(bodyId, items, planningWaiting = false) {
             const displayDeliverables = pendingDecision?.deliverables_text ?? savedDecision?.deliverables_text ?? (rencanaList[idx] || '-');
             let actionHtml = '';
             let rowBgClass = '';
+            const rowEditable = phaseCanEdit;
             if (rowState && rowState.action === 'approve') {
                 const isRevised = rowState.was_revised === true;
                 rowBgClass = isRevised ? 'bg-amber-50/50' : 'bg-green-50/50';
-                const badgeText = isRevised ? 'Direvisi' : 'Disetujui';
-                const badgeColor = isRevised ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100';
-                actionHtml = `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm ${badgeColor} border border-opacity-30 shadow-sm">${badgeText}</span><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline mt-1">Batalkan</button></div>`;
+                if (isPlanApproved && rowEditable) {
+                    actionHtml = `<div class="flex justify-end"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Ubah Plan"><i class="fas fa-pen"></i></button></div>`;
+                } else {
+                    actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 border border-red-200"><i class="fas fa-lock text-[10px]"></i> Tidak dapat Diubah</span></div>`;
+                }
             } else if (rowState && rowState.action === 'revise') {
                 rowBgClass = 'bg-amber-50/50';
-                actionHtml = `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm text-amber-700 bg-amber-100 border border-opacity-30 shadow-sm">Perlu Revisi</span><div class="flex gap-2 mt-1"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
+                actionHtml = rowEditable
+                    ? `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm text-amber-700 bg-amber-100 border border-opacity-30 shadow-sm">Direvisi</span><div class="flex gap-2 mt-1"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`
+                    : `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200">Direvisi</span></div>`;
+            } else if (isPlanApproved && !rowEditable) {
+                const badgeText = phaseIsFuture ? 'Terkunci' : 'Sudah Berjalan';
+                const badgeColor = phaseIsFuture ? 'text-slate-700 bg-slate-100' : 'text-gray-700 bg-gray-100';
+                actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${badgeColor} border border-gray-200">${badgeText}</span></div>`;
             } else {
-                actionHtml = `<div class="flex justify-end gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
+                if (isPlanApproved && phaseCanEdit) {
+                    actionHtml = `<div class="flex justify-end gap-2"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit Plan"><i class="fas fa-pen"></i></button></div>`;
+                } else {
+                    actionHtml = `<div class="flex justify-end gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
+                }
             }
-            html += `<tr class="${rowBgClass} hover:bg-gray-50/80 transition-colors" data-item-id="${item.id}" data-sub-idx="${idx}" data-edit-mode="false">${idx === 0 ? `<td class="px-4 py-4"><span class="font-bold text-gray-900">${behavior}</span></td>` : '<td class="px-4 py-4"></td>'}<td class="px-4 py-4"><p class="text-xs text-gray-600 leading-relaxed">${displayIntegration}</p></td><td class="px-4 py-4"><p class="text-xs text-gray-700 font-medium leading-relaxed">${displayDeliverables || '-'}</p></td><td class="px-4 py-4 text-right">${actionHtml}</td></tr>`;
+            html += `<tr class="${rowBgClass} hover:bg-gray-50/80 transition-colors" data-item-id="${item.id}" data-sub-idx="${idx}" data-edit-mode="false" data-editable="${rowEditable ? 'true' : 'false'}">${idx === 0 ? `<td class="px-4 py-4"><span class="font-bold text-gray-900">${behavior}</span></td>` : '<td class="px-4 py-4"></td>'}<td class="px-4 py-4"><p class="text-xs text-gray-600 leading-relaxed">${displayIntegration}</p></td><td class="px-4 py-4"><p class="text-xs text-gray-700 font-medium leading-relaxed">${displayDeliverables || '-'}</p></td><td class="px-4 py-4 text-right">${actionHtml}</td></tr>`;
         });
     });
     tbody.innerHTML = html;
@@ -1175,12 +1275,22 @@ function updateApprovalProgress() {
     // Update submit button state
     const submitBtn = document.getElementById('batch-submit-btn-header');
     if (submitBtn) {
-        if (percentage === 100) {
-            submitBtn.disabled = false;
-            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (isApprovedPlanStatus(detailData?.plan?.status)) {
+            const hasPendingRevision = Object.keys(pendingDecisions).length > 0;
+            submitBtn.disabled = !hasPendingRevision;
+            if (submitBtn.disabled) {
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         } else {
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            if (percentage === 100) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
         }
     }
     
@@ -1228,14 +1338,21 @@ function updateVnbApprovalBadge(percentage = null) {
     }
     
     if (percentage === 100) {
-        // Show red empty badge
-        badge.classList.remove('hidden');
-        badgeCount.textContent = '';
-        badgeCount.classList.add('invisible');
-        badge.style.minWidth = '12px';
-        badge.style.width = '12px';
-        badge.style.height = '12px';
-        badge.style.padding = '0';
+        // Only show the empty red badge when all rows are decided AND there are
+        // local pending decisions (i.e. approvals made locally but not yet saved).
+        const hasNewPendingDecisions = Object.keys(pendingDecisions).length > 0;
+        if (hasNewPendingDecisions) {
+            badge.classList.remove('hidden');
+            badgeCount.textContent = '';
+            badgeCount.classList.add('invisible');
+            badge.style.minWidth = '12px';
+            badge.style.width = '12px';
+            badge.style.height = '12px';
+            badge.style.padding = '0';
+        } else {
+            // All decisions are already persisted; hide the badge
+            badge.classList.add('hidden');
+        }
     } else if (detailData?.items && detailData.items.length > 0) {
         // Calculate count of items needing approval
         let pendingCount = 0;
@@ -1262,6 +1379,17 @@ function updateVnbApprovalBadge(percentage = null) {
 }
 
 function showConfirmationModal() {
+    const isRevisionFlow = isApprovedPlanStatus(detailData?.plan?.status) && isPlanRevisionMode;
+
+    if (isRevisionFlow) {
+        showConfirm('Simpan revisi plan VnB ini?', 'Konfirmasi Revisi').then(async (confirmed) => {
+            if (confirmed) {
+                await submitBatchReview();
+            }
+        });
+        return;
+    }
+
     const modal = document.createElement('div');
     modal.id = 'confirmation-modal-overlay';
     modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
@@ -1300,7 +1428,17 @@ async function submitBatchReview() {
     const planId = detailData?.plan?.id;
     if (!planId) return;
     const pendingCount = Object.keys(pendingDecisions).length;
-    if (pendingCount < totalPlanningSubRows) {
+    const isRevisionFlow = isApprovedPlanStatus(detailData?.plan?.status);
+    if (isRevisionFlow) {
+        if (!isPlanRevisionMode) {
+            showAlert('Klik Ubah Plan VnB terlebih dahulu untuk mulai revisi.', 'info');
+            return;
+        }
+        if (pendingCount === 0) {
+            showAlert('Belum ada perubahan revisi yang perlu disimpan.', 'info');
+            return;
+        }
+    } else if (pendingCount < totalPlanningSubRows) {
         showAlert('Harap berikan keputusan (Setujui atau Revisi) untuk seluruh rencana aktivitas terlebih dahulu.', 'error');
         return;
     }
@@ -1343,8 +1481,9 @@ async function submitBatchReview() {
     if (res && res.success) {
         pendingDecisions = {};
         clearPendingDecisionsLocal();
+        isPlanRevisionMode = false;
         toggleBatchButtonBar();
-        showAlert(res.message || 'Review berhasil disimpan', 'success');
+        showAlert(res.message || (isRevisionFlow ? 'Revisi plan berhasil disimpan' : 'Review berhasil disimpan'), 'success');
         loadDetail();
     } else {
         showAlert(res?.message || res?.error || 'Gagal menyimpan review', 'error');
@@ -1403,6 +1542,11 @@ function startInlineEdit(itemId, subIdx) {
     // Mark this row as in edit mode
     const row = rows[rowIndex];
     if (!row) return;
+
+    if (row.dataset.editable === 'false') {
+        showAlert('Fase ini sudah berjalan, hanya fase yang belum dimulai yang bisa diubah.', 'warning');
+        return;
+    }
     
     // Store original values
     row.dataset.editMode = 'true';
@@ -1493,6 +1637,24 @@ function cancelInlineEdit(itemId, subIdx) {
     if (detailData && detailData.items) renderPhaseContent(detailData);
 }
 
+function togglePlanRevisionMode() {
+    if (!isApprovedPlanStatus(detailData?.plan?.status)) return;
+    isPlanRevisionMode = true;
+    renderPhaseContent(detailData);
+    updateApprovalProgress();
+    updateApproveAllButtonState();
+}
+
+function cancelPlanRevisionMode() {
+    if (!isApprovedPlanStatus(detailData?.plan?.status)) return;
+    isPlanRevisionMode = false;
+    pendingDecisions = {};
+    clearPendingDecisionsLocal();
+    renderPhaseContent(detailData);
+    updateApprovalProgress();
+    updateApproveAllButtonState();
+}
+
 function editPendingDecision(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaEnc) {
     itemId = parseInt(itemId) || 0;
     subIdx = parseInt(subIdx) || 0;
@@ -1503,10 +1665,14 @@ function editPendingDecision(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaE
 async function submitApproveAll() {
     // Don't allow if already 100% approved
     if (document.getElementById('approve-all-btn').disabled) {
-        showAlert('Semua rencana aktivitas sudah disetujui', 'info');
+        showAlert('Gunakan Ubah Plan VnB untuk merevisi fase yang belum berjalan', 'info');
         return;
     }
     const planId = detailData?.plan?.id; if (!planId) { showAlert('Plan ID tidak ditemukan', 'error'); return; }
+    if (isApprovedPlanStatus(detailData?.plan?.status)) {
+        togglePlanRevisionMode();
+        return;
+    }
     document.getElementById('approve-all-modal').classList.remove('hidden');
 }
 
@@ -1549,6 +1715,8 @@ function updateApproveAllButtonState() {
     if (!approveAllBtn || !submitBtn) return;
     const managerRole = detailData?.current_manager_role;
     const canReviewPlanning = ['functional', 'operational', 'both'].includes(managerRole);
+    const isApprovedPlan = isApprovedPlanStatus(detailData?.plan?.status);
+    const hasRevisions = Object.values(pendingDecisions).some(decision => decision.action === 'revise');
     
     if (!canReviewPlanning) {
         approveAllBtn.disabled = true;
@@ -1558,17 +1726,35 @@ function updateApproveAllButtonState() {
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
         submitBtn.title = 'Anda tidak memiliki otorisasi untuk mereview planning employee ini.';
     } else {
-        // Check if there are any revisions pending
-        const hasRevisions = Object.values(pendingDecisions).some(decision => decision.action === 'revise');
-        
-        if (hasRevisions) {
+        if (isApprovedPlan) {
+            approveAllBtn.disabled = false;
+            approveAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            approveAllBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            approveAllBtn.classList.add('bg-amber-500', 'hover:bg-amber-600');
+            approveAllBtn.title = 'Ubah plan VnB yang belum berjalan';
+            approveAllBtn.innerHTML = '<i class="fas fa-pen-to-square text-xs"></i> Ubah Plan VnB';
+            approveAllBtn.setAttribute('onclick', 'togglePlanRevisionMode()');
+
+            submitBtn.innerHTML = '<i class="fas fa-save text-xs"></i> Simpan Revisi';
+            submitBtn.disabled = !hasRevisions;
+            if (submitBtn.disabled) {
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        } else if (hasRevisions) {
             approveAllBtn.disabled = true;
             approveAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
             approveAllBtn.title = 'Tidak bisa Setujui Semua karena ada item yang sudah direvisi. Silakan selesaikan revisi terlebih dahulu.';
         } else {
             approveAllBtn.disabled = false;
             approveAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            approveAllBtn.classList.remove('bg-amber-500', 'hover:bg-amber-600');
+            approveAllBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            approveAllBtn.innerHTML = '<i class="fas fa-check-double text-xs"></i> Setujui Semua';
+            approveAllBtn.setAttribute('onclick', 'submitApproveAll()');
             approveAllBtn.title = '';
+            submitBtn.innerHTML = '<i class="fas fa-save text-xs"></i> Simpan';
         }
     }
 }

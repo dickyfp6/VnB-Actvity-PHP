@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             SyncSourceEmployeesSeeder::class,
+            SyncEmployeesSeeder::class,
+            PostSyncProvisionSeeder::class,
         ]);
 
         // 2. Recreate the six core demo credentials

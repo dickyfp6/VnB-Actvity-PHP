@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class VnbActivityController extends Controller
 {
@@ -31,6 +32,20 @@ class VnbActivityController extends Controller
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Data Employee tidak ditemukan'], 404);
+        }
+
+        $activeAssignment = VnbActivityAssignment::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->latest('id')
+            ->first();
+
+        $periodStart = $employee->induction_date
+            ?? $employee->vnb_period_start
+            ?? $activeAssignment?->induction_date;
+
+        if ($periodStart) {
+            $this->ensureParticipantVnbPeriods($employee, Carbon::parse($periodStart));
         }
 
         $items = VnbPlanItem::whereHas('plan', function ($q) use ($employee) {
@@ -60,7 +75,7 @@ class VnbActivityController extends Controller
     {
         $item = VnbPlanItem::findOrFail($planItemId);
 
-        if (!in_array($item->submission_status, ['draft', 'revision_required'])) {
+        if (!in_array($item->submission_status, ['draft', 'revision_required'], true) && !$this->isCurrentActivityPhaseEditable($item)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Aktivitas sudah disubmit dan tidak dapat diubah.',
@@ -161,7 +176,7 @@ class VnbActivityController extends Controller
     {
         $item = VnbPlanItem::findOrFail($planItemId);
 
-        if (!in_array($item->submission_status, ['draft', 'revision_required'])) {
+        if (!in_array($item->submission_status, ['draft', 'revision_required'], true) && !$this->isCurrentActivityPhaseEditable($item)) {
             return response()->json(['success' => false, 'message' => 'Status tidak memungkinkan perubahan.'], 422);
         }
 
@@ -629,7 +644,7 @@ class VnbActivityController extends Controller
             'completion_percentage'   => $item->completion_percentage,
             'evidences'            => $item->evidences->map(function ($ev) {
                 $previewUrl = $ev->s3_url;
-                if (!$previewUrl && $ev->file_path) {
+                if (!$previewUrl && $ev->file_path && Storage::disk('public')->exists($ev->file_path)) {
                     $previewUrl = url('/storage/' . ltrim((string) $ev->file_path, '/'));
                 }
 
@@ -773,18 +788,85 @@ class VnbActivityController extends Controller
      */
     private function ensureParticipantVnbPeriods(Employee $employee, Carbon $periodStart)
     {
+        // Try to determine phase durations from framework items (same logic as VnbPlanController::getPhasesList)
+        $careerStageCode = $employee->getCareerStageCode();
+
+        $phases = VnbFrameworkItem::where('career_stage', $careerStageCode)
+            ->distinct('phase')
+            ->pluck('phase')
+            ->map(function (string $phase): array {
+                preg_match('/Fase\s+(\d+)/i', $phase, $matches);
+
+                return [
+                    'phase' => $phase,
+                    'phase_number' => isset($matches[1]) ? (int) $matches[1] : 999,
+                ];
+            })
+            ->sortBy('phase_number')
+            ->values();
+
         $periods = collect();
 
-        for ($phase = 1; $phase <= 3; $phase++) {
-            $start = $periodStart->copy()->addMonths(($phase - 1) * 4);
-            $end = $phase === 3
-                ? $periodStart->copy()->addYear()->subDay()
-                : $start->copy()->addMonths(4)->subDay();
+        // If no framework phases found, fallback to previous 3-phase 4-month grouping
+        if ($phases->isEmpty()) {
+            for ($phase = 1; $phase <= 3; $phase++) {
+                $start = $periodStart->copy()->addMonths(($phase - 1) * 4);
+                $end = $phase === 3
+                    ? $periodStart->copy()->addYear()->subDay()
+                    : $start->copy()->addMonths(4)->subDay();
+
+                $periods->push(VnbPeriod::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'phase_number' => $phase,
+                    ],
+                    [
+                        'start_date' => $start->toDateString(),
+                        'end_date' => $end->toDateString(),
+                        'cutoff_date' => $end->copy()->setDay(min(25, $end->daysInMonth))->toDateString(),
+                        'status' => now()->lt($start) ? 'not_started' : (now()->lte($end) ? 'in_progress' : 'completed'),
+                    ]
+                ));
+            }
+
+            return $periods;
+        }
+
+        $phaseStart = $periodStart ? $periodStart->copy()->startOfDay() : now()->startOfDay();
+
+        $phases->each(function (array $phaseData, int $index) use (&$phaseStart, $employee, $periods) {
+            $phase = $phaseData['phase'];
+            $phaseNum = $index + 1;
+            $durationMonths = 1;
+
+            // Parse duration from phase string
+            if (preg_match('/Fase\s+(\d+)\s+\((\d+)\s+Bulan\)/i', $phase, $matches)) {
+                $durationMonths = (int) $matches[2];
+            } elseif (preg_match('/^(\d+)-(\d+)$/', $phase, $matches)) {
+                $start = (int) $matches[1];
+                $end = (int) $matches[2];
+                $durationMonths = $end - $start + 1;
+            } elseif (preg_match('/^(\d+)\+$/', $phase, $matches)) {
+                $start = (int) $matches[1];
+                $durationMonths = 12 - $start + 1;
+            } elseif (preg_match('/^\d+$/', $phase)) {
+                $durationMonths = 1;
+            } else {
+                if (preg_match('/\d+/', $phase, $matches)) {
+                    $durationMonths = (int) $matches[0];
+                }
+                if ($durationMonths < 1) {
+                    $durationMonths = 1;
+                }
+            }
+
+            $start = $phaseStart->copy();
+            $end = $start->copy()->addMonthsNoOverflow($durationMonths)->subDay();
 
             $periods->push(VnbPeriod::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
-                    'phase_number' => $phase,
+                    'phase_number' => $phaseNum,
                 ],
                 [
                     'start_date' => $start->toDateString(),
@@ -793,8 +875,26 @@ class VnbActivityController extends Controller
                     'status' => now()->lt($start) ? 'not_started' : (now()->lte($end) ? 'in_progress' : 'completed'),
                 ]
             ));
-        }
+
+            // Next phase start is day after this end
+            $phaseStart = $end->copy()->addDay();
+        });
 
         return $periods;
+    }
+
+    private function isCurrentActivityPhaseEditable(VnbPlanItem $item): bool
+    {
+        $phaseNumber = 1;
+        if (preg_match('/Fase\s*(\d+)/i', (string) $item->activity_title, $matches)) {
+            $phaseNumber = (int) $matches[1];
+        }
+
+        $period = VnbPeriod::query()
+            ->where('employee_id', $item->plan?->employee_id)
+            ->where('phase_number', $phaseNumber)
+            ->first();
+
+        return $period?->status === 'in_progress';
     }
 }
