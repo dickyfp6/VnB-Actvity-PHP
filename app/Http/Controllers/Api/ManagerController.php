@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Manager;
 use App\Models\Employee;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Models\VnbPlanItem;
@@ -556,12 +557,21 @@ class ManagerController extends Controller
             ->where('employee_id', $employee->id)
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->with('items')
+            ->with(['items.evidences'])
             ->first();
 
         $items = $plan?->items ?? collect();
         $progress = $items->count() ? round((float) $items->avg('completion_percentage'), 1) : 0;
-        $activityWaitingCount = $items->whereIn('submission_status', ['waiting_approval', 'submitted'])->count();
+        $activityWaitingCount = $items->sum(function (VnbPlanItem $item) {
+            $rows = collect(is_array($item->activity_rows) ? $item->activity_rows : []);
+            if ($rows->isNotEmpty()) {
+                return $rows->filter(function ($row) {
+                    return in_array(strtolower((string) ($row['submission_status'] ?? 'draft')), ['waiting_approval', 'submitted'], true);
+                })->count();
+            }
+
+            return in_array($item->submission_status, ['waiting_approval', 'submitted'], true) ? 1 : 0;
+        });
 
         // Determine current manager's role for this employee
         $currentManagerRole = null;
@@ -634,6 +644,7 @@ class ManagerController extends Controller
                         'activity_description' => $item->activity_description,
                         'activity_date' => is_string($item->activity_date) ? $item->activity_date : (optional($item->activity_date)->toDateString()),
                         'submission_status' => $item->submission_status,
+                        'activity_rows' => $item->activity_rows,
                         'manager_review_snapshot' => $item->manager_review_snapshot,
                         'revision_notes' => $item->revision_notes,
                         'completion_percentage' => (int) $item->completion_percentage,
@@ -642,6 +653,22 @@ class ManagerController extends Controller
                         'approved_functional_at' => optional($item->approved_functional_at)->toDateTimeString(),
                         'approved_operational_by' => $item->approved_operational_by,
                         'approved_operational_at' => optional($item->approved_operational_at)->toDateTimeString(),
+                        'evidences' => $item->evidences->map(function ($ev) {
+                            $previewUrl = $ev->s3_url;
+                            if (!$previewUrl && $ev->file_path && Storage::disk('public')->exists($ev->file_path)) {
+                                $previewUrl = url('/storage/' . ltrim((string) $ev->file_path, '/'));
+                            }
+
+                            return [
+                                'id' => $ev->id,
+                                'file_name' => $ev->file_name,
+                                'file_type' => $ev->file_type,
+                                'file_size' => $ev->file_size,
+                                'description' => $ev->description,
+                                's3_url' => $ev->s3_url,
+                                'preview_url' => $previewUrl,
+                            ];
+                        })->values(),
                     ];
                 })->values(),
             ],

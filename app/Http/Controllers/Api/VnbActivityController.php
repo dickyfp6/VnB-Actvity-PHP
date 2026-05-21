@@ -83,84 +83,46 @@ class VnbActivityController extends Controller
         }
 
         $validated = $request->validate([
+            'row_index' => 'required|integer|min:0',
             'activity_description' => 'required|string',
             'activity_date' => 'required|string',
         ]);
 
-        $integrationParts = collect(explode('|', (string) $item->description))
-            ->map(fn ($value) => trim((string) $value))
-            ->filter(fn ($value) => $value !== '');
-        $expectedRowCount = max($integrationParts->count(), 1);
+        $rowIndex = (int) $validated['row_index'];
+        $rows = $this->normalizeActivityRows($item);
 
-        $descriptionPartsRaw = collect(explode("\n---\n", $validated['activity_description']))
-            ->map(fn ($value) => trim((string) $value));
-        $datePartsRaw = collect(explode("\n---\n", $validated['activity_date']))
-            ->map(fn ($value) => trim((string) $value));
-
-        if ($descriptionPartsRaw->count() < $expectedRowCount || $datePartsRaw->count() < $expectedRowCount) {
+        if (!isset($rows[$rowIndex])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Semua baris integrasi harus memiliki implementasi dan tanggal.',
-            ], 422);
+                'message' => 'Baris integrasi tidak ditemukan.',
+            ], 404);
         }
 
-        for ($idx = 0; $idx < $expectedRowCount; $idx++) {
-            $descVal = (string) ($descriptionPartsRaw->get($idx) ?? '');
-            $dateVal = (string) ($datePartsRaw->get($idx) ?? '');
-
-            if ($descVal === '' || $descVal === '-' || $dateVal === '' || $dateVal === '-') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Semua baris integrasi harus dilengkapi sebelum submit.',
-                ], 422);
-            }
-
-            $hasEvidenceForRow = $item->evidences()
-                ->where('description', 'Integration ' . $idx)
-                ->exists();
-
-            if (!$hasEvidenceForRow) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Setiap baris integrasi wajib memiliki bukti implementasi.',
-                ], 422);
-            }
-        }
-
-        $descriptionParts = collect(explode("\n---\n", $validated['activity_description']))
-            ->map(fn ($value) => trim((string) $value))
-            ->filter(fn ($value) => $value !== '');
-        $dateParts = collect(explode("\n---\n", $validated['activity_date']))
-            ->map(fn ($value) => trim((string) $value))
-            ->filter(fn ($value) => $value !== '');
-
-        if ($descriptionParts->isEmpty() || $dateParts->isEmpty()) {
+        if (trim((string) $validated['activity_description']) === '' || trim((string) $validated['activity_date']) === '') {
             return response()->json([
                 'success' => false,
                 'message' => 'Semua kolom implementasi harus diisi sebelum dikirim.',
             ], 422);
         }
 
-        if ($descriptionParts->contains('-') || $dateParts->contains('-')) {
+        $hasEvidenceForRow = $item->evidences()
+            ->where('description', 'Integration ' . $rowIndex)
+            ->exists();
+
+        if (!$hasEvidenceForRow) {
             return response()->json([
                 'success' => false,
-                'message' => 'Semua kolom implementasi harus diisi sebelum dikirim.',
+                'message' => 'Setiap baris integrasi wajib memiliki bukti implementasi.',
             ], 422);
         }
 
-        if (!$item->evidences()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Minimal 1 bukti implementasi harus diunggah sebelum submit.',
-            ], 422);
-        }
+        $rows[$rowIndex]['activity_description'] = trim($validated['activity_description']);
+        $rows[$rowIndex]['activity_date'] = $this->normalizeDateValue($validated['activity_date']);
+        $rows[$rowIndex]['submission_status'] = 'waiting_approval';
+        $rows[$rowIndex]['submitted_at'] = now()->toDateTimeString();
+        $rows[$rowIndex]['revision_notes'] = null;
 
-        $item->update([
-            'activity_description' => $validated['activity_description'],
-            'activity_date' => $validated['activity_date'],
-            'submission_status' => 'waiting_approval',
-            'submitted_at' => now(),
-        ]);
+        $this->persistActivityRows($item, $rows);
 
         return response()->json([
             'success' => true,
@@ -181,11 +143,23 @@ class VnbActivityController extends Controller
         }
 
         $validated = $request->validate([
+            'row_index' => 'required|integer|min:0',
             'activity_description' => 'nullable|string',
             'activity_date' => 'nullable|string',
         ]);
 
-        $item->update($validated);
+        $rowIndex = (int) $validated['row_index'];
+        $rows = $this->normalizeActivityRows($item);
+
+        if (!isset($rows[$rowIndex])) {
+            return response()->json(['success' => false, 'message' => 'Baris integrasi tidak ditemukan.'], 404);
+        }
+
+        $rows[$rowIndex]['activity_description'] = trim((string) ($validated['activity_description'] ?? ''));
+        $rows[$rowIndex]['activity_date'] = $this->normalizeDateValue((string) ($validated['activity_date'] ?? ''));
+        $rows[$rowIndex]['submission_status'] = 'draft';
+
+        $this->persistActivityRows($item, $rows);
 
         return response()->json(['success' => true, 'message' => 'Draft tersimpan', 'data' => $this->formatActivityItem($item->fresh())]);
     }
@@ -228,6 +202,58 @@ class VnbActivityController extends Controller
     public function approve(Request $request, int $planItemId): JsonResponse
     {
         $item = VnbPlanItem::findOrFail($planItemId);
+
+        $validated = $request->validate([
+            'row_index' => 'nullable|integer|min:0',
+        ]);
+
+        if (array_key_exists('row_index', $validated) && $validated['row_index'] !== null) {
+            $rowIndex = (int) $validated['row_index'];
+            $rows = $this->normalizeActivityRows($item);
+
+            if (!isset($rows[$rowIndex])) {
+                return response()->json(['success' => false, 'message' => 'Baris integrasi tidak ditemukan.'], 404);
+            }
+
+            $user = Auth::user();
+            $manager = Manager::where('email', $user->email)->first();
+            $employee = $item->plan->employee;
+
+            $isFunctional   = $manager && $employee->manager_functional_id == $manager->id;
+            $isOperational  = $manager && $employee->manager_operational_id == $manager->id;
+
+            if ($isFunctional && !($rows[$rowIndex]['approved_functional_by'] ?? null)) {
+                $rows[$rowIndex]['approved_functional_by'] = $user->id;
+                $rows[$rowIndex]['approved_functional_at'] = now()->toDateTimeString();
+            }
+
+            if ($isOperational && !($rows[$rowIndex]['approved_operational_by'] ?? null)) {
+                $rows[$rowIndex]['approved_operational_by'] = $user->id;
+                $rows[$rowIndex]['approved_operational_at'] = now()->toDateTimeString();
+            }
+
+            $requiresOperational = !is_null($employee->manager_operational_id);
+            $functionalDone = !is_null($rows[$rowIndex]['approved_functional_by'] ?? null);
+            $operationalDone = !$requiresOperational || !is_null($rows[$rowIndex]['approved_operational_by'] ?? null);
+
+            if ($functionalDone && $operationalDone) {
+                $rows[$rowIndex]['submission_status'] = 'completed';
+                $rows[$rowIndex]['revision_notes'] = null;
+                $rows[$rowIndex]['submitted_at'] = $rows[$rowIndex]['submitted_at'] ?? now()->toDateTimeString();
+            } else {
+                $rows[$rowIndex]['submission_status'] = 'waiting_approval';
+            }
+
+            $this->persistActivityRows($item, $rows);
+
+            return response()->json([
+                'success' => true,
+                'message' => $rows[$rowIndex]['submission_status'] === 'completed'
+                    ? 'Baris aktivitas telah disetujui.'
+                    : 'Approval baris aktivitas berhasil disimpan. Menunggu approval manager lainnya.',
+                'data' => $this->formatActivityItem($item->fresh()),
+            ]);
+        }
 
         if (!in_array($item->submission_status, ['waiting_approval', 'submitted'], true)) {
             return response()->json(['success' => false, 'message' => 'Aktivitas tidak dalam status waiting for approval.'], 422);
@@ -282,7 +308,32 @@ class VnbActivityController extends Controller
 
         $validated = $request->validate([
             'revision_notes' => 'required|string',
+            'row_index' => 'nullable|integer|min:0',
         ]);
+
+        if (array_key_exists('row_index', $validated) && $validated['row_index'] !== null) {
+            $rowIndex = (int) $validated['row_index'];
+            $rows = $this->normalizeActivityRows($item);
+
+            if (!isset($rows[$rowIndex])) {
+                return response()->json(['success' => false, 'message' => 'Baris integrasi tidak ditemukan.'], 404);
+            }
+
+            $rows[$rowIndex]['submission_status'] = 'revision_required';
+            $rows[$rowIndex]['revision_notes'] = $validated['revision_notes'];
+            $rows[$rowIndex]['approved_functional_by'] = null;
+            $rows[$rowIndex]['approved_functional_at'] = null;
+            $rows[$rowIndex]['approved_operational_by'] = null;
+            $rows[$rowIndex]['approved_operational_at'] = null;
+
+            $this->persistActivityRows($item, $rows);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan revisi baris berhasil dikirim ke Employee.',
+                'data' => $this->formatActivityItem($item->fresh()),
+            ]);
+        }
 
         $item->update([
             'submission_status' => 'revision_required',
@@ -622,6 +673,7 @@ class VnbActivityController extends Controller
     {
         $dueDate = $item->due_date;
         $countdown = $dueDate ? Carbon::today()->diffInDays($dueDate, false) : null;
+        $activityRows = $this->normalizeActivityRows($item);
 
         $data = [
             'id'                   => $item->id,
@@ -631,6 +683,7 @@ class VnbActivityController extends Controller
             'deliverables'         => $item->deliverables,
             'activity_description' => $item->activity_description,
             'activity_date'        => $item->activity_date,
+            'activity_rows'        => $activityRows,
             'submission_status'    => $item->submission_status,
             'revision_notes'       => $item->revision_notes,
             'submitted_at'         => $item->submitted_at,
@@ -714,6 +767,113 @@ class VnbActivityController extends Controller
         }
 
         return '-';
+    }
+
+    /**
+     * Normalize activity rows from stored JSON or legacy newline-delimited fields.
+     */
+    private function normalizeActivityRows(VnbPlanItem $item): array
+    {
+        $integrationParts = collect(explode('|', (string) $item->description))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '')
+            ->values();
+
+        $descriptionParts = collect(explode("\n---\n", (string) $item->activity_description))
+            ->map(fn ($value) => trim((string) $value))
+            ->values();
+
+        $dateParts = collect(explode("\n---\n", (string) $item->activity_date))
+            ->map(fn ($value) => trim((string) $value))
+            ->values();
+
+        $storedRows = collect(is_array($item->activity_rows) ? $item->activity_rows : [])
+            ->values();
+
+        $rows = [];
+
+        foreach ($integrationParts as $index => $integrationText) {
+            $stored = $storedRows->get($index);
+            $rowStatus = (string) ($stored['submission_status'] ?? $item->submission_status ?? 'draft');
+            $rows[] = [
+                'integration_index' => $index,
+                'integration_text' => $integrationText,
+                'activity_description' => $stored['activity_description'] ?? ($descriptionParts->get($index) ?? ''),
+                'activity_date' => $stored['activity_date'] ?? ($dateParts->get($index) ?? ''),
+                'submission_status' => $rowStatus,
+                'revision_notes' => $stored['revision_notes'] ?? null,
+                'submitted_at' => $stored['submitted_at'] ?? optional($item->submitted_at)->toDateTimeString(),
+                'approved_functional_by' => $stored['approved_functional_by'] ?? null,
+                'approved_functional_at' => $stored['approved_functional_at'] ?? null,
+                'approved_operational_by' => $stored['approved_operational_by'] ?? null,
+                'approved_operational_at' => $stored['approved_operational_at'] ?? null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function normalizeDateValue(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value)) {
+            return $value;
+        }
+
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $value, $matches)) {
+            return sprintf('%s-%02d-%02d', $matches[3], (int) $matches[2], (int) $matches[1]);
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function summarizeActivityRows(array $rows): array
+    {
+        $statuses = collect($rows)->pluck('submission_status')->map(fn ($status) => strtolower((string) $status));
+
+        if ($statuses->isEmpty()) {
+            return ['draft', null];
+        }
+
+        if ($statuses->every(fn ($status) => $status === 'completed')) {
+            return ['completed', collect($rows)->pluck('approved_at')->filter()->last() ?? null];
+        }
+
+        if ($statuses->every(fn ($status) => in_array($status, ['waiting_approval', 'submitted'], true))) {
+            return ['waiting_approval', collect($rows)->pluck('submitted_at')->filter()->last() ?? null];
+        }
+
+        if ($statuses->every(fn ($status) => $status === 'revision_required')) {
+            return ['revision_required', collect($rows)->pluck('submitted_at')->filter()->last() ?? null];
+        }
+
+        return ['draft', null];
+    }
+
+    private function persistActivityRows(VnbPlanItem $item, array $rows): void
+    {
+        [$summaryStatus, $summarySubmittedAt] = $this->summarizeActivityRows($rows);
+
+        $item->update([
+            'activity_rows' => array_values($rows),
+            'activity_description' => collect($rows)->map(fn ($row) => $row['activity_description'] !== '' ? $row['activity_description'] : '-')->implode("\n---\n"),
+            'activity_date' => collect($rows)->map(fn ($row) => $row['activity_date'] !== '' ? $row['activity_date'] : '-')->implode("\n---\n"),
+            'submission_status' => $summaryStatus,
+            'submitted_at' => $summarySubmittedAt,
+        ]);
+    }
+
+    private function isRowSubmittedStatus(?string $status): bool
+    {
+        return in_array(strtolower((string) $status), ['waiting_approval', 'submitted', 'completed'], true);
     }
 
     private function ensureParticipantVnbPlanSnapshot(Employee $employee, Carbon $periodStart, $frameworkItems): ?VnbPlan

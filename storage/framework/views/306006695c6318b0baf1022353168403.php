@@ -90,13 +90,24 @@ function getExistingEvidenceList(id, integIdx) {
 }
 
 function getFileExt(name, fallbackType = '') {
-  const fromName = (name || '').split('.').pop()?.toLowerCase();
-  if (fromName) return fromName;
-  return (fallbackType || '').toLowerCase();
+  const source = String(name || fallbackType || '').trim();
+  const match = source.match(/\.([a-z0-9]+)$/i);
+  if (match) {
+    return match[1].toLowerCase();
+  }
+
+  const type = String(fallbackType || '').toLowerCase();
+  if (type.includes('image/')) return 'jpg';
+  if (type.includes('video/')) return 'mp4';
+  if (type.includes('pdf')) return 'pdf';
+  if (type.includes('word')) return 'docx';
+  if (type.includes('excel') || type.includes('spreadsheet')) return 'xlsx';
+
+  return '';
 }
 
 function isImageExtension(ext) {
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg'].includes((ext || '').toLowerCase());
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes((ext || '').toLowerCase());
 }
 
 function isVideoExtension(ext) {
@@ -788,6 +799,42 @@ function getActivityById(id) {
   return activities.find(x => x.id === id) || null;
 }
 
+function getLegacyActivityRows(activity) {
+  const integrations = parseIntegrations(activity?.description || '-');
+  const integrationList = integrations === '-' ? ['-'] : integrations.split('\n').filter(s => s);
+  const descList = String(activity?.activity_description || '').split('\n---\n').map(s => s.trim());
+  const dateList = String(activity?.activity_date || '').split('\n---\n').map(s => s.trim());
+
+  return integrationList.map((integration, idx) => ({
+    integration_index: idx,
+    integration_text: integration,
+    activity_description: descList[idx] === '-' ? '' : (descList[idx] || ''),
+    activity_date: dateList[idx] === '-' ? '' : (dateList[idx] || ''),
+    submission_status: activity?.submission_status || 'draft',
+    revision_notes: activity?.revision_notes || null,
+    submitted_at: activity?.submitted_at || null,
+  }));
+}
+
+function getActivityRows(activity) {
+  if (Array.isArray(activity?.activity_rows) && activity.activity_rows.length > 0) {
+    return activity.activity_rows;
+  }
+  return getLegacyActivityRows(activity);
+}
+
+function getActivityRow(activity, integIdx) {
+  return getActivityRows(activity)[integIdx] || null;
+}
+
+function getActivityRowStatus(activity, integIdx) {
+  return String(getActivityRow(activity, integIdx)?.submission_status || activity?.submission_status || 'draft').toLowerCase();
+}
+
+function isSubmittedActivityStatus(status) {
+  return ['waiting_approval', 'submitted', 'completed'].includes(String(status || '').toLowerCase());
+}
+
 function isEditableSubmissionStatus(status) {
   return ['draft', 'revision_required'].includes((status || 'draft'));
 }
@@ -812,10 +859,6 @@ function canEditActivityItem(id) {
   const activity = getActivityById(id);
   if (!activity) return false;
   return isEditableSubmissionStatus(activity.submission_status) || isCurrentActivityPhaseEditable(activity);
-}
-
-function isSubmittedActivityStatus(status) {
-  return ['waiting_approval', 'submitted', 'completed'].includes(String(status || '').toLowerCase());
 }
 
 function getSubmissionStatusLabel(status) {
@@ -892,7 +935,6 @@ function renderActivities() {
   } else {
     filteredActivities.forEach((a) => {
       const behaviour = extractBehaviour(a.activity_title);
-      const isEditable = isEditableSubmissionStatus(a.submission_status) || isCurrentActivityPhaseEditable(a);
       const integrations = parseIntegrations(a.description);
       const integrationList = integrations === '-' ? ['-'] : integrations.split('\\n').filter(s => s);
       const deliverableList = (a.deliverables || '-').split(/\r?\n---\r?\n/).map(s => s.trim());
@@ -902,6 +944,8 @@ function renderActivities() {
       for (let integIdx = 0; integIdx < rowCount; integIdx++) {
         const integration = integrationList[integIdx];
         const deliverable = deliverableList[integIdx] || deliverableList[0] || '-';
+        const rowStatus = getActivityRowStatus(a, integIdx);
+        const isEditable = isEditableSubmissionStatus(rowStatus) || isCurrentActivityPhaseEditable(a);
         
         // Split existing descriptions and dates by newline dash separator
         const descList = (a.activity_description || '').split('\n---\n').map(s => s.trim());
@@ -933,12 +977,11 @@ function renderActivities() {
             </td>
             <td class="px-3 py-3 text-right whitespace-nowrap border-b border-gray-100 align-top w-24">
               <div class="flex items-start justify-end gap-1">
-                <button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 transition-all shadow-sm ${isEditable ? 'hover:bg-gray-50 hover:border-gray-400' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Simpan draft' : 'Tidak bisa diubah karena status ' + getSubmissionStatusLabel(a.submission_status)}" aria-label="Simpan draft" ${isEditable ? '' : 'disabled'}>
-                  <i class="far fa-save text-lg"></i>
-                </button>
-                ${isSubmittedActivityStatus(a.submission_status)
+                ${isSubmittedActivityStatus(rowStatus)
                   ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Diajukan</span>`
-                  : `<button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 text-white rounded-lg transition-all shadow-sm submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] ${isEditable ? 'hover:shadow-md hover:from-[#0f3600] hover:to-[#144600]' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Ajukan' : 'Tidak bisa diajukan karena status ' + getSubmissionStatusLabel(a.submission_status)}" aria-label="Ajukan" ${isEditable ? '' : 'disabled'}>
+                  : `<button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 transition-all shadow-sm ${isEditable ? 'hover:bg-gray-50 hover:border-gray-400' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Simpan draft' : 'Tidak bisa diubah karena status ' + getSubmissionStatusLabel(rowStatus)}" aria-label="Simpan draft" ${isEditable ? '' : 'disabled'}>
+                    <i class="far fa-save text-lg"></i>
+                  </button><button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 text-white rounded-lg transition-all shadow-sm submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] ${isEditable ? 'hover:shadow-md hover:from-[#0f3600] hover:to-[#144600]' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Ajukan' : 'Tidak bisa diajukan karena status ' + getSubmissionStatusLabel(rowStatus)}" aria-label="Ajukan" ${isEditable ? '' : 'disabled'}>
                     <i class="fas fa-paper-plane text-sm"></i>
                   </button>`}
               </div>
@@ -956,64 +999,40 @@ function renderActivities() {
   container.innerHTML = html;
 }
 
-function payloadFor(id) {
-  // Find the activity
-  const activity = activities.find(x => x.id === id);
-  if (!activity) return { activity_description: '', activity_date: '' };
-
-  const integrations = parseIntegrations(activity.description);
-  const integrationList = integrations === '-' ? ['-'] : integrations.split('\\n').filter(s => s);
-  const rowCount = integrationList.length;
-
-  let descList = [];
-  let dateList = [];
-
-  for (let idx = 0; idx < rowCount; idx++) {
-    const descEl = document.getElementById(`desc-${id}-${idx}`);
-    const dateEl = document.getElementById(`date-${id}-${idx}`);
-
-    const descVal = descEl ? descEl.value.trim() : '';
-    const dateVal = getDateFieldValue(dateEl);
-
-    descList.push(descVal || '-');
-    dateList.push(dateVal || '-');
-  }
+function payloadFor(id, integIdx) {
+  const descEl = document.getElementById(`desc-${id}-${integIdx}`);
+  const dateEl = document.getElementById(`date-${id}-${integIdx}`);
 
   return {
-    activity_description: descList.join('\n---\n'),
-    activity_date: dateList.join('\n---\n'),
+    row_index: integIdx,
+    activity_description: descEl ? descEl.value.trim() : '',
+    activity_date: getDateFieldValue(dateEl),
   };
 }
 
-function validateIntegrationRowsBeforeSubmit(id) {
+function validateIntegrationRowBeforeSubmit(id, integIdx) {
   const activity = activities.find(x => x.id === id);
   if (!activity) {
     return { valid: false, message: 'Aktivitas tidak ditemukan.' };
   }
 
-  const integrations = parseIntegrations(activity.description);
-  const integrationList = integrations === '-' ? ['-'] : integrations.split('\\n').filter(s => s);
+  const descEl = document.getElementById(`desc-${id}-${integIdx}`);
+  const dateEl = document.getElementById(`date-${id}-${integIdx}`);
+  const descVal = descEl ? descEl.value.trim() : '';
+  const dateVal = getDateFieldValue(dateEl);
+  const hasNewFile = getPendingEvidenceList(id, integIdx).length > 0;
+  const hasExistingFile = getExistingEvidenceList(id, integIdx).length > 0;
 
-  for (let idx = 0; idx < integrationList.length; idx++) {
-    const descEl = document.getElementById(`desc-${id}-${idx}`);
-    const dateEl = document.getElementById(`date-${id}-${idx}`);
+  if (!descVal || descVal === '-') {
+    return { valid: false, message: `Implementasi baris ${integIdx + 1} belum diisi.` };
+  }
 
-    const descVal = descEl ? descEl.value.trim() : '';
-    const dateVal = getDateFieldValue(dateEl);
-    const hasNewFile = getPendingEvidenceList(id, idx).length > 0;
-    const hasExistingFile = getExistingEvidenceList(id, idx).length > 0;
+  if (!dateVal || dateVal === '-') {
+    return { valid: false, message: `Tanggal implementasi baris ${integIdx + 1} belum diisi.` };
+  }
 
-    if (!descVal || descVal === '-') {
-      return { valid: false, message: `Implementasi baris ${idx + 1} belum diisi.` };
-    }
-
-    if (!dateVal || dateVal === '-') {
-      return { valid: false, message: `Tanggal implementasi baris ${idx + 1} belum diisi.` };
-    }
-
-    if (!hasNewFile && !hasExistingFile) {
-      return { valid: false, message: `Bukti implementasi baris ${idx + 1} belum diupload.` };
-    }
+  if (!hasNewFile && !hasExistingFile) {
+    return { valid: false, message: `Bukti implementasi baris ${integIdx + 1} belum diupload.` };
   }
 
   return { valid: true, message: '' };
@@ -1061,9 +1080,10 @@ async function uploadPendingEvidenceFiles(id, integIdx) {
 }
 
 async function saveDraft(id, integIdx) {
-  if (!canEditActivityItem(id)) {
-    const activity = getActivityById(id);
-    showAlert(`Tidak bisa simpan draft. Status aktivitas: ${getSubmissionStatusLabel(activity?.submission_status)}.`, 'error');
+  const activity = getActivityById(id);
+  const rowStatus = getActivityRowStatus(activity, integIdx);
+  if (isSubmittedActivityStatus(rowStatus)) {
+    showAlert(`Tidak bisa simpan draft. Status baris: ${getSubmissionStatusLabel(rowStatus)}.`, 'error');
     return;
   }
 
@@ -1079,7 +1099,7 @@ async function saveDraft(id, integIdx) {
     return;
   }
 
-  const res = await apiPost(`/api/vnb-activities/${id}/draft`, payloadFor(id));
+  const res = await apiPost(`/api/vnb-activities/${id}/draft`, payloadFor(id, integIdx));
   if (res && res.success) {
     showAlert('Draft tersimpan');
     loadActivities();
@@ -1092,13 +1112,14 @@ async function saveDraft(id, integIdx) {
 }
 
 async function submitActivity(id, integIdx) {
-  if (!canEditActivityItem(id)) {
-    const activity = getActivityById(id);
-    showAlert(`Tidak bisa ajukan. Status aktivitas: ${getSubmissionStatusLabel(activity?.submission_status)}.`, 'error');
+  const activity = getActivityById(id);
+  const rowStatus = getActivityRowStatus(activity, integIdx);
+  if (isSubmittedActivityStatus(rowStatus)) {
+    showAlert(`Tidak bisa ajukan. Status baris: ${getSubmissionStatusLabel(rowStatus)}.`, 'error');
     return;
   }
 
-  const validation = validateIntegrationRowsBeforeSubmit(id);
+  const validation = validateIntegrationRowBeforeSubmit(id, integIdx);
   if (!validation.valid) {
     showAlert(validation.message, 'warning');
     return;
@@ -1118,7 +1139,7 @@ async function submitActivity(id, integIdx) {
     return;
   }
 
-  const res = await apiPost(`/api/vnb-activities/${id}/submit`, payloadFor(id));
+  const res = await apiPost(`/api/vnb-activities/${id}/submit`, payloadFor(id, integIdx));
   if (res && res.success) {
     showAlert('Aktivitas berhasil disubmit');
     loadActivities();

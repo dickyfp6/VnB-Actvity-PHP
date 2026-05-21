@@ -316,6 +316,30 @@ function isFuturePhaseRange(computedRange) {
     return startDate > getTodayStartDate();
 }
 
+function isPastPhaseRange(computedRange) {
+    if (!computedRange?.endDate) return false;
+
+    const endDate = new Date(computedRange.endDate);
+    if (Number.isNaN(endDate.getTime())) return false;
+
+    endDate.setHours(0, 0, 0, 0);
+    return endDate < getTodayStartDate();
+}
+
+function isCurrentPhaseRange(computedRange) {
+    if (!computedRange?.startDate || !computedRange?.endDate) return false;
+
+    const startDate = new Date(computedRange.startDate);
+    const endDate = new Date(computedRange.endDate);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return false;
+
+    const today = getTodayStartDate();
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    return startDate <= today && today <= endDate;
+}
+
 async function loadDetail() {
     const profileBox = document.getElementById('profile-box');
     if (profileBox) profileBox.innerHTML = '<div class="text-sm text-gray-500 py-2">Memuat detail...</div>';
@@ -733,7 +757,9 @@ function renderPhaseContent(detail) {
         const computedRange = buildPhaseDateRange(phaseInfo, phaseCursorDate);
         phaseCursorDate = computedRange.nextCursorDate;
         const phaseIsFuture = isFuturePhaseRange(computedRange);
-        const phaseCanEdit = !isPlanApproved || (isPlanRevisionMode && phaseIsFuture);
+        const phaseIsCurrent = isCurrentPhaseRange(computedRange);
+        const phaseIsPast = isPastPhaseRange(computedRange);
+        const phaseCanEdit = !isPlanApproved || (isPlanRevisionMode && phaseIsCurrent);
         
         const desc = formatPhaseDurationRange(phaseInfo.duration, computedRange.startDate, computedRange.endDate);
         const colorClass = colorGradients[index % colorGradients.length];
@@ -786,28 +812,103 @@ function renderPhaseContent(detail) {
                     </div>
                 </div>
             `;
-        } else if (isPlanRevisionMode && phaseIsFuture) {
+        } else if (isPlanRevisionMode && phaseIsCurrent) {
+            phaseContentHtml = `
+                <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
+                    <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                        <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
+                            <i class="fas fa-pen-to-square text-3xl text-amber-500"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Fase ${label} Sedang Berjalan</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini sedang berjalan, jadi rencana aktivitasnya masih bisa diedit. Gunakan tab <b>Plan</b> untuk menyesuaikan detail aktivitas fase ini.</p>
+                    </div>
+                </div>
+            `;
+        } else if (isPlanRevisionMode && (phaseIsFuture || phaseIsPast)) {
             phaseContentHtml = `
                 <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
                     <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
                         <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4 border border-amber-100">
-                            <i class="fas fa-pen-to-square text-3xl text-amber-500"></i>
+                            <i class="fas fa-lock text-3xl text-amber-500"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Ubah Plan ${label}</h3>
-                        <p class="text-gray-500 max-w-md">Fase ini belum berjalan, jadi isi rencana aktivitasnya masih bisa direvisi. Gunakan tab <b>Plan</b> untuk mengubah detail aktivitas sebelum fase ini dimulai.</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${phaseIsFuture ? 'Fase Belum Berjalan' : 'Fase Sudah Berlalu'}</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini tidak dapat diedit lagi. Hanya fase yang sedang berjalan yang bisa direvisi pada mode Ubah Plan.</p>
+                    </div>
+                </div>
+            `;
+        } else if (phaseIsCurrent) {
+            let phaseRowsHtml = '';
+
+            phaseItems.forEach(item => {
+                const behaviourMatch = (item.activity_title || '').match(/^([^-]+)/);
+                const behaviour = behaviourMatch ? behaviourMatch[1].trim() : (item.activity_title || '-');
+                const rows = getActivityRows(item);
+                const deliverables = splitDeliverables(item.deliverables || '-');
+
+                rows.forEach((row, idx) => {
+                    const rowStatus = getActivityRowStatus(item, row);
+                    const isRevised = rowStatus === 'revision_required';
+                    const isApproved = rowStatus === 'completed';
+                    const actionHtml = isApproved
+                        ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
+                        : isRevised
+                            ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
+                            : `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`;
+
+                    phaseRowsHtml += `
+                        <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : ''}">
+                            ${idx === 0 ? `<td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40" rowspan="${rows.length}">${escapeHtml(behaviour)}</td>` : ''}
+                            <td class="px-4 py-4 text-xs border-b border-gray-100 w-64 text-gray-700">${escapeHtml(row.integration_text || '-').replace(/\n/g, '<br>')}</td>
+                            <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
+                            <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
+                                <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(row.activity_description || '-')}</div>
+                                ${isRevised && row.revision_notes ? `<div class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(row.revision_notes)}</div>` : ''}
+                            </td>
+                            <td class="px-4 py-4 border-b border-gray-100 w-44 text-xs text-gray-700">${formatActivityDateValue(row.activity_date || '-')}</td>
+                            <td class="px-4 py-4 border-b border-gray-100 w-48">${renderActivityEvidenceLinks(item, idx)}</td>
+                            <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top w-28">${actionHtml}</td>
+                        </tr>
+                    `;
+                });
+            });
+
+            phaseContentHtml = `
+                <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
+                    <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+                        <div class="px-6 py-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-gray-200/50">
+                            <h2 class="text-lg font-semibold text-gray-900">Monitoring ${label}</h2>
+                            <p class="text-sm text-gray-600 mt-1">Tabel aktivitas per baris untuk fase yang sedang berjalan. Manager dapat menyetujui atau mengembalikan baris untuk revisi.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table-modern w-full text-left">
+                                <thead>
+                                    <tr>
+                                        <th>Value</th>
+                                        <th>Integrasi Pengukuran</th>
+                                        <th>Rencana Aktivitas</th>
+                                        <th>Implementasi</th>
+                                        <th>Tanggal Implementasi</th>
+                                        <th>Bukti Implementasi</th>
+                                        <th class="text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${phaseRowsHtml || `<tr><td colspan="7" class="text-center py-10 text-gray-400">Belum ada aktivitas untuk fase ini.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
         } else {
-            // Temporary placeholder for implementation monitoring
             phaseContentHtml = `
                 <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
                     <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
-                        <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 border border-green-100">
-                            <i class="fas fa-chart-line text-3xl text-green-400"></i>
+                        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                            <i class="fas fa-lock text-3xl text-slate-400"></i>
                         </div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-2">Monitoring ${label}</h3>
-                        <p class="text-gray-500 max-w-md">VnB Plan telah disetujui. Tabel monitoring untuk evaluasi implementasi dan dokumentasi ${label} akan segera hadir di sini.</p>
+                        <p class="text-gray-500 max-w-md">Fase ini belum aktif untuk monitoring. Tabel aktivitas akan muncul saat fase ini sedang berjalan.</p>
                     </div>
                 </div>
             `;
@@ -940,6 +1041,54 @@ function switchActivityReviewTab(tabId) {
     });
 }
 
+function getActivityRows(activity) {
+    if (Array.isArray(activity?.activity_rows) && activity.activity_rows.length > 0) {
+        return activity.activity_rows;
+    }
+
+    const integrations = splitIntegrations(activity?.description || '-');
+    const integrationList = Array.isArray(integrations) && integrations.length > 0 ? integrations : ['-'];
+    const descList = String(activity?.activity_description || '').split('\n---\n').map(s => s.trim());
+    const dateList = String(activity?.activity_date || '').split('\n---\n').map(s => s.trim());
+
+    return integrationList.map((integration, idx) => ({
+        integration_index: idx,
+        integration_text: integration,
+        activity_description: descList[idx] === '-' ? '' : (descList[idx] || ''),
+        activity_date: dateList[idx] === '-' ? '' : (dateList[idx] || ''),
+        submission_status: activity?.submission_status || 'draft',
+        revision_notes: activity?.revision_notes || null,
+    }));
+}
+
+function getActivityRowStatus(activity, row) {
+    return String(row?.submission_status || activity?.submission_status || 'draft').toLowerCase();
+}
+
+function getActivityRowStatusLabel(status) {
+    const map = {
+        draft: 'Draft',
+        waiting_approval: 'Menunggu approval',
+        submitted: 'Diajukan',
+        completed: 'Disetujui',
+        revision_required: 'Direvisi',
+    };
+
+    return map[String(status || '').toLowerCase()] || 'Tidak diketahui';
+}
+
+function renderActivityEvidenceLinks(item, rowIndex) {
+    const evidences = (item.evidences || []).filter(ev => ev.description === 'Integration ' + rowIndex);
+    if (!evidences.length) {
+        return '<div class="text-xs text-gray-400 italic">Belum ada bukti</div>';
+    }
+
+    return evidences.map(ev => {
+        const url = ev.preview_url || (ev.file_path ? `/storage/${ev.file_path}` : '');
+        return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs text-[#144600] font-bold hover:underline bg-[#144600]/10 px-2.5 py-1 rounded mt-1.5 border border-[#144600]/20"><i class="fas fa-file-download"></i> ${escapeHtml(ev.file_name || 'file')}</a>`;
+    }).join('<div class="mt-2"></div>');
+}
+
 function renderActivityReviewContent(detail) {
     const container = document.getElementById('vnb-activity-soon');
     if (!container) return;
@@ -959,15 +1108,15 @@ function renderActivityReviewContent(detail) {
         return;
     }
 
-    const items = (detail.items || []).filter(item => ['waiting_approval', 'submitted'].includes(item.submission_status));
+    const items = (detail.items || []).filter(item => Array.isArray(getActivityRows(item)));
     if (!items.length) {
         container.innerHTML = `
             <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
                 <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
                     <i class="fas fa-clipboard-check text-3xl text-slate-400"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Belum Ada Request Aktivitas</h3>
-                <p class="text-gray-500 max-w-md">Saat ini belum ada aktivitas yang menunggu approval manager untuk employee ini.</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Belum Ada Aktivitas</h3>
+                <p class="text-gray-500 max-w-md">Aktivitas untuk employee ini belum tersedia.</p>
             </div>
         `;
         container.classList.remove('hidden');
@@ -1009,66 +1158,35 @@ function renderActivityReviewContent(detail) {
         phaseItems.forEach(item => {
             const behaviourMatch = (item.activity_title || '').match(/^([^-]+)/);
             const behaviour = behaviourMatch ? behaviourMatch[1].trim() : (item.activity_title || '-');
-            const integrations = splitIntegrations(item.description || '-');
+            const rows = getActivityRows(item);
             const deliverables = splitDeliverables(item.deliverables || '-');
-            const descList = splitActivityEntries(item.activity_description || '');
-            const dateList = splitActivityEntries(item.activity_date || '');
 
-            const integrationHtml = integrations.map((integration, idx) => `
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 leading-relaxed text-gray-700 mb-2 last:mb-0">
-                    <div class="text-[11px] font-bold text-[#144600] uppercase tracking-wide mb-1">Integrasi ${idx + 1}</div>
-                    <div class="text-xs">${escapeHtml(integration)}</div>
-                </div>
-            `).join('');
+            rows.forEach((row, idx) => {
+                const rowStatus = getActivityRowStatus(item, row);
+                const isWaiting = ['draft', 'waiting_approval', 'submitted'].includes(rowStatus);
+                const isRevised = rowStatus === 'revision_required';
+                const isApproved = rowStatus === 'completed';
+                const actionHtml = isApproved
+                    ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
+                    : isRevised
+                        ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
+                        : `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`;
 
-            const deliverablesHtml = deliverables.map((deliverable, idx) => `
-                <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 leading-relaxed text-gray-700 mb-2 last:mb-0">
-                    <div class="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-1">Rencana ${idx + 1}</div>
-                    <div class="text-xs">${escapeHtml(deliverable)}</div>
-                </div>
-            `).join('');
-
-            const implementationHtml = descList.map((desc, idx) => `
-                <div class="mb-3 last:mb-0">
-                    <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Implementasi ${idx + 1}</div>
-                    <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(desc || '-')}</div>
-                </div>
-            `).join('');
-
-            const dateHtml = dateList.map((dateValue, idx) => `
-                <div class="mb-2 last:mb-0 text-xs text-gray-700">
-                    <span class="font-semibold text-gray-500">${idx + 1}.</span> ${formatActivityDateValue(dateValue)}
-                </div>
-            `).join('');
-
-            const evidenceHtml = integrations.map((_, idx) => {
-                const matchingEvidence = (item.evidences || []).find(ev => ev.description === 'Integration ' + idx);
-                if (!matchingEvidence) {
-                    return `<div class="text-xs text-gray-400 italic">Belum ada bukti</div>`;
-                }
-                return `<a href="/storage/${matchingEvidence.file_path || ''}" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-[#144600] font-bold hover:underline bg-[#144600]/10 px-2.5 py-1 rounded mt-1.5 border border-[#144600]/20"><i class="fas fa-file-download"></i> ${escapeHtml(matchingEvidence.file_name)}</a>`;
-            }).join('<div class="mt-2"></div>');
-
-            tableRows += `
-                <tr class="hover:bg-gray-50 align-top">
-                    <td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40">${escapeHtml(behaviour)}</td>
-                    <td class="px-4 py-4 text-xs border-b border-gray-100 w-64">${integrationHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
-                    <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${deliverablesHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
-                    <td class="px-4 py-4 border-b border-gray-100 min-w-[220px]">${implementationHtml || '<div class="text-xs text-gray-400 italic">Belum ada implementasi</div>'}</td>
-                    <td class="px-4 py-4 border-b border-gray-100 w-44">${dateHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
-                    <td class="px-4 py-4 border-b border-gray-100 w-48">${evidenceHtml || '<div class="text-xs text-gray-400 italic">Belum ada bukti</div>'}</td>
-                    <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top w-28">
-                        <div class="flex items-center justify-end gap-2">
-                            <button onclick="approveActivityItem(${item.id})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui">
-                                <i class="fas fa-check text-[11px]"></i>
-                            </button>
-                            <button onclick="openActivityRevisionModal(${item.id})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi">
-                                <i class="fas fa-pen text-[11px]"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+                tableRows += `
+                    <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : ''}">
+                        ${idx === 0 ? `<td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40" rowspan="${rows.length}">${escapeHtml(behaviour)}</td>` : ''}
+                        <td class="px-4 py-4 text-xs border-b border-gray-100 w-64 text-gray-700">${escapeHtml(row.integration_text || '-').replace(/\n/g, '<br>')}</td>
+                        <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
+                        <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
+                            <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(row.activity_description || '-')}</div>
+                            ${isRevised && row.revision_notes ? `<div class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(row.revision_notes)}</div>` : ''}
+                        </td>
+                        <td class="px-4 py-4 border-b border-gray-100 w-44 text-xs text-gray-700">${formatActivityDateValue(row.activity_date || '-')}</td>
+                        <td class="px-4 py-4 border-b border-gray-100 w-48">${renderActivityEvidenceLinks(item, idx)}</td>
+                        <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top w-28">${actionHtml}</td>
+                    </tr>
+                `;
+            });
         });
 
         contentHtml += `
@@ -1076,7 +1194,7 @@ function renderActivityReviewContent(detail) {
                 <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
                     <div class="px-6 py-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-gray-200/50">
                         <h2 class="text-lg font-semibold text-gray-900">${escapeHtml(phase)}</h2>
-                        <p class="text-sm text-gray-600 mt-1">Review aktivitas yang sudah disubmit employee pada fase ini.</p>
+                        <p class="text-sm text-gray-600 mt-1">Tabel aktivitas per baris untuk review manager. Setujui atau kembalikan baris yang perlu revisi.</p>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="table-modern w-full text-left">
@@ -1107,10 +1225,10 @@ function renderActivityReviewContent(detail) {
             <div class="relative z-10">
                 <div class="flex items-center justify-between gap-4 mb-4">
                     <div>
-                        <h3 class="text-xl font-bold text-gray-900">VnB Activity Approval</h3>
-                        <p class="text-sm text-gray-500 mt-1">Approve atau minta revisi per aktivitas yang disubmit employee.</p>
+                        <h3 class="text-xl font-bold text-gray-900">VnB Activity Review</h3>
+                        <p class="text-sm text-gray-500 mt-1">Tabel aktivitas per baris, mirip employee. Manager hanya bisa setujui atau revisi.</p>
                     </div>
-                    <div class="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-200">${items.length} request</div>
+                    <div class="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-200">${phases.length} fase</div>
                 </div>
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Activity review tabs">
@@ -1126,27 +1244,29 @@ function renderActivityReviewContent(detail) {
     container.classList.remove('hidden');
 }
 
-async function approveActivityItem(itemId) {
+async function approveActivityRow(itemId, rowIndex) {
     const item = detailData?.items?.find(entry => entry.id === itemId);
     if (!item) return;
-    const confirmed = await showConfirm('Setujui aktivitas ini?', 'Konfirmasi Approval');
+    const confirmed = await showConfirm('Setujui baris aktivitas ini?', 'Konfirmasi Approval');
     if (!confirmed) return;
 
-    const res = await apiPost(`/api/vnb-activities/${itemId}/approve`, {});
+    const res = await apiPost(`/api/vnb-activities/${itemId}/approve`, { row_index: rowIndex });
     if (res && (res.success || res.message || res.data)) {
-        showAlert(res.message || 'Aktivitas disetujui', 'success');
+        showAlert(res.message || 'Baris aktivitas disetujui', 'success');
         await loadDetail();
     } else {
-        showAlert(res?.message || res?.error || 'Gagal approve aktivitas', 'error');
+        showAlert(res?.message || res?.error || 'Gagal approve baris aktivitas', 'error');
     }
 }
 
-function openActivityRevisionModal(itemId) {
+function openActivityRevisionModal(itemId, rowIndex) {
     const existing = document.getElementById('activity-revision-modal');
     if (existing) existing.remove();
 
     const item = detailData?.items?.find(entry => entry.id === itemId);
     if (!item) return;
+
+    const row = getActivityRows(item)[rowIndex] || {};
 
     const modal = document.createElement('div');
     modal.id = 'activity-revision-modal';
@@ -1160,13 +1280,16 @@ function openActivityRevisionModal(itemId) {
                 </div>
                 <button type="button" onclick="closeActivityRevisionModal()" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
             </div>
+            <div class="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-800">
+                ${escapeHtml(row.integration_text || '-')}
+            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Catatan revisi</label>
                 <textarea id="activity-revision-notes" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="Tuliskan catatan revisi..."></textarea>
             </div>
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeActivityRevisionModal()" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">Batal</button>
-                <button type="button" onclick="submitActivityRevision(${itemId})" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium flex items-center gap-2">
+                <button type="button" onclick="submitActivityRevision(${itemId}, ${rowIndex})" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium flex items-center gap-2">
                     <i class="fas fa-paper-plane"></i> Kirim Revisi
                 </button>
             </div>
@@ -1183,7 +1306,14 @@ function closeActivityRevisionModal() {
     if (modal) modal.remove();
 }
 
-async function submitActivityRevision(itemId) {
+function showActivityRevisionNotes(itemId, rowIndex) {
+    const item = detailData?.items?.find(entry => entry.id === parseInt(itemId, 10));
+    const row = item ? getActivityRows(item)[rowIndex] : null;
+    const notes = row?.revision_notes || item?.revision_notes || 'Tidak ada catatan revisi';
+    showAlert(notes, 'info');
+}
+
+async function submitActivityRevision(itemId, rowIndex) {
     const notesEl = document.getElementById('activity-revision-notes');
     const notes = notesEl ? notesEl.value.trim() : '';
     if (!notes) {
@@ -1191,7 +1321,7 @@ async function submitActivityRevision(itemId) {
         return;
     }
 
-    const res = await apiPost(`/api/vnb-activities/${itemId}/request-revision`, { revision_notes: notes });
+    const res = await apiPost(`/api/vnb-activities/${itemId}/request-revision`, { row_index: rowIndex, revision_notes: notes });
     if (res && (res.success || res.message || res.data)) {
         showAlert(res.message || 'Revisi dikirim ke Employee', 'success');
         closeActivityRevisionModal();
