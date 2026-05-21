@@ -67,9 +67,10 @@
 
                         <!-- Action Buttons (On the same line) -->
                         <div class="flex items-center gap-3">
-                            <button id="save-draft-btn" onclick="toggleDraftMode()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200" title="Masuk mode edit draft">
+                            <button id="save-draft-btn" onclick="toggleDraftMode()" class="btn-secondary px-5 py-2.5 flex items-center gap-2 hover:shadow-md transition-all duration-200 relative" title="Masuk mode edit draft">
                                 <i class="fas fa-pen-to-square text-xs"></i>
                                 <span class="text-sm font-bold">Ubah Draft</span>
+                                <span id="save-draft-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] bg-red-600 text-white hidden">•</span>
                             </button>
                             <button id="submit-plan-btn" onclick="submitPlan()" class="btn-primary px-7 py-2.5 flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-200" title="Ajukan rencana untuk approval">
                                 <i class="fas fa-paper-plane text-xs"></i>
@@ -322,7 +323,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     if (!hasThisRencana) {
         // This integration has no rencana yet
         return {
-            badge: '⚪',
+            badge: '',
             text: 'Belum ada Rencana VnB',
             bgColor: '#F3F4F6',
             textColor: '#6B7280',
@@ -335,7 +336,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     // Has rencana, now check plan status
     if (planStatus === 'draft' || !currentPlan?.submitted_at) {
         return {
-            badge: '📝',
+            badge: '',
             text: 'Belum diajukan',
             bgColor: '#FFFBEB',  
             textColor: '#B45309',
@@ -345,7 +346,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
         };
     } else if (planStatus === 'waiting_manager_approval' || planStatus === 'submitted') {
         return {
-            badge: '⏳',
+            badge: '',
             text: 'Menunggu approval',
             bgColor: '#EFF6FF',
             textColor: '#1E40AF',
@@ -354,18 +355,35 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
             notes: ''
         };
     } else if (planStatus === 'approved') {
+        // Check if items were revised by manager
+        const hasRevisedItems = (item.manager_review_snapshot && typeof item.manager_review_snapshot === 'object') 
+            ? Object.values(item.manager_review_snapshot).some(entry => entry.was_revised === true)
+            : false;
+        
+        if (hasRevisedItems) {
+            return {
+                badge: '',
+                text: 'Direvisi',
+                bgColor: '#FEF3C7',
+                textColor: '#92400E',
+                borderColor: '#F59E0B',
+                hasNotes: false,
+                notes: ''
+            };
+        }
+        
         return {
-            badge: '✅',
+            badge: '',
             text: 'Disetujui',
-            bgColor: '#ECFDF5',
+            bgColor: '#D1FAE5',
             textColor: '#065F46',
-            borderColor: '#10B981',
+            borderColor: '#6EE7B7',
             hasNotes: false,
             notes: ''
         };
     } else if (planStatus === 'revision_requested') {
         return {
-            badge: '🔴',
+            badge: '',
             text: 'Revisi diminta',
             bgColor: '#FEE2E2',
             textColor: '#991B1B',
@@ -377,7 +395,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     
     // Default
     return {
-        badge: '⚪',
+        badge: '',
         text: 'Belum ada Rencana VnB',
         bgColor: '#F3F4F6',
         textColor: '#6B7280',
@@ -443,8 +461,14 @@ function renderPhaseTable(bodyId, items) {
                 : ((isSaved ? item.deliverables.split('\n---\n')[integIdx] : '') || '');
             const displayRencana = currentRencana === '-' ? '' : currentRencana;
             const statusCell = `<td class="px-4 py-3 w-1/6 align-top">
-                <div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusConfig.bgColor}; color: ${statusConfig.textColor}; border-left: 3px solid ${statusConfig.borderColor};">
-                    <span>${statusConfig.badge}</span>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-sm border border-opacity-30 shadow-sm
+                    ${statusConfig.text === 'Disetujui' ? 'text-green-700 bg-green-100 border-green-300' : ''}
+                    ${statusConfig.text === 'Direvisi' ? 'text-amber-700 bg-amber-100 border-amber-300' : ''}
+                    ${statusConfig.text === 'Belum diajukan' ? 'text-amber-700 bg-amber-100 border-amber-300' : ''}
+                    ${statusConfig.text === 'Menunggu approval' ? 'text-blue-700 bg-blue-100 border-blue-300' : ''}
+                    ${statusConfig.text === 'Revisi diminta' ? 'text-red-700 bg-red-100 border-red-300' : ''}
+                    ${statusConfig.text === 'Belum ada Rencana VnB' ? 'text-gray-700 bg-gray-100 border-gray-300' : ''}
+                ">
                     <span>${statusConfig.text}</span>
                 </div>
                 ${statusConfig.hasNotes ? `<div class="mt-2 text-xs italic text-red-700 bg-red-50 p-2 rounded border-l-2 border-red-300">"${escapeHtml(statusConfig.notes)}"</div>` : ''}
@@ -458,7 +482,7 @@ function renderPhaseTable(bodyId, items) {
                     <span class="text-xs text-gray-700">${escapeHtml(integration).replace(/\n/g, '<br>')}</span>
                 </td>
                 <td class="px-4 py-3 w-1/3 align-top">
-                    <textarea id="${textareaId}" rows="3" class="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." ${isWaitingApproval ? 'disabled' : ''} onchange="hasUnsavedChanges = true;">${escapeHtml(displayRencana)}</textarea>
+                    <textarea id="${textareaId}" rows="3" class="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Rencana aktivitas..." ${isWaitingApproval ? 'disabled' : ''} onchange="hasUnsavedChanges = true; syncDraftActionButton();">${escapeHtml(displayRencana)}</textarea>
                 </td>
                 ${statusCell}
             </tr>
@@ -521,6 +545,14 @@ function syncDraftActionButton() {
     saveDraftBtn.title = isDraftEditingMode
         ? 'Simpan semua perubahan draft'
         : 'Masuk mode edit untuk semua integrasi';
+
+    // Show a small badge on the Save button when the plan is already approved
+    // but there are unsaved changes (e.g., manager approved locally but hasn't saved)
+    const saveBadge = document.getElementById('save-draft-badge');
+    if (saveBadge) {
+        const showSaveBadge = (currentPlan?.status === 'approved' || currentPlan?.status === 'approved_with_revision') && hasUnsavedChanges;
+        saveBadge.classList.toggle('hidden', !showSaveBadge);
+    }
 }
 
 function toggleDraftMode() {

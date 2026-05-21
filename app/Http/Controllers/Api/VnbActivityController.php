@@ -43,9 +43,12 @@ class VnbActivityController extends Controller
             return $this->formatActivityItem($item);
         });
 
+        $periods = VnbPeriod::where('employee_id', $employee->id)->get(['phase_number', 'start_date', 'end_date', 'status']);
+
         return response()->json([
             'success' => true,
             'employee' => $employee->only('id', 'name', 'vnb_period_start', 'vnb_period_end', 'level'),
+            'periods' => $periods,
             'data' => $items,
         ]);
     }
@@ -69,16 +72,84 @@ class VnbActivityController extends Controller
             'activity_date' => 'required|string',
         ]);
 
+        $integrationParts = collect(explode('|', (string) $item->description))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '');
+        $expectedRowCount = max($integrationParts->count(), 1);
+
+        $descriptionPartsRaw = collect(explode("\n---\n", $validated['activity_description']))
+            ->map(fn ($value) => trim((string) $value));
+        $datePartsRaw = collect(explode("\n---\n", $validated['activity_date']))
+            ->map(fn ($value) => trim((string) $value));
+
+        if ($descriptionPartsRaw->count() < $expectedRowCount || $datePartsRaw->count() < $expectedRowCount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semua baris integrasi harus memiliki implementasi dan tanggal.',
+            ], 422);
+        }
+
+        for ($idx = 0; $idx < $expectedRowCount; $idx++) {
+            $descVal = (string) ($descriptionPartsRaw->get($idx) ?? '');
+            $dateVal = (string) ($datePartsRaw->get($idx) ?? '');
+
+            if ($descVal === '' || $descVal === '-' || $dateVal === '' || $dateVal === '-') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Semua baris integrasi harus dilengkapi sebelum submit.',
+                ], 422);
+            }
+
+            $hasEvidenceForRow = $item->evidences()
+                ->where('description', 'Integration ' . $idx)
+                ->exists();
+
+            if (!$hasEvidenceForRow) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Setiap baris integrasi wajib memiliki bukti implementasi.',
+                ], 422);
+            }
+        }
+
+        $descriptionParts = collect(explode("\n---\n", $validated['activity_description']))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '');
+        $dateParts = collect(explode("\n---\n", $validated['activity_date']))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '');
+
+        if ($descriptionParts->isEmpty() || $dateParts->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semua kolom implementasi harus diisi sebelum dikirim.',
+            ], 422);
+        }
+
+        if ($descriptionParts->contains('-') || $dateParts->contains('-')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Semua kolom implementasi harus diisi sebelum dikirim.',
+            ], 422);
+        }
+
+        if (!$item->evidences()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimal 1 bukti implementasi harus diunggah sebelum submit.',
+            ], 422);
+        }
+
         $item->update([
             'activity_description' => $validated['activity_description'],
             'activity_date' => $validated['activity_date'],
-            'submission_status' => 'submitted',
+            'submission_status' => 'waiting_approval',
             'submitted_at' => now(),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Aktivitas berhasil disimpan.',
+            'message' => 'Aktivitas berhasil dikirim untuk review manager.',
             'data' => $this->formatActivityItem($item->fresh()),
         ]);
     }
@@ -116,7 +187,7 @@ class VnbActivityController extends Controller
 
         if (!$manager) {
             // Fallback: show all pending if admin/intercomm
-            $items = VnbPlanItem::where('submission_status', 'waiting_approval')
+            $items = VnbPlanItem::whereIn('submission_status', ['waiting_approval', 'submitted'])
                 ->with(['plan.employee.position'])
                 ->get()
                 ->map(fn(VnbPlanItem $item): array => $this->formatActivityItem($item, withEmployee: true));
@@ -126,7 +197,7 @@ class VnbActivityController extends Controller
                 ->orWhere('manager_operational_id', $manager->id)
                 ->pluck('id');
 
-            $items = VnbPlanItem::where('submission_status', 'waiting_approval')
+            $items = VnbPlanItem::whereIn('submission_status', ['waiting_approval', 'submitted'])
                 ->whereHas('plan', fn($q) => $q->whereIn('employee_id', $employeeIds))
                 ->with(['plan.employee.position'])
                 ->get()
@@ -143,7 +214,7 @@ class VnbActivityController extends Controller
     {
         $item = VnbPlanItem::findOrFail($planItemId);
 
-        if ($item->submission_status !== 'waiting_approval') {
+        if (!in_array($item->submission_status, ['waiting_approval', 'submitted'], true)) {
             return response()->json(['success' => false, 'message' => 'Aktivitas tidak dalam status waiting for approval.'], 422);
         }
 
@@ -556,11 +627,22 @@ class VnbActivityController extends Controller
             'approved_operational_by' => $item->approved_operational_by,
             'approved_operational_at' => $item->approved_operational_at,
             'completion_percentage'   => $item->completion_percentage,
-            'evidences'            => $item->evidences->map(fn($ev) => [
-                'id' => $ev->id,
-                'file_name' => $ev->file_name,
-                'description' => $ev->description,
-            ])->toArray(),
+            'evidences'            => $item->evidences->map(function ($ev) {
+                $previewUrl = $ev->s3_url;
+                if (!$previewUrl && $ev->file_path) {
+                    $previewUrl = url('/storage/' . ltrim((string) $ev->file_path, '/'));
+                }
+
+                return [
+                    'id' => $ev->id,
+                    'file_name' => $ev->file_name,
+                    'file_type' => $ev->file_type,
+                    'file_size' => $ev->file_size,
+                    'description' => $ev->description,
+                    's3_url' => $ev->s3_url,
+                    'preview_url' => $previewUrl,
+                ];
+            })->toArray(),
         ];
 
         if ($withEmployee && $item->relationLoaded('plan')) {

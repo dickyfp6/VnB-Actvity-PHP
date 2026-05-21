@@ -583,6 +583,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
+            table-layout: auto; /* let column widths follow content */
         }
 
         .table-modern thead {
@@ -592,7 +593,8 @@
 
         .table-modern thead th {
             padding: 1rem;
-            text-align: left;
+            text-align: left; /* left-align headers */
+            white-space: nowrap; /* prevent headers from wrapping to 2 lines */
             font-weight: 600;
             color: var(--color-primary-dark);
             letter-spacing: 0.5px;
@@ -682,6 +684,19 @@
         .table-modern tbody td {
             padding: 0.875rem 1rem;
             color: var(--color-neutral-800);
+        }
+
+        /* Center any button inside table cells without affecting other cell content */
+        .table-modern td:has(> button),
+        .table-modern th:has(> button) {
+            text-align: center;
+        }
+
+        .table-modern td:has(> button) > button,
+        .table-modern th:has(> button) > button {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Modern table scrollbar: thin, subtle, and only visible on hover */

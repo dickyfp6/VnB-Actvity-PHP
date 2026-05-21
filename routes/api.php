@@ -137,6 +137,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==================== EVIDENCE ====================
     Route::prefix('evidence')->group(function () {
         Route::post('upload', [EvidenceController::class, 'uploadEvidence']);
+        Route::delete('{evidence}', [EvidenceController::class, 'deleteEvidence']);
         Route::get('plan-item/{planItem}', [EvidenceController::class, 'listEvidences']);
         Route::put('plan-item/{planItem}/progress', [EvidenceController::class, 'updateProgress']);
         Route::post('{evidence}/verify', [EvidenceController::class, 'verifyEvidence']);
