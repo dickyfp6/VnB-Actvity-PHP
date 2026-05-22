@@ -696,6 +696,7 @@ function renderPhaseContent(detail) {
     
     const planningWaiting = detail.approval_requests?.planning_waiting;
     const isPlanApproved = isApprovedPlanStatus(detail.plan?.status) || detail.plan?.status === 'in_progress' || detail.plan?.status === 'completed';
+    const isPlanningPhase = String(detail.phase || '').toLowerCase() === 'planning';
     const todayStart = getTodayStartDate();
 
     totalPlanningSubRows = 0;
@@ -759,7 +760,7 @@ function renderPhaseContent(detail) {
         const phaseIsFuture = isFuturePhaseRange(computedRange);
         const phaseIsCurrent = isCurrentPhaseRange(computedRange);
         const phaseIsPast = isPastPhaseRange(computedRange);
-        const phaseCanEdit = !isPlanApproved || (isPlanRevisionMode && phaseIsCurrent);
+        const phaseCanEdit = !isPlanApproved || (isPlanRevisionMode && phaseIsFuture);
         
         const desc = formatPhaseDurationRange(phaseInfo.duration, computedRange.startDate, computedRange.endDate);
         const colorClass = colorGradients[index % colorGradients.length];
@@ -796,7 +797,7 @@ function renderPhaseContent(detail) {
             </div>
         `;
         if (container) container.insertAdjacentHTML('beforeend', planPhaseHtml);
-        renderPhaseActivityTable(`${phaseId}-body`, phaseItems, planningWaiting, phaseCanEdit, isPlanApproved, phaseIsFuture);
+        renderPhaseActivityTable(`${phaseId}-body`, phaseItems, planningWaiting, phaseCanEdit, isPlanApproved, phaseIsFuture, isPlanningPhase);
 
         // Render Content Block for "Fase X" Tab
         let phaseContentHtml = '';
@@ -812,27 +813,27 @@ function renderPhaseContent(detail) {
                     </div>
                 </div>
             `;
-        } else if (isPlanRevisionMode && phaseIsCurrent) {
+        } else if (isPlanRevisionMode && phaseIsFuture) {
             phaseContentHtml = `
                 <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
                     <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
                         <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 border border-emerald-100">
                             <i class="fas fa-pen-to-square text-3xl text-amber-500"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Fase ${label} Sedang Berjalan</h3>
-                        <p class="text-gray-500 max-w-md">Fase ini sedang berjalan, jadi rencana aktivitasnya masih bisa diedit. Gunakan tab <b>Plan</b> untuk menyesuaikan detail aktivitas fase ini.</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Fase ${label} Belum Berjalan</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini belum berjalan, jadi rencana aktivitasnya masih bisa diedit. Gunakan tab <b>Plan</b> untuk menyesuaikan detail aktivitas fase ini.</p>
                     </div>
                 </div>
             `;
-        } else if (isPlanRevisionMode && (phaseIsFuture || phaseIsPast)) {
+        } else if (isPlanRevisionMode && (phaseIsCurrent || phaseIsPast)) {
             phaseContentHtml = `
                 <div id="vnb-tab-content-${phaseId}" class="vnb-phase-tab-content hidden space-y-6">
                     <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
                         <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4 border border-amber-100">
                             <i class="fas fa-lock text-3xl text-amber-500"></i>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${phaseIsFuture ? 'Fase Belum Berjalan' : 'Fase Sudah Berlalu'}</h3>
-                        <p class="text-gray-500 max-w-md">Fase ini tidak dapat diedit lagi. Hanya fase yang sedang berjalan yang bisa direvisi pada mode Ubah Plan.</p>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">${phaseIsPast ? 'Fase Sudah Berlalu' : 'Fase Sedang Berjalan'}</h3>
+                        <p class="text-gray-500 max-w-md">Fase ini sudah tidak dapat diedit lagi. Hanya fase yang belum berjalan yang bisa direvisi pada mode Ubah Plan.</p>
                     </div>
                 </div>
             `;
@@ -955,7 +956,7 @@ function switchManagerVnbTab(tabId) {
     }
 }
 
-function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseCanEdit = true, isPlanApproved = false, phaseIsFuture = false) {
+function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseCanEdit = true, isPlanApproved = false, phaseIsFuture = false, isPlanningPhase = false) {
     const tbody = document.getElementById(bodyId);
     if (!tbody) return;
     if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">Tidak ada aktivitas untuk fase ini</td></tr>'; return; }
@@ -980,10 +981,12 @@ function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseC
             if (rowState && rowState.action === 'approve') {
                 const isRevised = rowState.was_revised === true;
                 rowBgClass = isRevised ? 'bg-amber-50/50' : 'bg-green-50/50';
-                if (isPlanApproved && rowEditable) {
+                if (planningWaiting && isPlanningPhase && rowEditable) {
+                    actionHtml = `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span><div class="flex gap-2"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Revisi</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
+                } else if (isPlanApproved && rowEditable) {
                     actionHtml = `<div class="flex justify-end"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Ubah Plan"><i class="fas fa-pen"></i></button></div>`;
                 } else {
-                    actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 border border-red-200"><i class="fas fa-lock text-[10px]"></i> Tidak dapat Diubah</span></div>`;
+                    actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-50 border border-green-200">Disetujui</span></div>`;
                 }
             } else if (rowState && rowState.action === 'revise') {
                 rowBgClass = 'bg-amber-50/50';

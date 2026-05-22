@@ -831,6 +831,11 @@ function getActivityRowStatus(activity, integIdx) {
   return String(getActivityRow(activity, integIdx)?.submission_status || activity?.submission_status || 'draft').toLowerCase();
 }
 
+function showActivityRevisionNotes(notes) {
+  const message = String(notes || '').trim() || 'Tidak ada catatan revisi';
+  showAlert(message, 'info');
+}
+
 function isSubmittedActivityStatus(status) {
   return ['waiting_approval', 'submitted', 'completed'].includes(String(status || '').toLowerCase());
 }
@@ -953,6 +958,8 @@ function renderActivities() {
         
         const dateList = (a.activity_date || '').split('\n---\n').map(s => s.trim());
         const thisDate = dateList[integIdx] === '-' ? '' : (dateList[integIdx] || '');
+        const rowState = getActivityRow(a, integIdx) || {};
+        const rowRevisionNotes = rowState.revision_notes || '';
 
         const existingEvidenceList = (a.evidences || []).filter(ev => ev.description === 'Integration ' + integIdx);
 
@@ -965,7 +972,7 @@ function renderActivities() {
             <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverable).replace(/\\n/g, '<br>')}</td>
             <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
               <textarea id="desc-${a.id}-${integIdx}" rows="2" onfocus="expandImplementationField(this)" onblur="collapseImplementationField(this)" class="w-full min-h-[72px] border border-gray-300 rounded-lg px-3 py-2 text-sm leading-5 resize-none overflow-hidden focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white ${isEditable ? '' : 'bg-gray-50 text-gray-500 cursor-not-allowed'}" placeholder="Jelaskan implementasi..." ${isEditable ? '' : 'readonly'}>${escapeHtml(thisDesc)}</textarea>
-              ${a.revision_notes ? `<div class="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded border border-red-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(a.revision_notes)}</div>` : ''}
+              ${rowRevisionNotes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeJsString(rowRevisionNotes)}')" class="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 hover:bg-amber-100 transition"><i class="fas fa-comment-dots"></i> Lihat Revisi</button>` : ''}
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-44">
               <div class="relative">
