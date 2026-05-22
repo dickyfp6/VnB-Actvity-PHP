@@ -215,12 +215,27 @@ class VnbActivityController extends Controller
                 return response()->json(['success' => false, 'message' => 'Baris integrasi tidak ditemukan.'], 404);
             }
 
+            $rowStatus = strtolower((string) ($rows[$rowIndex]['submission_status'] ?? 'draft'));
+            if (!in_array($rowStatus, ['waiting_approval', 'submitted'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Baris aktivitas belum diajukan oleh employee.',
+                ], 422);
+            }
+
             $user = Auth::user();
             $manager = Manager::where('email', $user->email)->first();
             $employee = $item->plan->employee;
 
             $isFunctional   = $manager && $employee->manager_functional_id == $manager->id;
             $isOperational  = $manager && $employee->manager_operational_id == $manager->id;
+
+            if (!$isFunctional && !$isOperational) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki otorisasi untuk approve aktivitas employee ini.',
+                ], 403);
+            }
 
             if ($isFunctional && !($rows[$rowIndex]['approved_functional_by'] ?? null)) {
                 $rows[$rowIndex]['approved_functional_by'] = $user->id;
@@ -232,25 +247,16 @@ class VnbActivityController extends Controller
                 $rows[$rowIndex]['approved_operational_at'] = now()->toDateTimeString();
             }
 
-            $requiresOperational = !is_null($employee->manager_operational_id);
-            $functionalDone = !is_null($rows[$rowIndex]['approved_functional_by'] ?? null);
-            $operationalDone = !$requiresOperational || !is_null($rows[$rowIndex]['approved_operational_by'] ?? null);
-
-            if ($functionalDone && $operationalDone) {
-                $rows[$rowIndex]['submission_status'] = 'completed';
-                $rows[$rowIndex]['revision_notes'] = null;
-                $rows[$rowIndex]['submitted_at'] = $rows[$rowIndex]['submitted_at'] ?? now()->toDateTimeString();
-            } else {
-                $rows[$rowIndex]['submission_status'] = 'waiting_approval';
-            }
+            // Business rule: one manager approval is enough to mark the row completed.
+            $rows[$rowIndex]['submission_status'] = 'completed';
+            $rows[$rowIndex]['revision_notes'] = null;
+            $rows[$rowIndex]['submitted_at'] = $rows[$rowIndex]['submitted_at'] ?? now()->toDateTimeString();
 
             $this->persistActivityRows($item, $rows);
 
             return response()->json([
                 'success' => true,
-                'message' => $rows[$rowIndex]['submission_status'] === 'completed'
-                    ? 'Baris aktivitas telah disetujui.'
-                    : 'Approval baris aktivitas berhasil disimpan. Menunggu approval manager lainnya.',
+                'message' => 'Baris aktivitas telah disetujui.',
                 'data' => $this->formatActivityItem($item->fresh()),
             ]);
         }
@@ -267,6 +273,13 @@ class VnbActivityController extends Controller
         $isFunctional   = $manager && $employee->manager_functional_id == $manager->id;
         $isOperational  = $manager && $employee->manager_operational_id == $manager->id;
 
+        if (!$isFunctional && !$isOperational) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki otorisasi untuk approve aktivitas employee ini.',
+            ], 403);
+        }
+
         if ($isFunctional && !$item->approved_functional_by) {
             $item->approved_functional_by = $user->id;
             $item->approved_functional_at = now();
@@ -277,24 +290,16 @@ class VnbActivityController extends Controller
             $item->approved_operational_at = now();
         }
 
-        // Check if all required managers have approved
-        $requiresOperational = !is_null($employee->manager_operational_id);
-        $functionalDone  = !is_null($item->approved_functional_by);
-        $operationalDone = !$requiresOperational || !is_null($item->approved_operational_by);
-
-        if ($functionalDone && $operationalDone) {
-            $item->submission_status = 'completed';
-            $item->status = 'completed';
-            $item->completion_percentage = 100;
-        }
+        // Business rule: one manager approval is enough to mark completed.
+        $item->submission_status = 'completed';
+        $item->status = 'completed';
+        $item->completion_percentage = 100;
 
         $item->save();
 
         return response()->json([
             'success' => true,
-            'message' => $item->submission_status === 'completed'
-                ? 'Aktivitas telah disetujui dan dinyatakan Completed.'
-                : 'Approval Anda berhasil disimpan. Menunggu approval manager lainnya.',
+            'message' => 'Aktivitas telah disetujui dan dinyatakan Completed.',
             'data' => $this->formatActivityItem($item->fresh()),
         ]);
     }
@@ -317,6 +322,14 @@ class VnbActivityController extends Controller
 
             if (!isset($rows[$rowIndex])) {
                 return response()->json(['success' => false, 'message' => 'Baris integrasi tidak ditemukan.'], 404);
+            }
+
+            $rowStatus = strtolower((string) ($rows[$rowIndex]['submission_status'] ?? 'draft'));
+            if (!in_array($rowStatus, ['waiting_approval', 'submitted'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Baris aktivitas belum diajukan oleh employee.',
+                ], 422);
             }
 
             $rows[$rowIndex]['submission_status'] = 'revision_required';
@@ -924,7 +937,7 @@ class VnbActivityController extends Controller
                     'integration_1' => $item->integration_1,
                     'integration_2' => $item->integration_2,
                     'due_date' => now()->addDays(7)->format('Y-m-d'),
-                    'activity_date' => now()->addDays(7)->format('Y-m-d'),
+                    'activity_date' => null,
                     'deliverables' => '-',
                     'behavior_metrics' => json_encode([$item->behaviour, 'phase_' . $phaseNumber]),
                     'submission_status' => 'draft',

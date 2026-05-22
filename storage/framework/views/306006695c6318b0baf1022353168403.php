@@ -309,7 +309,8 @@ function rerenderEvidenceRow(id, integIdx) {
   const cellContainer = document.getElementById(`evidence-cell-${id}-${integIdx}`);
   if (cellContainer) {
     const activity = getActivityById(id);
-    const isEditable = activity ? (isEditableSubmissionStatus(activity.submission_status) || isCurrentActivityPhaseEditable(activity)) : false;
+    const rowStatus = activity ? getActivityRowStatus(activity, integIdx) : 'draft';
+    const isEditable = activity ? (isEditableSubmissionStatus(rowStatus) && isCurrentActivityPhaseEditable(activity)) : false;
     cellContainer.innerHTML = renderEvidenceCellContent(id, integIdx, isEditable);
   }
 }
@@ -828,7 +829,21 @@ function getActivityRow(activity, integIdx) {
 }
 
 function getActivityRowStatus(activity, integIdx) {
-  return String(getActivityRow(activity, integIdx)?.submission_status || activity?.submission_status || 'draft').toLowerCase();
+  const row = getActivityRow(activity, integIdx) || {};
+  const status = String(row?.submission_status || activity?.submission_status || 'draft').toLowerCase();
+
+  if (status === 'completed') {
+    const implementationText = String(row?.activity_description || '').trim();
+    const implementationDate = String(row?.activity_date || '').trim();
+    const evidenceExists = Array.isArray(activity?.evidences)
+      && activity.evidences.some(ev => String(ev?.description || '') === `Integration ${integIdx}`);
+
+    if ((!implementationText || implementationText === '-') && (!implementationDate || implementationDate === '-') && !evidenceExists) {
+      return 'draft';
+    }
+  }
+
+  return status;
 }
 
 function showActivityRevisionNotes(notes) {
@@ -837,7 +852,11 @@ function showActivityRevisionNotes(notes) {
 }
 
 function isSubmittedActivityStatus(status) {
-  return ['waiting_approval', 'submitted', 'completed'].includes(String(status || '').toLowerCase());
+  return ['waiting_approval', 'submitted'].includes(String(status || '').toLowerCase());
+}
+
+function isApprovedActivityStatus(status) {
+  return ['completed'].includes(String(status || '').toLowerCase());
 }
 
 function isEditableSubmissionStatus(status) {
@@ -863,7 +882,12 @@ function isCurrentActivityPhaseEditable(activity) {
 function canEditActivityItem(id) {
   const activity = getActivityById(id);
   if (!activity) return false;
-  return isEditableSubmissionStatus(activity.submission_status) || isCurrentActivityPhaseEditable(activity);
+  // Allow editing only when the phase is currently in progress AND the row/submission status is editable.
+  if (!isCurrentActivityPhaseEditable(activity)) return false;
+  if (Array.isArray(activity.activity_rows) && activity.activity_rows.length > 0) {
+    return activity.activity_rows.some(r => isEditableSubmissionStatus(r.submission_status || activity.submission_status));
+  }
+  return isEditableSubmissionStatus(activity.submission_status);
 }
 
 function getSubmissionStatusLabel(status) {
@@ -872,7 +896,7 @@ function getSubmissionStatusLabel(status) {
     revision_required: 'revisi',
     waiting_approval: 'menunggu approval',
     submitted: 'sudah diajukan',
-    completed: 'sudah completed',
+    completed: 'disetujui',
   };
   return map[status] || (status || 'tidak diketahui');
 }
@@ -950,15 +974,18 @@ function renderActivities() {
         const integration = integrationList[integIdx];
         const deliverable = deliverableList[integIdx] || deliverableList[0] || '-';
         const rowStatus = getActivityRowStatus(a, integIdx);
-        const isEditable = isEditableSubmissionStatus(rowStatus) || isCurrentActivityPhaseEditable(a);
+        // Only allow editing when the row status is editable AND the phase is currently in progress.
+        // This prevents editing activities of future/non-current phases even if they are still drafts.
+        const isEditable = isEditableSubmissionStatus(rowStatus) && isCurrentActivityPhaseEditable(a);
         
         // Split existing descriptions and dates by newline dash separator
         const descList = (a.activity_description || '').split('\n---\n').map(s => s.trim());
         const thisDesc = descList[integIdx] === '-' ? '' : (descList[integIdx] || '');
         
         const dateList = (a.activity_date || '').split('\n---\n').map(s => s.trim());
-        const thisDate = dateList[integIdx] === '-' ? '' : (dateList[integIdx] || '');
         const rowState = getActivityRow(a, integIdx) || {};
+        const isInitialDraftRow = rowStatus === 'draft' && !(rowState.submitted_at || '').trim() && !thisDesc.trim();
+        const thisDate = isInitialDraftRow ? '' : (dateList[integIdx] === '-' ? '' : (dateList[integIdx] || ''));
         const rowRevisionNotes = rowState.revision_notes || '';
 
         const existingEvidenceList = (a.evidences || []).filter(ev => ev.description === 'Integration ' + integIdx);
@@ -984,7 +1011,9 @@ function renderActivities() {
             </td>
             <td class="px-3 py-3 text-right whitespace-nowrap border-b border-gray-100 align-top w-24">
               <div class="flex items-start justify-end gap-1">
-                ${isSubmittedActivityStatus(rowStatus)
+                ${isApprovedActivityStatus(rowStatus)
+                  ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Disetujui</span>`
+                  : isSubmittedActivityStatus(rowStatus)
                   ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Diajukan</span>`
                   : `<button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 transition-all shadow-sm ${isEditable ? 'hover:bg-gray-50 hover:border-gray-400' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Simpan draft' : 'Tidak bisa diubah karena status ' + getSubmissionStatusLabel(rowStatus)}" aria-label="Simpan draft" ${isEditable ? '' : 'disabled'}>
                     <i class="far fa-save text-lg"></i>
@@ -1015,6 +1044,52 @@ function payloadFor(id, integIdx) {
     activity_description: descEl ? descEl.value.trim() : '',
     activity_date: getDateFieldValue(dateEl),
   };
+}
+
+function captureVisibleDraftInputs() {
+  const state = {};
+
+  document.querySelectorAll('textarea[id^="desc-"]').forEach((descEl) => {
+    const match = descEl.id.match(/^desc-(\d+)-(\d+)$/);
+    if (!match) return;
+
+    const id = Number(match[1]);
+    const integIdx = Number(match[2]);
+    const dateEl = document.getElementById(`date-${id}-${integIdx}`);
+
+    state[`${id}-${integIdx}`] = {
+      activity_description: descEl.value,
+      activity_date: getDateFieldValue(dateEl),
+    };
+  });
+
+  return state;
+}
+
+function restoreVisibleDraftInputs(state, skipKey = null) {
+  if (!state || typeof state !== 'object') return;
+
+  Object.entries(state).forEach(([key, row]) => {
+    if (skipKey && key === skipKey) return;
+
+    const [id, integIdx] = key.split('-');
+    const descEl = document.getElementById(`desc-${id}-${integIdx}`);
+    const dateEl = document.getElementById(`date-${id}-${integIdx}`);
+
+    if (descEl && !descEl.readOnly) {
+      descEl.value = row.activity_description || '';
+      if ((descEl.value || '').trim().length > 0) {
+        expandImplementationField(descEl);
+      } else {
+        collapseImplementationField(descEl);
+      }
+    }
+
+    if (dateEl && !dateEl.disabled) {
+      dateEl.dataset.isoValue = parseDateValue(row.activity_date || '');
+      applyDateFieldState(dateEl);
+    }
+  });
 }
 
 function validateIntegrationRowBeforeSubmit(id, integIdx) {
@@ -1096,6 +1171,7 @@ async function saveDraft(id, integIdx) {
 
   const btn = document.querySelector(`button[onclick="saveDraft(${id}, ${integIdx})"]`);
   const originalText = btn.innerHTML;
+  const preservedInputs = captureVisibleDraftInputs();
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   btn.disabled = true;
 
@@ -1109,7 +1185,8 @@ async function saveDraft(id, integIdx) {
   const res = await apiPost(`/api/vnb-activities/${id}/draft`, payloadFor(id, integIdx));
   if (res && res.success) {
     showAlert('Draft tersimpan');
-    loadActivities();
+    await loadActivities();
+    restoreVisibleDraftInputs(preservedInputs, `${id}-${integIdx}`);
   } else {
     showAlert(res?.message || res?.error || 'Gagal simpan draft', 'error');
   }
@@ -1136,6 +1213,7 @@ async function submitActivity(id, integIdx) {
   
   const btn = document.querySelector(`button[onclick="submitActivity(${id}, ${integIdx})"]`);
   const originalText = btn.innerHTML;
+  const preservedInputs = captureVisibleDraftInputs();
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
   btn.disabled = true;
 
@@ -1149,7 +1227,8 @@ async function submitActivity(id, integIdx) {
   const res = await apiPost(`/api/vnb-activities/${id}/submit`, payloadFor(id, integIdx));
   if (res && res.success) {
     showAlert('Aktivitas berhasil disubmit');
-    loadActivities();
+    await loadActivities();
+    restoreVisibleDraftInputs(preservedInputs, `${id}-${integIdx}`);
   } else {
     showAlert(res?.message || res?.error || 'Gagal submit', 'error');
   }

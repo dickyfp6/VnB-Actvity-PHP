@@ -1679,7 +1679,9 @@ class ManagerController extends Controller
                 // Update dengan integrated values (hasil revisi manager)
                 $item->description = implode(' | ', $normalizedIntegrations);
                 $item->deliverables = implode("\n---\n", $normalizedDeliverables);
-                $item->submission_status = 'completed'; // Langsung completed karena manager sudah fix
+                if ($stage !== 'planning') {
+                    $item->submission_status = 'completed';
+                }
                 $item->manager_review_snapshot = $snapshot;
                 $item->save();
                 

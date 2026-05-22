@@ -520,6 +520,47 @@ function buildPlanningRowKey(itemId, subIdx) {
     return `${itemId}::${subIdx}`;
 }
 
+function isSubmittedForManagerReviewStatus(status) {
+    return ['waiting_approval', 'submitted'].includes(String(status || '').toLowerCase());
+}
+
+function getActivityPendingApprovalCount(items = []) {
+    let pending = 0;
+
+    (items || []).forEach(item => {
+        const rows = getActivityRows(item);
+        rows.forEach(row => {
+            const rowStatus = getActivityRowStatus(item, row);
+            if (isSubmittedForManagerReviewStatus(rowStatus)) {
+                pending += 1;
+            }
+        });
+    });
+
+    return pending;
+}
+
+function getPlanningPendingApprovalCount(items = []) {
+    let pending = 0;
+
+    (items || []).forEach(item => {
+        const integrations = splitIntegrations(item.description || '-');
+        const snapshot = item.manager_review_snapshot && typeof item.manager_review_snapshot === 'object'
+            ? item.manager_review_snapshot
+            : {};
+
+        integrations.forEach((integration, idx) => {
+            const rowKey = buildPlanningRowKey(item.id, idx);
+            const hasDecision = !!(pendingDecisions[rowKey] || snapshot[idx]);
+            if (!hasDecision) {
+                pending += 1;
+            }
+        });
+    });
+
+    return pending;
+}
+
 function splitIntegrations(value) {
     return String(value || '-')
         .split('|')
@@ -718,9 +759,10 @@ function renderPhaseContent(detail) {
     });
 
     // Add "Plan" Tab Button
+    const planningPendingCount = planningWaiting ? getPlanningPendingApprovalCount(items) : 0;
     const planTabBtn = `
         <button onclick="switchManagerVnbTab('plan')" id="vnb-tab-btn-plan" class="vnb-tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm border-blue-500 text-blue-600 focus:outline-none transition-colors duration-200">
-            Plan
+            <span class="inline-flex items-center gap-2">Plan${planningPendingCount > 0 ? `<span class="inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-[10px] font-bold text-white bg-red-500">${planningPendingCount > 99 ? '99+' : planningPendingCount}</span>` : ''}</span>
         </button>
     `;
     if (tabsNav) tabsNav.insertAdjacentHTML('beforeend', planTabBtn);
@@ -767,9 +809,10 @@ function renderPhaseContent(detail) {
         const phaseId = `dynamic-phase-${index}`;
 
         // Add "Fase X" Tab Button
+        const phaseActivityPendingCount = getActivityPendingApprovalCount(phaseItems);
         const tabBtn = `
             <button onclick="switchManagerVnbTab('${phaseId}')" id="vnb-tab-btn-${phaseId}" class="vnb-tab-btn whitespace-nowrap py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none transition-colors duration-200">
-                ${label}
+                <span class="inline-flex items-center gap-2">${label}${phaseActivityPendingCount > 0 ? `<span class="inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-[10px] font-bold text-white bg-red-500">${phaseActivityPendingCount > 99 ? '99+' : phaseActivityPendingCount}</span>` : ''}</span>
             </button>
         `;
         if (tabsNav) tabsNav.insertAdjacentHTML('beforeend', tabBtn);
@@ -848,16 +891,19 @@ function renderPhaseContent(detail) {
 
                 rows.forEach((row, idx) => {
                     const rowStatus = getActivityRowStatus(item, row);
+                    const isSubmittedForReview = ['waiting_approval', 'submitted'].includes(rowStatus);
                     const isRevised = rowStatus === 'revision_required';
                     const isApproved = rowStatus === 'completed';
                     const actionHtml = isApproved
                         ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
                         : isRevised
                             ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
-                            : `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`;
+                            : isSubmittedForReview
+                                ? `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`
+                                : `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200">Draft</span></div>`;
 
                     phaseRowsHtml += `
-                        <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : ''}">
+                        <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : isSubmittedForReview ? 'bg-emerald-50/30' : ''}">
                             ${idx === 0 ? `<td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40" rowspan="${rows.length}">${escapeHtml(behaviour)}</td>` : ''}
                             <td class="px-4 py-4 text-xs border-b border-gray-100 w-64 text-gray-700">${escapeHtml(row.integration_text || '-').replace(/\n/g, '<br>')}</td>
                             <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
@@ -1149,9 +1195,10 @@ function renderActivityReviewContent(detail) {
     phases.forEach((phase, index) => {
         const phaseId = `phase-${index}`;
         const isActive = phase === activityReviewActivePhase;
+        const phasePendingCount = getActivityPendingApprovalCount(itemsByPhase[phase] || []);
         tabsHtml += `
             <button onclick="switchActivityReviewTab('${phaseId}')" id="activity-review-tab-btn-${phaseId}" class="activity-review-tab-btn whitespace-nowrap py-4 px-1 border-b-2 ${isActive ? 'border-green-500 text-green-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'} text-sm focus:outline-none transition-colors duration-200">
-                ${escapeHtml(phase)}
+                <span class="inline-flex items-center gap-2">${escapeHtml(phase)}${phasePendingCount > 0 ? `<span class="inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-[10px] font-bold text-white bg-red-500">${phasePendingCount > 99 ? '99+' : phasePendingCount}</span>` : ''}</span>
             </button>
         `;
 
@@ -1166,17 +1213,19 @@ function renderActivityReviewContent(detail) {
 
             rows.forEach((row, idx) => {
                 const rowStatus = getActivityRowStatus(item, row);
-                const isWaiting = ['draft', 'waiting_approval', 'submitted'].includes(rowStatus);
+                const isSubmittedForReview = ['waiting_approval', 'submitted'].includes(rowStatus);
                 const isRevised = rowStatus === 'revision_required';
                 const isApproved = rowStatus === 'completed';
                 const actionHtml = isApproved
                     ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
                     : isRevised
                         ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
-                        : `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`;
+                        : isSubmittedForReview
+                            ? `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`
+                            : `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200">Draft</span></div>`;
 
                 tableRows += `
-                    <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : ''}">
+                    <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : isSubmittedForReview ? 'bg-emerald-50/30' : ''}">
                         ${idx === 0 ? `<td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40" rowspan="${rows.length}">${escapeHtml(behaviour)}</td>` : ''}
                         <td class="px-4 py-4 text-xs border-b border-gray-100 w-64 text-gray-700">${escapeHtml(row.integration_text || '-').replace(/\n/g, '<br>')}</td>
                         <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
@@ -1254,7 +1303,7 @@ async function approveActivityRow(itemId, rowIndex) {
     if (!confirmed) return;
 
     const res = await apiPost(`/api/vnb-activities/${itemId}/approve`, { row_index: rowIndex });
-    if (res && (res.success || res.message || res.data)) {
+    if (res?.success) {
         showAlert(res.message || 'Baris aktivitas disetujui', 'success');
         await loadDetail();
     } else {
@@ -1325,7 +1374,7 @@ async function submitActivityRevision(itemId, rowIndex) {
     }
 
     const res = await apiPost(`/api/vnb-activities/${itemId}/request-revision`, { row_index: rowIndex, revision_notes: notes });
-    if (res && (res.success || res.message || res.data)) {
+    if (res?.success) {
         showAlert(res.message || 'Revisi dikirim ke Employee', 'success');
         closeActivityRevisionModal();
         await loadDetail();
@@ -1402,72 +1451,24 @@ function updateApprovalProgress() {
     }
     
     // Update VnB Activity badge
-    updateVnbApprovalBadge(percentage);
+    updateVnbApprovalBadge();
 }
 
-function updateVnbApprovalBadge(percentage = null) {
+function updateVnbApprovalBadge() {
     const badge = document.getElementById('vnb-approval-badge');
     const badgeCount = document.getElementById('vnb-badge-count');
     
     if (!badge || !badgeCount) return;
-    
-    // If percentage is provided, use it; otherwise calculate from progress
-    if (percentage === null && detailData?.items) {
-        let decidedCount = 0;
-        let totalCount = 0;
-        
-        detailData.items.forEach(item => {
-            const integrations = splitIntegrations(item.description || '-');
-            const snapshot = item.manager_review_snapshot && typeof item.manager_review_snapshot === 'object' ? item.manager_review_snapshot : {};
-            
-            integrations.forEach((integration, idx) => {
-                totalCount++;
-                const rowKey = buildPlanningRowKey(item.id, idx);
-                if (pendingDecisions[rowKey] || snapshot[idx]) {
-                    decidedCount++;
-                }
-            });
-        });
-        
-        percentage = totalCount > 0 ? Math.round((decidedCount / totalCount) * 100) : 0;
-    }
-    
-    if (percentage === 100) {
-        // Only show the empty red badge when all rows are decided AND there are
-        // local pending decisions (i.e. approvals made locally but not yet saved).
-        const hasNewPendingDecisions = Object.keys(pendingDecisions).length > 0;
-        if (hasNewPendingDecisions) {
-            badge.classList.remove('hidden');
-            badgeCount.textContent = '';
-            badgeCount.classList.add('invisible');
-            badge.style.minWidth = '12px';
-            badge.style.width = '12px';
-            badge.style.height = '12px';
-            badge.style.padding = '0';
-        } else {
-            // All decisions are already persisted; hide the badge
-            badge.classList.add('hidden');
-        }
-    } else if (detailData?.items && detailData.items.length > 0) {
-        // Calculate count of items needing approval
-        let pendingCount = 0;
-        detailData.items.forEach(item => {
-            if (item.approval_type !== 'all_approved') {
-                pendingCount++;
-            }
-        });
-        
-        if (pendingCount > 0) {
-            badge.classList.remove('hidden');
-            badgeCount.classList.remove('invisible');
-            badgeCount.textContent = pendingCount > 99 ? '99+' : pendingCount;
-            badge.style.minWidth = '18px';
-            badge.style.width = 'auto';
-            badge.style.height = '20px';
-            badge.style.padding = '0 4px';
-        } else {
-            badge.classList.add('hidden');
-        }
+    const pendingCount = getActivityPendingApprovalCount(detailData?.items || []);
+
+    if (pendingCount > 0) {
+        badge.classList.remove('hidden');
+        badgeCount.classList.remove('invisible');
+        badgeCount.textContent = pendingCount > 99 ? '99+' : pendingCount;
+        badge.style.minWidth = '18px';
+        badge.style.width = 'auto';
+        badge.style.height = '20px';
+        badge.style.padding = '0 4px';
     } else {
         badge.classList.add('hidden');
     }
