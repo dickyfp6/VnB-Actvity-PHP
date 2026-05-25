@@ -901,10 +901,12 @@
 
             <!-- STAR Section -->
             <p class="nav-section-title">STAR</p>
+            @if(in_array($activeRole, ['intercomm', 'pcx_manager']))
             <a href="/star/schema" class="nav-link {{ request()->is('star/schema*') ? 'active' : '' }}" title="STAR Schema">
                 <i class="fas fa-layer-group w-5 flex-shrink-0"></i>
                 <span>Schema</span>
             </a>
+            @endif
             <a href="/star/recognition" class="nav-link {{ request()->is('star/recognition*') ? 'active' : '' }}" title="Recognition">
                 <i class="fas fa-trophy w-5 flex-shrink-0"></i>
                 <span>Recognition</span>

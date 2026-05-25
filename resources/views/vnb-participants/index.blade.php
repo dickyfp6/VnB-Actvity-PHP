@@ -16,7 +16,7 @@
 		</div>
 
 		<div class="overflow-x-auto">
-			<table class="table-modern" id="participants-table" style="width: max-content; min-width: 100%; table-layout: auto;">
+			<table class="table-modern" id="participants-table" style="width: max-content; table-layout: auto;">
 				<thead>
 					<tr>
 						<th>No</th>
@@ -91,7 +91,7 @@
 						</div>
 
 						<div class="overflow-x-auto border rounded-lg">
-							<table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+							<table class="table-modern" style="width: max-content; table-layout: auto;">
 								<thead class="bg-gray-50">
 									<tr>
 										<th></th>
@@ -128,7 +128,7 @@
 
 						<div class="border rounded-lg bg-white" style="overflow: visible;">
 							<div style="overflow-x: auto; overflow-y: visible;">
-								<table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+								<table class="table-modern" style="width: max-content; table-layout: auto;">
 									<thead class="bg-gray-50">
 										<tr>
 											<th>NIP</th>

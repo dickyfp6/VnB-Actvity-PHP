@@ -120,13 +120,13 @@
                             <div id="vnb-progress-container" class="w-full">
                                 <div class="flex items-end justify-between mb-4">
                                     <div class="space-y-1">
-                                        <h3 class="text-base font-bold text-gray-800">Progres VnB Employee</h3>
-                                        <p class="text-xs text-gray-500 font-medium" id="vnb-planning-status-text">Status: Memuat...</p>
+                                        <h3 class="text-lg font-semibold text-gray-900">Progres VnB Employee</h3>
+                                        <p class="text-sm text-gray-500 font-medium" id="vnb-planning-status-text">Status: Memuat...</p>
                                     </div>
                                     <div class="text-right">
                                         <div class="flex items-baseline justify-end gap-1">
-                                            <span class="text-5xl font-black text-green-600 tracking-tighter leading-none" id="vnb-progress-percent">0</span>
-                                            <span class="text-xl font-bold text-green-500">%</span>
+                                            <span class="text-4xl font-bold text-green-600 leading-none" id="vnb-progress-percent">0</span>
+                                            <span class="text-lg font-semibold text-green-500">%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -140,7 +140,7 @@
                                 
                                 <div class="flex justify-between items-center mt-6">
                                     <div class="flex items-center gap-4">
-                                        <p class="text-sm font-black text-gray-700 flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
+                                        <p class="text-sm font-semibold text-gray-700 flex items-center bg-gray-50 px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
                                             <i class="fas fa-clipboard-check mr-2.5 text-green-500 text-base"></i>
                                             <span id="vnb-phase-label">Fase Saat Ini: -</span>
                                         </p>
@@ -231,6 +231,11 @@
 const employeeId = @json($employeeId);
 let activityReviewActivePhase = '';
 let isPlanRevisionMode = false;
+let detailData = null;
+let pendingDecisions = {};
+let totalPlanningSubRows = 0;
+let managerTabProgressMap = { plan: 0 };
+let activeManagerVnbTab = 'plan';
 
 function switchTab(tabId) {
     // Hide all tabs
@@ -454,10 +459,10 @@ async function loadDetail() {
                     document.getElementById('vnb-manager-operational').textContent = detailData.employee.manager_operational || '-';
 
                     const progress = Math.round(detailData.progress || 0);
-                    document.getElementById('vnb-progress-percent').textContent = progress;
-                    document.getElementById('vnb-progress-bar').style.width = progress + '%';
-                    document.getElementById('vnb-phase-label').textContent = 'Fase Saat Ini: ' + (detailData.phase || '-');
-                    document.getElementById('vnb-planning-status-text').textContent = 'Status: ' + (detailData.plan?.status?.replace(/_/g, ' ').toUpperCase() || 'DRAFT');
+                    managerTabProgressMap = { plan: progress };
+                    activeManagerVnbTab = 'plan';
+                    document.getElementById('vnb-planning-status-text').textContent = 'Status: ' + formatPlanStatusDisplay(detailData.plan?.status || 'draft');
+                    refreshProgressByActiveManagerTab();
 
                     const comingSoon = document.getElementById('vnb-activity-soon');
                     const planningWaiting = !!detailData?.approval_requests?.planning_waiting;
@@ -612,6 +617,59 @@ function toLabelStatus(status) {
     return map[status] || status || '-';
 }
 
+function formatPlanStatusDisplay(status) {
+    const value = String(status || 'draft').trim().toLowerCase();
+    if (!value) return 'Draft';
+
+    const map = {
+        draft: 'Draft',
+        pending: 'Pending',
+        approved: 'Approved',
+        approved_with_revision: 'Approved With Revision',
+        in_progress: 'In Progress',
+        completed: 'Completed',
+    };
+
+    if (map[value]) return map[value];
+
+    return value
+        .split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function getActiveManagerTabLabel(tabId) {
+    const tabButton = document.getElementById(`vnb-tab-btn-${tabId}`);
+    if (!tabButton) return tabId === 'plan' ? 'Plan' : 'Fase';
+
+    const rawText = tabButton.textContent || '';
+    const cleaned = rawText.replace(/\s+/g, ' ').trim();
+    return cleaned || (tabId === 'plan' ? 'Plan' : 'Fase');
+}
+
+function refreshProgressByActiveManagerTab() {
+    const progressBar = document.getElementById('vnb-progress-bar');
+    const progressPercent = document.getElementById('vnb-progress-percent');
+    const phaseLabel = document.getElementById('vnb-phase-label');
+
+    const fallbackProgress = Number(managerTabProgressMap.plan || 0);
+    const activeProgress = Number(managerTabProgressMap[activeManagerVnbTab]);
+    const displayProgress = Number.isFinite(activeProgress) ? activeProgress : fallbackProgress;
+    const clampedProgress = Math.max(0, Math.min(100, Math.round(displayProgress)));
+
+    if (progressBar) {
+        progressBar.style.width = `${clampedProgress}%`;
+    }
+
+    if (progressPercent) {
+        progressPercent.textContent = clampedProgress;
+    }
+
+    if (phaseLabel) {
+        phaseLabel.textContent = `Tab Aktif: ${getActiveManagerTabLabel(activeManagerVnbTab)}`;
+    }
+}
+
 function extractPhase(title) {
     let match = title.match(/Phase (Fase\s+\d+\s+\([^)]+\))/i);
     if (match) return match[1];
@@ -726,6 +784,7 @@ function renderPhaseContent(detail) {
     if (container) container.innerHTML = ''; 
     if (tabsNav) tabsNav.innerHTML = '';
     if (phasesRoot) phasesRoot.innerHTML = '';
+    managerTabProgressMap = { plan: Number(Math.round(detail?.progress || 0)) || 0 };
 
     if (!detail.current_manager_role) {
         if (planTabRoot) planTabRoot.classList.add('hidden');
@@ -807,6 +866,20 @@ function renderPhaseContent(detail) {
         const desc = formatPhaseDurationRange(phaseInfo.duration, computedRange.startDate, computedRange.endDate);
         const colorClass = colorGradients[index % colorGradients.length];
         const phaseId = `dynamic-phase-${index}`;
+
+        let totalPhaseRows = 0;
+        let approvedPhaseRows = 0;
+        phaseItems.forEach(item => {
+            const rows = getActivityRows(item);
+            totalPhaseRows += rows.length;
+            rows.forEach(row => {
+                const rowStatus = getActivityRowStatus(item, row);
+                if (rowStatus === 'completed') {
+                    approvedPhaseRows += 1;
+                }
+            });
+        });
+        managerTabProgressMap[phaseId] = totalPhaseRows > 0 ? Math.round((approvedPhaseRows / totalPhaseRows) * 100) : 0;
 
         // Add "Fase X" Tab Button
         const phaseActivityPendingCount = getActivityPendingApprovalCount(phaseItems);
@@ -895,12 +968,12 @@ function renderPhaseContent(detail) {
                     const isRevised = rowStatus === 'revision_required';
                     const isApproved = rowStatus === 'completed';
                     const actionHtml = isApproved
-                        ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
+                        ? `<div class="flex flex-col items-center gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-600 text-white border border-green-700 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
                         : isRevised
-                            ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
+                            ? `<div class="flex flex-col items-center gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
                             : isSubmittedForReview
-                                ? `<div class="flex items-center justify-end gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`
-                                : `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200">Draft</span></div>`;
+                                ? `<div class="flex items-center justify-center gap-2"><button onclick="approveActivityRow(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui"><i class="fas fa-check text-[11px]"></i></button><button onclick="openActivityRevisionModal(${item.id}, ${idx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi"><i class="fas fa-pen text-[11px]"></i></button></div>`
+                                : `<div class="flex justify-center"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200">Draft</span></div>`;
 
                     phaseRowsHtml += `
                         <tr class="hover:bg-gray-50 align-top ${isApproved ? 'bg-green-50/40' : isRevised ? 'bg-amber-50/40' : isSubmittedForReview ? 'bg-emerald-50/30' : ''}">
@@ -909,7 +982,6 @@ function renderPhaseContent(detail) {
                             <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
                             <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
                                 <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(row.activity_description || '-')}</div>
-                                ${isRevised && row.revision_notes ? `<div class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(row.revision_notes)}</div>` : ''}
                             </td>
                             <td class="px-4 py-4 border-b border-gray-100 w-44 text-xs text-gray-700">${formatActivityDateValue(row.activity_date || '-')}</td>
                             <td class="px-4 py-4 border-b border-gray-100 w-48">${renderActivityEvidenceLinks(item, idx)}</td>
@@ -969,6 +1041,8 @@ function renderPhaseContent(detail) {
 }
 
 function switchManagerVnbTab(tabId) {
+    activeManagerVnbTab = tabId;
+
     // Update tab buttons
     document.querySelectorAll('.vnb-tab-btn').forEach(btn => {
         if (btn.id === `vnb-tab-btn-${tabId}`) {
@@ -1000,6 +1074,8 @@ function switchManagerVnbTab(tabId) {
             actionBtns.classList.remove('flex');
         }
     }
+
+    refreshProgressByActiveManagerTab();
 }
 
 function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseCanEdit = true, isPlanApproved = false, phaseIsFuture = false, isPlanningPhase = false) {
@@ -1024,30 +1100,30 @@ function renderPhaseActivityTable(bodyId, items, planningWaiting = false, phaseC
             let actionHtml = '';
             let rowBgClass = '';
             const rowEditable = phaseCanEdit;
-            if (rowState && rowState.action === 'approve') {
+                if (rowState && rowState.action === 'approve') {
                 const isRevised = rowState.was_revised === true;
                 rowBgClass = isRevised ? 'bg-amber-50/50' : 'bg-green-50/50';
-                if (planningWaiting && isPlanningPhase && rowEditable) {
-                    actionHtml = `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span><div class="flex gap-2"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Revisi</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
+                    if (planningWaiting && isPlanningPhase && rowEditable) {
+                    actionHtml = `<div class="flex flex-col items-center gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-600 text-white border border-green-700 shadow-sm whitespace-nowrap">Disetujui</span><div class="flex gap-2"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Revisi</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
                 } else if (isPlanApproved && rowEditable) {
-                    actionHtml = `<div class="flex justify-end"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Ubah Plan"><i class="fas fa-pen"></i></button></div>`;
+                    actionHtml = `<div class="flex justify-center"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Ubah Plan"><i class="fas fa-pen"></i></button></div>`;
                 } else {
-                    actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-50 border border-green-200">Disetujui</span></div>`;
+                    actionHtml = `<div class="flex justify-center"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-50 border border-green-200">Disetujui</span></div>`;
                 }
             } else if (rowState && rowState.action === 'revise') {
                 rowBgClass = 'bg-amber-50/50';
                 actionHtml = rowEditable
-                    ? `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm text-amber-700 bg-amber-100 border border-opacity-30 shadow-sm">Direvisi</span><div class="flex gap-2 mt-1"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`
-                    : `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200">Direvisi</span></div>`;
+                    ? `<div class="flex flex-col items-center"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm text-amber-700 bg-amber-100 border border-opacity-30 shadow-sm">Direvisi</span><div class="flex gap-2 mt-1"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`
+                    : `<div class="flex justify-center"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200">Direvisi</span></div>`;
             } else if (isPlanApproved && !rowEditable) {
                 const badgeText = phaseIsFuture ? 'Terkunci' : 'Sudah Berjalan';
                 const badgeColor = phaseIsFuture ? 'text-slate-700 bg-slate-100' : 'text-gray-700 bg-gray-100';
-                actionHtml = `<div class="flex justify-end"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${badgeColor} border border-gray-200">${badgeText}</span></div>`;
+                actionHtml = `<div class="flex justify-center"><span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${badgeColor} border border-gray-200">${badgeText}</span></div>`;
             } else {
                 if (isPlanApproved && phaseCanEdit) {
-                    actionHtml = `<div class="flex justify-end gap-2"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit Plan"><i class="fas fa-pen"></i></button></div>`;
+                    actionHtml = `<div class="flex justify-center gap-2"><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit Plan"><i class="fas fa-pen"></i></button></div>`;
                 } else {
-                    actionHtml = `<div class="flex justify-end gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
+                    actionHtml = `<div class="flex justify-center gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
                 }
             }
             html += `<tr class="${rowBgClass} hover:bg-gray-50/80 transition-colors" data-item-id="${item.id}" data-sub-idx="${idx}" data-edit-mode="false" data-editable="${rowEditable ? 'true' : 'false'}">${idx === 0 ? `<td class="px-4 py-4"><span class="font-bold text-gray-900">${behavior}</span></td>` : '<td class="px-4 py-4"></td>'}<td class="px-4 py-4"><p class="text-xs text-gray-600 leading-relaxed">${displayIntegration}</p></td><td class="px-4 py-4"><p class="text-xs text-gray-700 font-medium leading-relaxed">${displayDeliverables || '-'}</p></td><td class="px-4 py-4 text-right">${actionHtml}</td></tr>`;
@@ -1217,7 +1293,7 @@ function renderActivityReviewContent(detail) {
                 const isRevised = rowStatus === 'revision_required';
                 const isApproved = rowStatus === 'completed';
                 const actionHtml = isApproved
-                    ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
+                    ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-600 text-white border border-green-700 shadow-sm whitespace-nowrap">Disetujui</span>${row.revision_notes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button>` : ''}</div>`
                     : isRevised
                         ? `<div class="flex flex-col items-end gap-2"><span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm whitespace-nowrap">Direvisi</span><button type="button" onclick="showActivityRevisionNotes('${escapeHtml(String(item.id))}', ${idx})" class="text-xs font-semibold text-amber-600 hover:text-amber-700 underline">Lihat Revisi</button></div>`
                         : isSubmittedForReview
@@ -1231,7 +1307,6 @@ function renderActivityReviewContent(detail) {
                         <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverables[idx] || deliverables[0] || '-').replace(/\n/g, '<br>')}</td>
                         <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
                             <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(row.activity_description || '-')}</div>
-                            ${isRevised && row.revision_notes ? `<div class="text-xs text-amber-700 mt-2 bg-amber-50 p-2 rounded border border-amber-100"><i class="fas fa-exclamation-circle mr-1"></i><strong>Revisi:</strong> ${escapeHtml(row.revision_notes)}</div>` : ''}
                         </td>
                         <td class="px-4 py-4 border-b border-gray-100 w-44 text-xs text-gray-700">${formatActivityDateValue(row.activity_date || '-')}</td>
                         <td class="px-4 py-4 border-b border-gray-100 w-48">${renderActivityEvidenceLinks(item, idx)}</td>
@@ -1362,7 +1437,41 @@ function showActivityRevisionNotes(itemId, rowIndex) {
     const item = detailData?.items?.find(entry => entry.id === parseInt(itemId, 10));
     const row = item ? getActivityRows(item)[rowIndex] : null;
     const notes = row?.revision_notes || item?.revision_notes || 'Tidak ada catatan revisi';
-    showAlert(notes, 'info');
+    const existing = document.getElementById('activity-revision-notes-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'activity-revision-notes-modal';
+    modal.className = 'fixed inset-0 z-[80] flex items-center justify-center bg-black/50 px-4';
+    modal.innerHTML = `
+        <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-amber-50/70">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Catatan Revisi</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Detail revisi untuk baris aktivitas ini.</p>
+                </div>
+                <button type="button" onclick="closeActivityRevisionNotesModal()" class="w-9 h-9 rounded-full text-gray-500 hover:text-gray-700 hover:bg-white/80 transition" aria-label="Tutup">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+                <div class="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm leading-6 whitespace-pre-wrap">${escapeHtml(String(notes || '').trim() || 'Tidak ada catatan revisi')}</div>
+            </div>
+            <div class="px-5 py-4 border-t border-gray-200 flex justify-end bg-gray-50/70">
+                <button type="button" onclick="closeActivityRevisionNotesModal()" class="px-4 py-2 rounded-lg bg-[#144600] text-white text-sm font-semibold hover:bg-[#0f3600] transition">Tutup</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeActivityRevisionNotesModal();
+    });
+}
+
+function closeActivityRevisionNotesModal() {
+    const modal = document.getElementById('activity-revision-notes-modal');
+    if (modal) modal.remove();
 }
 
 async function submitActivityRevision(itemId, rowIndex) {
@@ -1405,16 +1514,8 @@ function updateApprovalProgress() {
     const totalCount = totalPlanningSubRows || 1;
     const percentage = Math.round((decidedCount / totalCount) * 100);
     
-    // Update progress bar visual
-    const progressBar = document.getElementById('vnb-progress-bar');
-    const progressPercent = document.getElementById('vnb-progress-percent');
-    
-    if (progressBar) {
-        progressBar.style.width = percentage + '%';
-    }
-    if (progressPercent) {
-        progressPercent.textContent = percentage;
-    }
+    managerTabProgressMap.plan = percentage;
+    refreshProgressByActiveManagerTab();
     
     // Update submit button state
     const submitBtn = document.getElementById('batch-submit-btn-header');

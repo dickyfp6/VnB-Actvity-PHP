@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('star')->middleware(['auth:sanctum'])->group(function () {
         // Schema
         Route::get('/schema', [StarController::class, 'getSchema']);
+        Route::post('/schema', [StarController::class, 'saveSchema']);
         
         // Recognition (STAR recognitions by employees)
         Route::get('/recognition', [StarController::class, 'listRecognitions']);

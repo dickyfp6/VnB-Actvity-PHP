@@ -42,7 +42,7 @@
 
     <div id="section-updated" class="table-container">
         <div class="overflow-x-auto" style="overflow-x: auto;">
-            <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+            <table class="table-modern" style="width: max-content; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
                         <th data-sort-key="row_index">No</th>
@@ -72,7 +72,7 @@
 
     <div id="section-hris" class="table-container hidden">
         <div class="overflow-x-auto" style="overflow-x: auto;">
-            <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+            <table class="table-modern" style="width: max-content; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
                         <th data-sort-key="row_index">No</th>
@@ -102,7 +102,7 @@
 
     <div id="section-hrms" class="table-container hidden">
         <div class="overflow-x-auto" style="overflow-x: auto;">
-            <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+            <table class="table-modern" style="width: max-content; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
                         <th data-sort-key="row_index">No</th>

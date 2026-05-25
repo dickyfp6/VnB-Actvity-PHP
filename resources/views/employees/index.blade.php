@@ -41,7 +41,7 @@
 
     <div class="table-container">
         <div class="overflow-x-auto" style="overflow-x: auto;">
-            <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+            <table class="table-modern" style="width: max-content; table-layout: auto;">
                 <thead style="white-space: nowrap;">
                     <tr>
                         <th class="text-center">No</th>

@@ -847,8 +847,42 @@ function getActivityRowStatus(activity, integIdx) {
 }
 
 function showActivityRevisionNotes(notes) {
+  const existing = document.getElementById('activity-revision-notes-modal');
+  if (existing) existing.remove();
+
   const message = String(notes || '').trim() || 'Tidak ada catatan revisi';
-  showAlert(message, 'info');
+  const modal = document.createElement('div');
+  modal.id = 'activity-revision-notes-modal';
+  modal.className = 'fixed inset-0 z-[80] flex items-center justify-center bg-black/50 px-4';
+  modal.innerHTML = `
+    <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-amber-50/70">
+        <div>
+          <h3 class="text-base font-semibold text-gray-900">Catatan Revisi</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Baca detail revisi sebelum lanjut memperbaiki isinya.</p>
+        </div>
+        <button type="button" onclick="closeActivityRevisionNotesModal()" class="w-9 h-9 rounded-full text-gray-500 hover:text-gray-700 hover:bg-white/80 transition" aria-label="Tutup">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        <div class="rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm leading-6 whitespace-pre-wrap">${escapeHtml(message)}</div>
+      </div>
+      <div class="px-5 py-4 border-t border-gray-200 flex justify-end bg-gray-50/70">
+        <button type="button" onclick="closeActivityRevisionNotesModal()" class="px-4 py-2 rounded-lg bg-[#144600] text-white text-sm font-semibold hover:bg-[#0f3600] transition">Tutup</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) closeActivityRevisionNotesModal();
+  });
+}
+
+function closeActivityRevisionNotesModal() {
+  const modal = document.getElementById('activity-revision-notes-modal');
+  if (modal) modal.remove();
 }
 
 function isSubmittedActivityStatus(status) {
@@ -999,7 +1033,6 @@ function renderActivities() {
             <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${escapeHtml(deliverable).replace(/\\n/g, '<br>')}</td>
             <td class="px-4 py-4 border-b border-gray-100 min-w-[240px]">
               <textarea id="desc-${a.id}-${integIdx}" rows="2" onfocus="expandImplementationField(this)" onblur="collapseImplementationField(this)" class="w-full min-h-[72px] border border-gray-300 rounded-lg px-3 py-2 text-sm leading-5 resize-none overflow-hidden focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white ${isEditable ? '' : 'bg-gray-50 text-gray-500 cursor-not-allowed'}" placeholder="Jelaskan implementasi..." ${isEditable ? '' : 'readonly'}>${escapeHtml(thisDesc)}</textarea>
-              ${rowRevisionNotes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeJsString(rowRevisionNotes)}')" class="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 hover:bg-amber-100 transition"><i class="fas fa-comment-dots"></i> Lihat Revisi</button>` : ''}
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-44">
               <div class="relative">
@@ -1010,9 +1043,10 @@ function renderActivities() {
               <div id="evidence-cell-${a.id}-${integIdx}" class="${isEditable ? '' : 'pointer-events-none opacity-60'}">${renderEvidenceCellContent(a.id, integIdx, isEditable)}</div>
             </td>
             <td class="px-3 py-3 text-right whitespace-nowrap border-b border-gray-100 align-top w-24">
-              <div class="flex items-start justify-end gap-1">
+              <div class="flex flex-col items-center gap-2">
+                <div class="flex items-center justify-center gap-1">
                 ${isApprovedActivityStatus(rowStatus)
-                  ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Disetujui</span>`
+                  ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-green-600 text-white border border-green-700 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Disetujui</span>`
                   : isSubmittedActivityStatus(rowStatus)
                   ? `<span class="inline-flex items-center justify-center h-10 px-3 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm whitespace-nowrap" title="${getSubmissionStatusLabel(a.submission_status)}">Diajukan</span>`
                   : `<button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 bg-white rounded-lg text-gray-700 transition-all shadow-sm ${isEditable ? 'hover:bg-gray-50 hover:border-gray-400' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Simpan draft' : 'Tidak bisa diubah karena status ' + getSubmissionStatusLabel(rowStatus)}" aria-label="Simpan draft" ${isEditable ? '' : 'disabled'}>
@@ -1020,6 +1054,8 @@ function renderActivities() {
                   </button><button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-10 h-10 text-white rounded-lg transition-all shadow-sm submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] ${isEditable ? 'hover:shadow-md hover:from-[#0f3600] hover:to-[#144600]' : 'opacity-50 cursor-not-allowed'}" title="${isEditable ? 'Ajukan' : 'Tidak bisa diajukan karena status ' + getSubmissionStatusLabel(rowStatus)}" aria-label="Ajukan" ${isEditable ? '' : 'disabled'}>
                     <i class="fas fa-paper-plane text-sm"></i>
                   </button>`}
+                </div>
+                ${rowRevisionNotes ? `<button type="button" onclick="showActivityRevisionNotes('${escapeJsString(rowRevisionNotes)}')" class="inline-flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 hover:bg-amber-100 transition"><i class="fas fa-comment-dots"></i> Lihat Revisi</button>` : ''}
               </div>
             </td>
           </tr>

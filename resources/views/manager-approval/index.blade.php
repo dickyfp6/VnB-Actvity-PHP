@@ -19,7 +19,7 @@
   <!-- VnB Plans Section -->
   <div id="section-vnb-plans" class="table-container">
     <div class="overflow-x-auto">
-      <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+      <table class="table-modern" style="width: max-content; table-layout: auto;">
         <thead style="white-space: nowrap;">
           <tr>
             <th data-sort-key="employee_name">Employee</th>
@@ -41,7 +41,7 @@
   <!-- VnB Activities Section (hidden by default) -->
   <div id="section-vnb-activities" class="table-container hidden">
     <div class="overflow-x-auto">
-      <table class="table-modern" style="width: max-content; min-width: 100%; table-layout: auto;">
+      <table class="table-modern" style="width: max-content; table-layout: auto;">
         <thead style="white-space: nowrap;">
           <tr>
             <th data-sort-key="employee_name">Employee</th>

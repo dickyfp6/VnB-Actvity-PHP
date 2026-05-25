@@ -1,8 +1,8 @@
 
 
-<?php $__env->startSection('title', 'STAR Recognition - VnB Platform'); ?>
-<?php $__env->startSection('page_title', 'STAR Recognition'); ?>
-<?php $__env->startSection('page_subtitle', 'Buka skema STAR untuk melihat acuan penilaian yang dipakai platform ini.'); ?>
+<?php $__env->startSection('title', 'STAR Achievements - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'STAR Achievements'); ?>
+<?php $__env->startSection('page_subtitle', 'Lihat skema STAR untuk memahami acuan penilaian sebelum membuka detail achievements.'); ?>
 
 <?php $__env->startSection('content'); ?>
 <div class="space-y-6">
@@ -14,11 +14,11 @@
 	</div>
 
 	<div class="card-glass rounded-2xl border border-gray-200 shadow-sm p-5">
-		<p class="text-sm text-gray-600">Halaman recognition akan diisi konten proses pengakuan di sini.</p>
+		<p class="text-sm text-gray-600">Halaman achievements akan diisi ringkasan capaian di sini.</p>
 	</div>
 
 	<?php echo $__env->make('star.partials.schema-preview-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </div>
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/star/recognition.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/star/achievements.blade.php ENDPATH**/ ?>
