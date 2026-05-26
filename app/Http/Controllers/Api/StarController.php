@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class StarController extends Controller
 {
@@ -209,10 +210,75 @@ class StarController extends Controller
             }
         }
 
+        $recognitions = $query->get();
+
+        $grouped = $recognitions->groupBy(function (StarRecognition $recognition) {
+            if ($recognition->draft_group) {
+                return 'draft-group:' . $recognition->draft_group;
+            }
+
+            $submittedAtKey = $recognition->submitted_at?->format('Y-m-d H:i:s')
+                ?? $recognition->created_at?->format('Y-m-d H:i:s')
+                ?? 'unknown';
+
+            return implode('|', [
+                (string) $recognition->manager_id,
+                $submittedAtKey,
+                (string) $recognition->activity_name,
+                $recognition->activity_date?->format('Y-m-d') ?? (string) $recognition->activity_date,
+                (string) $recognition->organizer,
+                (string) ($recognition->certificate_path ?? ''),
+                (string) ($recognition->certificate_original_name ?? ''),
+            ]);
+        });
+
+        $data = $grouped->map(function ($items) {
+            /** @var \Illuminate\Support\Collection<int, StarRecognition> $items */
+            $first = $items->first();
+            $employeeNames = $items->map(function (StarRecognition $recognition) {
+                return $recognition->employee?->name
+                    ?? $recognition->employee?->name_display
+                    ?? $recognition->employee?->full_name
+                    ?? $recognition->employee?->display_name
+                    ?? $recognition->employee?->employee_number
+                    ?? 'Employee #' . $recognition->employee_id;
+            })->values()->all();
+
+            $status = 'draft';
+            if ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['rejected', 'ditolak'], true))) {
+                $status = 'rejected';
+            } elseif ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['submitted', 'pending_approval', 'approved'], true))) {
+                $status = 'submitted';
+            }
+
+            return [
+                'id' => $first->id,
+                'draft_group' => $first->draft_group,
+                'recognition_ids' => $items->pluck('id')->values()->all(),
+                'manager_id' => $first->manager_id,
+                'employee_id' => $first->employee_id,
+                'employee' => $first->employee,
+                'employee_names' => $employeeNames,
+                'employee_names_text' => implode(', ', $employeeNames),
+                'activity_name' => $first->activity_name,
+                'activity_date' => $first->activity_date,
+                'organizer' => $first->organizer,
+                'certificate_path' => $first->certificate_path,
+                'certificate_original_name' => $first->certificate_original_name,
+                'activity_documentation_path' => $first->activity_documentation_path,
+                'activity_documentation_original_name' => $first->activity_documentation_original_name,
+                'activity_documentation' => $first->activity_documentation,
+                'status' => $status,
+                'total_points' => $first->total_points,
+                'submitted_at' => $first->submitted_at,
+                'created_at' => $first->created_at,
+            ];
+        })->values();
+
         return response()->json([
             'success' => true,
             'message' => 'STAR recognitions',
-            'data' => $query->get(),
+            'data' => $data,
         ]);
     }
 
@@ -257,14 +323,15 @@ class StarController extends Controller
         abort_if(count($allowedRecipientIds) !== $recipientIds->count(), 403, 'Ada employee yang bukan bawahan Anda.');
 
         $created = [];
+        $draftGroup = (string) Str::uuid();
 
-        DB::transaction(function () use ($request, $user, $recipientIds, &$created) {
+        DB::transaction(function () use ($request, $user, $recipientIds, $draftGroup, &$created) {
             $certificatePath = null;
             $certificateOriginalName = null;
 
             if ($request->hasFile('certificate')) {
                 $file = $request->file('certificate');
-                $certificatePath = $file->store('star_certificates');
+                $certificatePath = $file->store('star_certificates', 'public');
                 $certificateOriginalName = $file->getClientOriginalName();
             }
 
@@ -272,13 +339,15 @@ class StarController extends Controller
                 $recognition = new StarRecognition();
                 $recognition->manager_id = $user->id;
                 $recognition->employee_id = $recipientId;
+                $recognition->draft_group = $draftGroup;
                 $recognition->activity_name = trim($request->input('activity_name'));
                 $recognition->activity_date = $request->input('activity_date');
                 $recognition->organizer = trim($request->input('organizer'));
                 $recognition->certificate_path = $certificatePath;
                 $recognition->certificate_original_name = $certificateOriginalName;
-                $recognition->status = 'submitted';
-                $recognition->submitted_at = now();
+                $recognition->activity_documentation = trim((string) $request->input('activity_documentation', '')) ?: null;
+                $recognition->status = 'draft';
+                $recognition->submitted_at = null;
                 $recognition->save();
 
                 $created[] = $recognition->fresh();
@@ -289,6 +358,148 @@ class StarController extends Controller
             'success' => true,
             'message' => 'STAR recognition created',
             'data' => $created,
+            'draft_group' => $draftGroup,
+        ]);
+    }
+
+    public function showDraftGroup(string $draftGroup): JsonResponse
+    {
+        abort_unless(auth()->check(), 403, 'Anda harus login untuk mengakses draft recognition.');
+
+        $items = StarRecognition::with(['employee', 'responses.indicator', 'responses.option'])
+            ->where('draft_group', $draftGroup)
+            ->orderBy('id')
+            ->get();
+
+        abort_if($items->isEmpty(), 404, 'Draft recognition tidak ditemukan.');
+
+        $first = $items->first();
+        $user = auth()->user();
+        abort_unless($user->id === $first->manager_id || $user->hasAnyRole(['intercomm', 'pcx_manager', 'direktur_utama']), 403, 'Tidak berwenang melihat draft ini.');
+
+        $schema = $this->loadSchemaPayload();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Draft recognition',
+            'data' => [
+                'draft_group' => $draftGroup,
+                'recognition_ids' => $items->pluck('id')->values()->all(),
+                'employee_ids' => $items->pluck('employee_id')->values()->all(),
+                'employee_names' => $items->map(fn (StarRecognition $recognition) => $recognition->employee?->name ?? $recognition->employee?->name_display ?? $recognition->employee?->full_name ?? $recognition->employee?->display_name ?? $recognition->employee?->employee_number ?? 'Employee #' . $recognition->employee_id)->values()->all(),
+                'employee_names_text' => $items->map(fn (StarRecognition $recognition) => $recognition->employee?->name ?? $recognition->employee?->name_display ?? $recognition->employee?->full_name ?? $recognition->employee?->display_name ?? $recognition->employee?->employee_number ?? 'Employee #' . $recognition->employee_id)->values()->implode(', '),
+                'activity_name' => $first->activity_name,
+                'activity_date' => optional($first->activity_date)->format('Y-m-d'),
+                'organizer' => $first->organizer,
+                'certificate_path' => $first->certificate_path,
+                'certificate_original_name' => $first->certificate_original_name,
+                'activity_documentation_path' => $first->activity_documentation_path ?? null,
+                'activity_documentation_original_name' => $first->activity_documentation_original_name ?? null,
+                'responses' => $first->responses->map(fn (StarRecognitionResponse $response) => [
+                    'star_schema_indicator_id' => $response->star_schema_indicator_id,
+                    'star_schema_indicator_option_id' => $response->star_schema_indicator_option_id,
+                ])->values()->all(),
+                'schema' => $schema,
+                'status' => $first->status,
+            ],
+        ]);
+    }
+
+    public function saveDraftGroup(Request $request, string $draftGroup): JsonResponse
+    {
+        $finalize = $request->boolean('finalize');
+
+        $validated = $request->validate([
+            'certificate' => 'nullable|file|max:10240',
+            'activity_documentation_file' => 'nullable|file|max:10240',
+            'activity_name' => $finalize ? 'required|string|max:200' : 'nullable|string|max:200',
+            'activity_date' => $finalize ? 'required|date' : 'nullable|date',
+            'organizer' => $finalize ? 'required|string|max:200' : 'nullable|string|max:200',
+            'responses' => $finalize ? 'required|array|min:1' : 'nullable|array',
+            'responses.*.star_schema_indicator_id' => 'required_with:responses|exists:star_schema_indicators,id',
+            'responses.*.star_schema_indicator_option_id' => 'required_with:responses|exists:star_schema_indicator_options,id',
+        ]);
+
+        abort_unless(auth()->check(), 403, 'Anda harus login untuk menyimpan draft recognition.');
+
+        $user = auth()->user();
+        /** @var \Illuminate\Database\Eloquent\Collection<int, StarRecognition> $items */
+        $items = StarRecognition::query()->where('draft_group', $draftGroup)->get();
+        abort_if($items->isEmpty(), 404, 'Draft recognition tidak ditemukan.');
+
+        $first = $items->first();
+        abort_unless($user->id === $first->manager_id, 403, 'Anda tidak berwenang menyimpan draft ini.');
+
+        if ($finalize) {
+            $schema = $this->loadSchemaPayload();
+            $schemaIndicatorCount = count($schema['indicators'] ?? []);
+            abort_if($schemaIndicatorCount === 0, 422, 'Schema STAR belum tersedia.');
+            abort_if(count($validated['responses'] ?? []) !== $schemaIndicatorCount, 422, 'Lengkapi semua pertanyaan skema sebelum mengajukan.');
+            abort_if(!$request->hasFile('certificate') && !$first->certificate_path, 422, 'Dokumen pendukung wajib diisi sebelum mengajukan.');
+            abort_if(!$request->hasFile('activity_documentation_file') && !($first->activity_documentation_path ?? null), 422, 'Dokumentasi saat kegiatan wajib diisi sebelum mengajukan.');
+        }
+
+        DB::transaction(function () use ($request, $items, $validated, $finalize) {
+            $certificatePath = $items->first()->certificate_path;
+            $certificateOriginalName = $items->first()->certificate_original_name;
+            $activityDocumentationPath = $items->first()->activity_documentation_path ?? null;
+            $activityDocumentationOriginalName = $items->first()->activity_documentation_original_name ?? null;
+
+            if ($request->hasFile('certificate')) {
+                $file = $request->file('certificate');
+                $certificatePath = $file->store('star_certificates', 'public');
+                $certificateOriginalName = $file->getClientOriginalName();
+            }
+
+            if ($request->hasFile('activity_documentation_file')) {
+                $file = $request->file('activity_documentation_file');
+                $activityDocumentationPath = $file->store('star_documentations', 'public');
+                $activityDocumentationOriginalName = $file->getClientOriginalName();
+            }
+
+            foreach ($items as $recognition) {
+                /** @var StarRecognition $recognition */
+                if ($request->filled('activity_name')) {
+                    $recognition->activity_name = trim((string) $request->input('activity_name'));
+                }
+                if ($request->filled('activity_date')) {
+                    $recognition->activity_date = $request->input('activity_date');
+                }
+                if ($request->filled('organizer')) {
+                    $recognition->organizer = trim((string) $request->input('organizer'));
+                }
+                $recognition->certificate_path = $certificatePath;
+                $recognition->certificate_original_name = $certificateOriginalName;
+                $recognition->activity_documentation_path = $activityDocumentationPath;
+                $recognition->activity_documentation_original_name = $activityDocumentationOriginalName;
+                $recognition->status = $finalize ? 'submitted' : 'draft';
+                $recognition->submitted_at = $finalize ? now() : null;
+                $recognition->save();
+
+                if (array_key_exists('responses', $validated) && is_array($validated['responses'])) {
+                    $recognition->responses()->delete();
+
+                    foreach ($validated['responses'] as $response) {
+                        $option = StarSchemaIndicatorOption::find($response['star_schema_indicator_option_id']);
+                        if (!$option) {
+                            continue;
+                        }
+
+                        StarRecognitionResponse::create([
+                            'star_recognition_id' => $recognition->id,
+                            'star_schema_indicator_id' => $response['star_schema_indicator_id'],
+                            'star_schema_indicator_option_id' => $response['star_schema_indicator_option_id'],
+                            'response_score' => (float) $option->score,
+                        ]);
+                    }
+                }
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => $finalize ? 'Draft recognition submitted' : 'Draft recognition saved',
+            'data' => $this->showDraftGroup($draftGroup)->getData(true)['data'],
         ]);
     }
 
@@ -434,14 +645,64 @@ class StarController extends Controller
      */
     public function listApprovalsForMe(): JsonResponse
     {
-        // TODO: Authorize: PCX, Intercomm, Direktur Utama only
-        // TODO: Get current user
-        // TODO: Return list of recognitions/achievements awaiting their approval
-        
+        $user = auth()->user();
+        abort_unless($user !== null, 401, 'Anda harus login untuk mengakses approvals.');
+
+        // If user is PCX/Intercomm/Direktur, show all pending approvals
+        if ($user->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama'])) {
+            $items = StarRecognition::with(['employee', 'manager'])
+                ->where('status', 'pending_approval')
+                ->orderByDesc('submitted_at')
+                ->get();
+        } else {
+            // For regular managers, show pending recognitions for their direct reports
+            // Use manager relation on user to find manager id
+            $manager = $user->manager ?? null;
+            if (!$manager) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pending approvals for you',
+                    'data' => [],
+                ]);
+            }
+
+                        $employeeIds = Employee::query()
+                ->where(function ($q) use ($manager) {
+                    $q->where('manager_functional_id', $manager->id)
+                      ->orWhere('manager_operational_id', $manager->id);
+                })->pluck('id')->all();
+
+            $items = StarRecognition::with(['employee', 'manager'])
+                ->whereIn('employee_id', $employeeIds)
+                ->where('status', 'pending_approval')
+                ->orderByDesc('submitted_at')
+                ->get();
+        }
+
+        $data = $items->map(function (StarRecognition $r) {
+            return [
+                'id' => $r->id,
+                'employee_id' => $r->employee_id,
+                'employee_name' => $r->employee?->name ?? null,
+                'manager_id' => $r->manager_id,
+                'manager_name' => $r->manager?->name ?? null,
+                'activity_name' => $r->activity_name,
+                'activity_date' => optional($r->activity_date)->format('Y-m-d'),
+                'organizer' => $r->organizer,
+                'certificate_path' => $r->certificate_path,
+                'certificate_original_name' => $r->certificate_original_name,
+                'activity_documentation_path' => $r->activity_documentation_path,
+                'activity_documentation_original_name' => $r->activity_documentation_original_name,
+                'total_points' => $r->total_points,
+                'submitted_at' => optional($r->submitted_at)->toDateTimeString(),
+                'status' => $r->status,
+            ];
+        })->values();
+
         return response()->json([
             'success' => true,
             'message' => 'Pending approvals for you',
-            'data' => [],
+            'data' => $data,
         ]);
     }
 
@@ -457,16 +718,18 @@ class StarController extends Controller
 
         // Authorize: PCX, Intercomm, Direktur Utama only
         abort_unless(auth()->user()?->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama']), 403, 'Hanya PCX, Intercomm, dan Direktur Utama yang bisa memberikan TTD.');
-        
-        // TODO: Get recognition/achievement by ID
-        // TODO: Mark as approved and assign current user as signer
-        // TODO: Set signature timestamp
-        // TODO: Calculate points (see calculatePoints)
-        
+
+        $recognition = StarRecognition::findOrFail($id);
+
+        // Mark as approved
+        $recognition->status = 'approved';
+        $recognition->approved_at = now();
+        $recognition->save();
+
         return response()->json([
             'success' => true,
             'message' => 'Signature assigned and approval completed',
-            'data' => [],
+            'data' => $recognition,
         ]);
     }
 
@@ -490,16 +753,16 @@ class StarController extends Controller
 
         // Authorize: PCX, Intercomm, Direktur Utama only
         abort_unless(auth()->user()?->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama']), 403, 'Hanya PCX, Intercomm, dan Direktur Utama yang bisa menolak achievement.');
-        
-        // TODO: Get recognition/achievement by ID
-        // TODO: Mark as rejected
-        // TODO: Store rejection reason
-        // TODO: Notify recipient/submitter
-        
+
+        $recognition = StarRecognition::findOrFail($id);
+        $recognition->status = 'rejected';
+        $recognition->rejection_reason = $request->input('rejection_reason');
+        $recognition->save();
+
         return response()->json([
             'success' => true,
             'message' => 'Achievement rejected',
-            'data' => [],
+            'data' => $recognition,
         ]);
     }
 

@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $manager_id
  * @property int $employee_id
+ * @property string|null $draft_group
  * @property string $activity_name
  * @property \Illuminate\Support\Carbon $activity_date
  * @property string $organizer
  * @property string|null $certificate_path
  * @property string|null $certificate_original_name
+ * @property string|null $activity_documentation_path
+ * @property string|null $activity_documentation_original_name
+ * @property string|null $activity_documentation
  * @property string $status
  * @property string|null $rejection_reason
  * @property float|null $total_points
@@ -32,11 +36,15 @@ class StarRecognition extends Model
     protected $fillable = [
         'manager_id',
         'employee_id',
+        'draft_group',
         'activity_name',
         'activity_date',
         'organizer',
         'certificate_path',
         'certificate_original_name',
+        'activity_documentation',
+        'activity_documentation_path',
+        'activity_documentation_original_name',
         'status',
         'rejection_reason',
         'total_points',

@@ -1885,10 +1885,8 @@
 
         try {
             const res = await apiGet('/api/manager/approval-requests');
-            console.log('Approval requests response:', res);
             
             if (!(res && res.success === true && res.data)) {
-                console.warn('Approval requests failed or no data:', res);
                 badge.classList.add('hidden');
                 if (badgeDot) badgeDot.classList.add('hidden');
                 return;
@@ -1897,8 +1895,6 @@
             const myApprovals = res.data?.my_approvals || [];
             const monitoring = res.data?.monitoring || [];
             const hasAnyRequests = myApprovals.length > 0 || monitoring.length > 0;
-            
-            console.log('My approvals:', myApprovals.length, 'Monitoring:', monitoring.length);
             
             if (hasAnyRequests) {
                 // Always show: approvals count (or 0 if only monitoring)
