@@ -15,6 +15,14 @@ class EvidenceController extends Controller
      */
     public function uploadEvidence(Request $request): JsonResponse
     {
+        $user = auth()->user();
+        if (!$user || !$user->employee_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda harus masuk sebagai Employee yang memiliki record terdaftar.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'plan_item_id' => 'required|exists:vnb_plan_items,id',
             'file' => 'required|file|max:10240',
@@ -29,7 +37,7 @@ class EvidenceController extends Controller
 
         $evidence = VnbEvidence::create([
             'plan_item_id' => $validated['plan_item_id'],
-            'uploaded_by' => auth()->id(),
+            'uploaded_by' => $user->employee_id,
             'file_name' => $file->getClientOriginalName(),
             'file_path' => 'evidence/' . $file->hashName(), // placeholder
             'file_type' => $file->extension(),
@@ -69,6 +77,14 @@ class EvidenceController extends Controller
      */
     public function updateProgress(Request $request, VnbPlanItem $planItem): JsonResponse
     {
+        $user = auth()->user();
+        if (!$user || !$user->employee_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda harus masuk sebagai Employee yang memiliki record terdaftar.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'behavior_progress' => 'required|array',
             'progress_percentage' => 'required|integer|min:0|max:100',
@@ -78,7 +94,7 @@ class EvidenceController extends Controller
         $progress = VnbProgress::updateOrCreate(
             [
                 'plan_item_id' => $planItem->id,
-                'employee_id' => auth()->id(),
+                'employee_id' => $user->employee_id,
             ],
             [
                 'behavior_progress' => $validated['behavior_progress'],

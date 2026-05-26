@@ -322,7 +322,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     if (!hasThisRencana) {
         // This integration has no rencana yet
         return {
-            badge: '⚪',
+            badge: '',
             text: 'Belum ada Rencana VnB',
             bgColor: '#F3F4F6',
             textColor: '#6B7280',
@@ -335,7 +335,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     // Has rencana, now check plan status
     if (planStatus === 'draft' || !currentPlan?.submitted_at) {
         return {
-            badge: '📝',
+            badge: '',
             text: 'Belum diajukan',
             bgColor: '#FFFBEB',  
             textColor: '#B45309',
@@ -345,7 +345,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
         };
     } else if (planStatus === 'waiting_manager_approval' || planStatus === 'submitted') {
         return {
-            badge: '⏳',
+            badge: '',
             text: 'Menunggu approval',
             bgColor: '#EFF6FF',
             textColor: '#1E40AF',
@@ -354,18 +354,35 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
             notes: ''
         };
     } else if (planStatus === 'approved') {
+        // Check if items were revised by manager
+        const hasRevisedItems = (item.manager_review_snapshot && typeof item.manager_review_snapshot === 'object') 
+            ? Object.values(item.manager_review_snapshot).some(entry => entry.was_revised === true)
+            : false;
+        
+        if (hasRevisedItems) {
+            return {
+                badge: '',
+                text: 'Direvisi',
+                bgColor: '#FEF3C7',
+                textColor: '#92400E',
+                borderColor: '#F59E0B',
+                hasNotes: false,
+                notes: ''
+            };
+        }
+        
         return {
-            badge: '✅',
+            badge: '',
             text: 'Disetujui',
-            bgColor: '#ECFDF5',
+            bgColor: '#D1FAE5',
             textColor: '#065F46',
-            borderColor: '#10B981',
+            borderColor: '#6EE7B7',
             hasNotes: false,
             notes: ''
         };
     } else if (planStatus === 'revision_requested') {
         return {
-            badge: '🔴',
+            badge: '',
             text: 'Revisi diminta',
             bgColor: '#FEE2E2',
             textColor: '#991B1B',
@@ -377,7 +394,7 @@ function getItemStatusConfig(item, planStatus, integrationRencana) {
     
     // Default
     return {
-        badge: '⚪',
+        badge: '',
         text: 'Belum ada Rencana VnB',
         bgColor: '#F3F4F6',
         textColor: '#6B7280',
@@ -443,8 +460,14 @@ function renderPhaseTable(bodyId, items) {
                 : ((isSaved ? item.deliverables.split('\n---\n')[integIdx] : '') || '');
             const displayRencana = currentRencana === '-' ? '' : currentRencana;
             const statusCell = `<td class="px-4 py-3 w-1/6 align-top">
-                <div class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium" style="background-color: ${statusConfig.bgColor}; color: ${statusConfig.textColor}; border-left: 3px solid ${statusConfig.borderColor};">
-                    <span>${statusConfig.badge}</span>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold backdrop-blur-sm border border-opacity-30 shadow-sm
+                    ${statusConfig.text === 'Disetujui' ? 'text-green-700 bg-green-100 border-green-300' : ''}
+                    ${statusConfig.text === 'Direvisi' ? 'text-amber-700 bg-amber-100 border-amber-300' : ''}
+                    ${statusConfig.text === 'Belum diajukan' ? 'text-amber-700 bg-amber-100 border-amber-300' : ''}
+                    ${statusConfig.text === 'Menunggu approval' ? 'text-blue-700 bg-blue-100 border-blue-300' : ''}
+                    ${statusConfig.text === 'Revisi diminta' ? 'text-red-700 bg-red-100 border-red-300' : ''}
+                    ${statusConfig.text === 'Belum ada Rencana VnB' ? 'text-gray-700 bg-gray-100 border-gray-300' : ''}
+                ">
                     <span>${statusConfig.text}</span>
                 </div>
                 ${statusConfig.hasNotes ? `<div class="mt-2 text-xs italic text-red-700 bg-red-50 p-2 rounded border-l-2 border-red-300">"${escapeHtml(statusConfig.notes)}"</div>` : ''}

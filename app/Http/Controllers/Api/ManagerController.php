@@ -561,7 +561,7 @@ class ManagerController extends Controller
 
         $items = $plan?->items ?? collect();
         $progress = $items->count() ? round((float) $items->avg('completion_percentage'), 1) : 0;
-        $activityWaitingCount = $items->where('submission_status', 'waiting_approval')->count();
+        $activityWaitingCount = $items->whereIn('submission_status', ['waiting_approval', 'submitted'])->count();
 
         // Determine current manager's role for this employee
         $currentManagerRole = null;
@@ -1560,6 +1560,7 @@ class ManagerController extends Controller
 
     /**
      * Manager: Batch review planning items (approves and revisions)
+     * NEW FLOW: Manager merevisi langsung & items langsung applicable untuk VnB activities
      * POST /api/manager/plans/{planId}/batch-review
      */
     public function batchReviewPlanItems(Request $request, int $planId): JsonResponse
@@ -1589,8 +1590,8 @@ class ManagerController extends Controller
             DB::beginTransaction();
 
             $reviewsByItem = collect($request->input('reviews', []))->groupBy('id');
-            $hasRevisions = false;
             $managerId = $manager->id;
+            $itemsReviewedCount = 0;
 
             foreach ($reviewsByItem as $itemId => $itemReviews) {
                 $item = VnbPlanItem::where('id', $itemId)->where('plan_id', $planId)->lockForUpdate()->first();
@@ -1604,23 +1605,26 @@ class ManagerController extends Controller
                 $existingIntegrations = array_map('trim', explode('|', (string) ($item->description ?? '')));
                 $existingDeliverables = array_map('trim', explode("\n---\n", (string) ($item->deliverables ?? '')));
 
-                $itemHasRevision = false;
-
                 foreach ($itemReviews as $review) {
                     $subIdx = (int) $review['sub_idx'];
                     $integrationText = (string) ($review['integration_text'] ?? ($existingIntegrations[$subIdx] ?? '-'));
                     $deliverablesText = (string) ($review['deliverables_text'] ?? ($existingDeliverables[$subIdx] ?? '-'));
                     $action = $review['action'];
 
-                    if ($action === 'revise') {
-                        $hasRevisions = true;
-                        $itemHasRevision = true;
+                    // Detect apakah ada revisi: bandingkan dengan nilai original
+                    $wasRevised = false;
+                    if (isset($existingIntegrations[$subIdx])) {
+                        $wasRevised = trim($integrationText) !== trim($existingIntegrations[$subIdx]);
+                    }
+                    if (!$wasRevised && isset($existingDeliverables[$subIdx])) {
+                        $wasRevised = trim($deliverablesText) !== trim($existingDeliverables[$subIdx]);
                     }
 
                     $snapshot[$subIdx] = [
                         'action' => $action,
                         'integration_text' => $integrationText,
                         'deliverables_text' => $deliverablesText,
+                        'was_revised' => $wasRevised,
                         'reviewed_by' => $managerId,
                         'reviewed_at' => now()->toDateTimeString(),
                     ];
@@ -1628,6 +1632,7 @@ class ManagerController extends Controller
 
                 ksort($snapshot);
 
+                // Build normalized integration and deliverables from snapshot
                 $normalizedIntegrations = [];
                 $normalizedDeliverables = [];
                 foreach ($snapshot as $entry) {
@@ -1635,6 +1640,7 @@ class ManagerController extends Controller
                     $normalizedDeliverables[] = trim((string) ($entry['deliverables_text'] ?? '-'));
                 }
 
+                // Mark as approved by manager (langsung applicable untuk VnB activities)
                 if ($stage === 'planning') {
                     $item->approved_functional_by = $managerId;
                     $item->approved_functional_at = now();
@@ -1643,11 +1649,14 @@ class ManagerController extends Controller
                     $item->approved_operational_at = now();
                 }
 
+                // Update dengan integrated values (hasil revisi manager)
                 $item->description = implode(' | ', $normalizedIntegrations);
                 $item->deliverables = implode("\n---\n", $normalizedDeliverables);
-                $item->submission_status = $itemHasRevision ? 'revision_required' : 'completed';
+                $item->submission_status = 'completed'; // Langsung completed karena manager sudah fix
                 $item->manager_review_snapshot = $snapshot;
                 $item->save();
+                
+                $itemsReviewedCount++;
             }
 
             // Check if all items are fully approved for current stage
@@ -1664,24 +1673,25 @@ class ManagerController extends Controller
                         $approvedByEmployeeId = $user?->employee_id;
                     }
 
+                    // LANGSUNG approved - tidak ada batch/version control
+                    // Manager sudah fix langsung, langsung applicable untuk VnB activities
                     $plan->update([
-                        'status' => $hasRevisions ? 'approved_with_revision' : 'approved',
+                        'status' => 'approved',
                         'approved_by' => $approvedByEmployeeId,
                         'approved_at' => now(),
                     ]);
                 }
-            } elseif ($hasRevisions) {
-                $plan->update([
-                    'status' => 'revision_requested',
-                    'revision_count' => $plan->revision_count + 1,
-                ]);
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Review berhasil disimpan secara batch',
+                'message' => "Review berhasil disimpan. $itemsReviewedCount items telah diapprove dan langsung dapat digunakan untuk VnB activities.",
+                'data' => [
+                    'items_reviewed' => $itemsReviewedCount,
+                    'plan_status' => $plan->fresh()->status,
+                ]
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -1916,7 +1926,7 @@ class ManagerController extends Controller
             }
 
             // Get activity requests for this employee
-            $items = VnbPlanItem::where('submission_status', 'waiting_approval')
+            $items = VnbPlanItem::whereIn('submission_status', ['waiting_approval', 'submitted'])
                 ->whereHas('plan', function ($q) use ($employee) {
                     $q->where('employee_id', $employee->id);
                 })

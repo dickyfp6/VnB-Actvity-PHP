@@ -583,6 +583,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.875rem;
+            table-layout: auto; /* let column widths follow content */
         }
 
         .table-modern thead {
@@ -592,7 +593,8 @@
 
         .table-modern thead th {
             padding: 1rem;
-            text-align: left;
+            text-align: center; /* center headers */
+            white-space: nowrap; /* prevent headers from wrapping to 2 lines */
             font-weight: 600;
             color: var(--color-primary-dark);
             letter-spacing: 0.5px;

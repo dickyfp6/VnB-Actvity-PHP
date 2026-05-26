@@ -39,8 +39,11 @@
                 <button onclick="switchTab('star')" id="tab-btn-star" class="tab-button tab-button-inactive w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none">
                     <i class="fas fa-star mr-2"></i>STAR
                 </button>
-                <button onclick="switchTab('vnb')" id="tab-btn-vnb" class="tab-button tab-button-inactive w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none">
+                <button onclick="switchTab('vnb')" id="tab-btn-vnb" class="tab-button tab-button-inactive w-full whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none flex items-center justify-center gap-2">
                     <i class="fas fa-tasks mr-2"></i>VnB Activity
+                    <span id="vnb-approval-badge" class="hidden inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-[10px] font-bold text-white transition-all duration-300" style="background-color: #ef4444;">
+                        <span id="vnb-badge-count">0</span>
+                    </span>
                 </button>
                 </nav>
             </div>
@@ -225,6 +228,7 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
 const employeeId = <?php echo json_encode($employeeId, 15, 512) ?>;
+let activityReviewActivePhase = '';
 
 function switchTab(tabId) {
     // Hide all tabs
@@ -350,7 +354,50 @@ async function loadDetail() {
                     // Restore pending decisions
                     if (detailData?.plan?.id) {
                         const saved = localStorage.getItem(`vnb_batch_decisions_${detailData.plan.id}`);
-                        if (saved) { try { pendingDecisions = JSON.parse(saved); } catch (e) { pendingDecisions = {}; } } else { pendingDecisions = {}; }
+                        if (saved) { 
+                            try { 
+                                const parsed = JSON.parse(saved);
+                                pendingDecisions = {};
+                                Object.entries(parsed).forEach(([key, val]) => {
+                                    const parts = key.split('::');
+                                    const parsedItemId = parseInt(val.item_id) || parseInt(parts[0]);
+                                    const parsedSubIdx = (val.sub_idx !== undefined && val.sub_idx !== null && !isNaN(parseInt(val.sub_idx))) 
+                                        ? parseInt(val.sub_idx) 
+                                        : parseInt(parts[1]);
+                                    
+                                    if (!isNaN(parsedItemId) && !isNaN(parsedSubIdx)) {
+                                        // Look up missing fields from detailData to heal old/corrupted data
+                                        const item = detailData?.items?.find(i => i.id === parsedItemId);
+                                        let integrationText = val.integration_text || '';
+                                        let deliverablesText = val.deliverables_text || '';
+                                        
+                                        if (item) {
+                                            const integrations = splitIntegrations(item.description || '-');
+                                            const deliverables = splitDeliverables(item.deliverables || '-');
+                                            if (!integrationText) {
+                                                integrationText = integrations[parsedSubIdx] || '-';
+                                            }
+                                            if (!deliverablesText) {
+                                                deliverablesText = deliverables[parsedSubIdx] || '-';
+                                            }
+                                        }
+
+                                        pendingDecisions[key] = {
+                                            ...val,
+                                            item_id: parsedItemId,
+                                            sub_idx: parsedSubIdx,
+                                            action: val.action || 'approve',
+                                            integration_text: integrationText,
+                                            deliverables_text: deliverablesText
+                                        };
+                                    }
+                                });
+                            } catch (e) { 
+                                pendingDecisions = {}; 
+                            } 
+                        } else { 
+                            pendingDecisions = {}; 
+                        }
                     }
 
                     // Update VnB Header UI
@@ -367,14 +414,20 @@ async function loadDetail() {
 
                     const comingSoon = document.getElementById('vnb-activity-soon');
                     const planningWaiting = !!detailData?.approval_requests?.planning_waiting;
+                    const activityWaitingCount = Number(detailData?.approval_requests?.activity_waiting_count || 0);
                     
                     if (planningWaiting) {
                         if (comingSoon) comingSoon.classList.add('hidden');
                         renderPhaseContent(detailData);
                         updateApproveAllButtonState();
+                        updateVnbApprovalBadge();
                     } else {
-                        document.getElementById('manager-approval-root').classList.add('hidden');
-                        if (comingSoon) comingSoon.classList.remove('hidden');
+                        const approvalRoot = document.getElementById('manager-approval-root');
+                        if (approvalRoot) approvalRoot.classList.add('hidden');
+                        if (comingSoon) {
+                            comingSoon.classList.remove('hidden');
+                            renderActivityReviewContent(detailData);
+                        }
                     }
                 }
             } catch (err) {
@@ -453,6 +506,9 @@ function toggleBatchButtonBar() {
 }
 
 function cancelPendingDecision(itemId, subIdx) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) return;
     const rowKey = buildPlanningRowKey(itemId, subIdx);
     delete pendingDecisions[rowKey];
     savePendingDecisionsLocal();
@@ -770,18 +826,316 @@ function renderPhaseActivityTable(bodyId, items, planningWaiting = false) {
             let actionHtml = '';
             let rowBgClass = '';
             if (rowState && rowState.action === 'approve') {
-                rowBgClass = 'bg-green-50/50';
-                actionHtml = `<div class="flex flex-col items-end"><span class="text-[10px] font-black uppercase tracking-widest text-green-600 bg-green-100 px-2 py-0.5 rounded-full mb-1">✓ Disetujui</span><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[10px] font-bold text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div>`;
+                const isRevised = rowState.was_revised === true;
+                rowBgClass = isRevised ? 'bg-amber-50/50' : 'bg-green-50/50';
+                const badgeText = isRevised ? 'Direvisi' : 'Disetujui';
+                const badgeColor = isRevised ? 'text-amber-700 bg-amber-100' : 'text-green-700 bg-green-100';
+                actionHtml = `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm ${badgeColor} border border-opacity-30 shadow-sm">${badgeText}</span><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline mt-1">Batalkan</button></div>`;
             } else if (rowState && rowState.action === 'revise') {
-                rowBgClass = 'bg-red-50/50';
-                actionHtml = `<div class="flex flex-col items-end"><span class="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-100 px-2 py-0.5 rounded-full mb-1">✎ Direvisi</span><div class="flex gap-2"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[10px] font-bold text-blue-500 hover:text-blue-700 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[10px] font-bold text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
+                rowBgClass = 'bg-amber-50/50';
+                actionHtml = `<div class="flex flex-col items-end"><span class="text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm text-amber-700 bg-amber-100 border border-opacity-30 shadow-sm">Perlu Revisi</span><div class="flex gap-2 mt-1"><button onclick="editPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-blue-600 hover:text-blue-800 transition underline">Edit</button><button onclick="cancelPendingDecision(${item.id}, ${idx})" class="text-[11px] font-medium text-gray-400 hover:text-gray-600 transition underline">Batalkan</button></div></div>`;
             } else {
-                actionHtml = `<div class="flex justify-end gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-red-600 hover:bg-red-50 hover:border-red-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
+                actionHtml = `<div class="flex justify-end gap-2"><button onclick="approvePlanningRow(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-green-600 hover:bg-green-50 hover:border-green-200 transition flex items-center justify-center shadow-sm" title="Setujui"><i class="fas fa-check"></i></button><button onclick="startInlineEdit(${item.id}, ${idx})" class="w-8 h-8 rounded-lg bg-white border border-gray-200 text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pen"></i></button></div>`;
             }
             html += `<tr class="${rowBgClass} hover:bg-gray-50/80 transition-colors" data-item-id="${item.id}" data-sub-idx="${idx}" data-edit-mode="false">${idx === 0 ? `<td class="px-4 py-4"><span class="font-bold text-gray-900">${behavior}</span></td>` : '<td class="px-4 py-4"></td>'}<td class="px-4 py-4"><p class="text-xs text-gray-600 leading-relaxed">${displayIntegration}</p></td><td class="px-4 py-4"><p class="text-xs text-gray-700 font-medium leading-relaxed">${displayDeliverables || '-'}</p></td><td class="px-4 py-4 text-right">${actionHtml}</td></tr>`;
         });
     });
     tbody.innerHTML = html;
+}
+
+function splitActivityEntries(value) {
+    return String(value || '')
+        .split('\n---\n')
+        .map(part => part.trim())
+        .filter((part, index, list) => !(index === list.length - 1 && part === ''));
+}
+
+function formatActivityDateValue(value) {
+    if (!value || value === '-') return '-';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return escapeHtml(value);
+    return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function switchActivityReviewTab(tabId) {
+    document.querySelectorAll('.activity-review-tab-btn').forEach(btn => {
+        if (btn.id === `activity-review-tab-btn-${tabId}`) {
+            btn.classList.add('border-green-500', 'text-green-600', 'font-bold');
+            btn.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300', 'font-medium');
+        } else {
+            btn.classList.remove('border-green-500', 'text-green-600', 'font-bold');
+            btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300', 'font-medium');
+        }
+    });
+
+    document.querySelectorAll('.activity-review-tab-content').forEach(content => {
+        if (content.id === `activity-review-tab-content-${tabId}`) {
+            content.classList.remove('hidden');
+        } else {
+            content.classList.add('hidden');
+        }
+    });
+}
+
+function renderActivityReviewContent(detail) {
+    const container = document.getElementById('vnb-activity-soon');
+    if (!container) return;
+
+    const isPlanApproved = detail.plan?.status === 'approved' || detail.plan?.status === 'in_progress' || detail.plan?.status === 'completed';
+    if (!isPlanApproved) {
+        container.innerHTML = `
+            <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 border border-blue-100">
+                    <i class="fas fa-lock text-3xl text-blue-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">VnB Activity Belum Tersedia</h3>
+                <p class="text-gray-500 max-w-md">VnB Plan dari Employee ini belum disetujui sepenuhnya. Silakan lakukan review di tab <b>Plan</b> terlebih dahulu sebelum aktivitas dapat direview.</p>
+            </div>
+        `;
+        container.classList.remove('hidden');
+        return;
+    }
+
+    const items = (detail.items || []).filter(item => ['waiting_approval', 'submitted'].includes(item.submission_status));
+    if (!items.length) {
+        container.innerHTML = `
+            <div class="card-glass rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                    <i class="fas fa-clipboard-check text-3xl text-slate-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Belum Ada Request Aktivitas</h3>
+                <p class="text-gray-500 max-w-md">Saat ini belum ada aktivitas yang menunggu approval manager untuk employee ini.</p>
+            </div>
+        `;
+        container.classList.remove('hidden');
+        return;
+    }
+
+    const itemsByPhase = {};
+    items.forEach(item => {
+        const phase = extractPhase(item.activity_title || '');
+        if (!itemsByPhase[phase]) itemsByPhase[phase] = [];
+        itemsByPhase[phase].push(item);
+    });
+
+    const phases = Object.keys(itemsByPhase).sort((a, b) => {
+        const numA = (a.match(/\d+/) || [999])[0];
+        const numB = (b.match(/\d+/) || [999])[0];
+        return numA - numB;
+    });
+
+    if (!activityReviewActivePhase || !phases.includes(activityReviewActivePhase)) {
+        activityReviewActivePhase = phases[0];
+    }
+
+    let tabsHtml = '';
+    let contentHtml = '';
+
+    phases.forEach((phase, index) => {
+        const phaseId = `phase-${index}`;
+        const isActive = phase === activityReviewActivePhase;
+        tabsHtml += `
+            <button onclick="switchActivityReviewTab('${phaseId}')" id="activity-review-tab-btn-${phaseId}" class="activity-review-tab-btn whitespace-nowrap py-4 px-1 border-b-2 ${isActive ? 'border-green-500 text-green-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'} text-sm focus:outline-none transition-colors duration-200">
+                ${escapeHtml(phase)}
+            </button>
+        `;
+
+        const phaseItems = itemsByPhase[phase];
+        let tableRows = '';
+
+        phaseItems.forEach(item => {
+            const behaviourMatch = (item.activity_title || '').match(/^([^-]+)/);
+            const behaviour = behaviourMatch ? behaviourMatch[1].trim() : (item.activity_title || '-');
+            const integrations = splitIntegrations(item.description || '-');
+            const deliverables = splitDeliverables(item.deliverables || '-');
+            const descList = splitActivityEntries(item.activity_description || '');
+            const dateList = splitActivityEntries(item.activity_date || '');
+
+            const integrationHtml = integrations.map((integration, idx) => `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 leading-relaxed text-gray-700 mb-2 last:mb-0">
+                    <div class="text-[11px] font-bold text-[#144600] uppercase tracking-wide mb-1">Integrasi ${idx + 1}</div>
+                    <div class="text-xs">${escapeHtml(integration)}</div>
+                </div>
+            `).join('');
+
+            const deliverablesHtml = deliverables.map((deliverable, idx) => `
+                <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 leading-relaxed text-gray-700 mb-2 last:mb-0">
+                    <div class="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-1">Rencana ${idx + 1}</div>
+                    <div class="text-xs">${escapeHtml(deliverable)}</div>
+                </div>
+            `).join('');
+
+            const implementationHtml = descList.map((desc, idx) => `
+                <div class="mb-3 last:mb-0">
+                    <div class="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Implementasi ${idx + 1}</div>
+                    <div class="text-xs text-gray-700 leading-relaxed bg-white border border-gray-200 rounded-lg p-3">${escapeHtml(desc || '-')}</div>
+                </div>
+            `).join('');
+
+            const dateHtml = dateList.map((dateValue, idx) => `
+                <div class="mb-2 last:mb-0 text-xs text-gray-700">
+                    <span class="font-semibold text-gray-500">${idx + 1}.</span> ${formatActivityDateValue(dateValue)}
+                </div>
+            `).join('');
+
+            const evidenceHtml = integrations.map((_, idx) => {
+                const matchingEvidence = (item.evidences || []).find(ev => ev.description === 'Integration ' + idx);
+                if (!matchingEvidence) {
+                    return `<div class="text-xs text-gray-400 italic">Belum ada bukti</div>`;
+                }
+                return `<a href="/storage/${matchingEvidence.file_path || ''}" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-[#144600] font-bold hover:underline bg-[#144600]/10 px-2.5 py-1 rounded mt-1.5 border border-[#144600]/20"><i class="fas fa-file-download"></i> ${escapeHtml(matchingEvidence.file_name)}</a>`;
+            }).join('<div class="mt-2"></div>');
+
+            tableRows += `
+                <tr class="hover:bg-gray-50 align-top">
+                    <td class="px-4 py-4 font-semibold text-gray-800 border-b border-gray-100 w-40">${escapeHtml(behaviour)}</td>
+                    <td class="px-4 py-4 text-xs border-b border-gray-100 w-64">${integrationHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
+                    <td class="px-4 py-4 text-xs border-b border-gray-100 text-gray-600 min-w-[180px]">${deliverablesHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
+                    <td class="px-4 py-4 border-b border-gray-100 min-w-[220px]">${implementationHtml || '<div class="text-xs text-gray-400 italic">Belum ada implementasi</div>'}</td>
+                    <td class="px-4 py-4 border-b border-gray-100 w-44">${dateHtml || '<div class="text-xs text-gray-400 italic">-</div>'}</td>
+                    <td class="px-4 py-4 border-b border-gray-100 w-48">${evidenceHtml || '<div class="text-xs text-gray-400 italic">Belum ada bukti</div>'}</td>
+                    <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top w-28">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="approveActivityItem(${item.id})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800" title="Setujui" aria-label="Setujui">
+                                <i class="fas fa-check text-[11px]"></i>
+                            </button>
+                            <button onclick="openActivityRevisionModal(${item.id})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700" title="Revisi" aria-label="Revisi">
+                                <i class="fas fa-pen text-[11px]"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        contentHtml += `
+            <div id="activity-review-tab-content-${phaseId}" class="activity-review-tab-content ${isActive ? '' : 'hidden'} space-y-6">
+                <div class="card-glass rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+                    <div class="px-6 py-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-gray-200/50">
+                        <h2 class="text-lg font-semibold text-gray-900">${escapeHtml(phase)}</h2>
+                        <p class="text-sm text-gray-600 mt-1">Review aktivitas yang sudah disubmit employee pada fase ini.</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="table-modern w-full text-left">
+                            <thead>
+                                <tr>
+                                    <th>Value</th>
+                                    <th>Integrasi Pengukuran</th>
+                                    <th>Rencana Aktivitas</th>
+                                    <th>Implementasi</th>
+                                    <th>Tanggal Implementasi</th>
+                                    <th>Bukti Implementasi</th>
+                                    <th class="text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = `
+        <div class="card-glass rounded-xl p-6 md:p-8 overflow-hidden relative space-y-6">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+            <div class="relative z-10">
+                <div class="flex items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">VnB Activity Approval</h3>
+                        <p class="text-sm text-gray-500 mt-1">Approve atau minta revisi per aktivitas yang disubmit employee.</p>
+                    </div>
+                    <div class="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-100 text-green-700 border border-green-200">${items.length} request</div>
+                </div>
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Activity review tabs">
+                        ${tabsHtml}
+                    </nav>
+                </div>
+            </div>
+            <div class="relative z-10">
+                ${contentHtml}
+            </div>
+        </div>
+    `;
+    container.classList.remove('hidden');
+}
+
+async function approveActivityItem(itemId) {
+    const item = detailData?.items?.find(entry => entry.id === itemId);
+    if (!item) return;
+    const confirmed = await showConfirm('Setujui aktivitas ini?', 'Konfirmasi Approval');
+    if (!confirmed) return;
+
+    const res = await apiPost(`/api/vnb-activities/${itemId}/approve`, {});
+    if (res && (res.success || res.message || res.data)) {
+        showAlert(res.message || 'Aktivitas disetujui', 'success');
+        await loadDetail();
+    } else {
+        showAlert(res?.message || res?.error || 'Gagal approve aktivitas', 'error');
+    }
+}
+
+function openActivityRevisionModal(itemId) {
+    const existing = document.getElementById('activity-revision-modal');
+    if (existing) existing.remove();
+
+    const item = detailData?.items?.find(entry => entry.id === itemId);
+    if (!item) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'activity-revision-modal';
+    modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Request Revisi Aktivitas</h3>
+                    <p class="text-sm text-gray-500 mt-1">${escapeHtml(item.activity_title || '-')}</p>
+                </div>
+                <button type="button" onclick="closeActivityRevisionModal()" class="text-gray-400 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Catatan revisi</label>
+                <textarea id="activity-revision-notes" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" placeholder="Tuliskan catatan revisi..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeActivityRevisionModal()" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">Batal</button>
+                <button type="button" onclick="submitActivityRevision(${itemId})" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Kirim Revisi
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeActivityRevisionModal();
+    });
+}
+
+function closeActivityRevisionModal() {
+    const modal = document.getElementById('activity-revision-modal');
+    if (modal) modal.remove();
+}
+
+async function submitActivityRevision(itemId) {
+    const notesEl = document.getElementById('activity-revision-notes');
+    const notes = notesEl ? notesEl.value.trim() : '';
+    if (!notes) {
+        showAlert('Isi catatan revisi terlebih dahulu', 'error');
+        return;
+    }
+
+    const res = await apiPost(`/api/vnb-activities/${itemId}/request-revision`, { revision_notes: notes });
+    if (res && (res.success || res.message || res.data)) {
+        showAlert(res.message || 'Revisi dikirim ke Employee', 'success');
+        closeActivityRevisionModal();
+        await loadDetail();
+    } else {
+        showAlert(res?.message || res?.error || 'Gagal request revisi', 'error');
+    }
 }
 
 function updateApprovalProgress() {
@@ -840,6 +1194,70 @@ function updateApprovalProgress() {
             approveAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
+    
+    // Update VnB Activity badge
+    updateVnbApprovalBadge(percentage);
+}
+
+function updateVnbApprovalBadge(percentage = null) {
+    const badge = document.getElementById('vnb-approval-badge');
+    const badgeCount = document.getElementById('vnb-badge-count');
+    
+    if (!badge || !badgeCount) return;
+    
+    // If percentage is provided, use it; otherwise calculate from progress
+    if (percentage === null && detailData?.items) {
+        let decidedCount = 0;
+        let totalCount = 0;
+        
+        detailData.items.forEach(item => {
+            const integrations = splitIntegrations(item.description || '-');
+            const snapshot = item.manager_review_snapshot && typeof item.manager_review_snapshot === 'object' ? item.manager_review_snapshot : {};
+            
+            integrations.forEach((integration, idx) => {
+                totalCount++;
+                const rowKey = buildPlanningRowKey(item.id, idx);
+                if (pendingDecisions[rowKey] || snapshot[idx]) {
+                    decidedCount++;
+                }
+            });
+        });
+        
+        percentage = totalCount > 0 ? Math.round((decidedCount / totalCount) * 100) : 0;
+    }
+    
+    if (percentage === 100) {
+        // Show red empty badge
+        badge.classList.remove('hidden');
+        badgeCount.textContent = '';
+        badgeCount.classList.add('invisible');
+        badge.style.minWidth = '12px';
+        badge.style.width = '12px';
+        badge.style.height = '12px';
+        badge.style.padding = '0';
+    } else if (detailData?.items && detailData.items.length > 0) {
+        // Calculate count of items needing approval
+        let pendingCount = 0;
+        detailData.items.forEach(item => {
+            if (item.approval_type !== 'all_approved') {
+                pendingCount++;
+            }
+        });
+        
+        if (pendingCount > 0) {
+            badge.classList.remove('hidden');
+            badgeCount.classList.remove('invisible');
+            badgeCount.textContent = pendingCount > 99 ? '99+' : pendingCount;
+            badge.style.minWidth = '18px';
+            badge.style.width = 'auto';
+            badge.style.height = '20px';
+            badge.style.padding = '0 4px';
+        } else {
+            badge.classList.add('hidden');
+        }
+    } else {
+        badge.classList.add('hidden');
+    }
 }
 
 function showConfirmationModal() {
@@ -886,19 +1304,38 @@ async function submitBatchReview() {
         return;
     }
     const reviews = Object.values(pendingDecisions).map(row => ({
-        id: row.item_id,
-        sub_idx: row.sub_idx,
+        id: parseInt(row.item_id),
+        sub_idx: parseInt(row.sub_idx),
         action: row.action,
-        integration_text: row.integration_text,
-        deliverables_text: row.deliverables_text,
+        integration_text: row.integration_text || '',
+        deliverables_text: row.deliverables_text || '',
     }));
-    if (!reviews.length) return;
+    
+    // Validate reviews data
+    const validReviews = reviews.filter(r => {
+        if (!r.id || !Number.isInteger(r.id)) {
+            console.warn('Invalid review: missing or non-integer id', r);
+            return false;
+        }
+        if (r.sub_idx === undefined || r.sub_idx === null || !Number.isInteger(r.sub_idx)) {
+            console.warn('Invalid review: missing or non-integer sub_idx', r);
+            return false;
+        }
+        return true;
+    });
+    
+    if (validReviews.length !== reviews.length) {
+        showAlert('Data review tidak valid. Beberapa item memiliki index yang tidak valid.', 'error');
+        return;
+    }
+    
+    if (!validReviews.length) return;
     const btn = document.getElementById('batch-submit-btn-header');
     const orgHtml = btn.innerHTML;
     btn.innerHTML = 'Sedang Memproses...';
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
-    const res = await apiPost(`/api/manager/plans/${planId}/batch-review`, { reviews });
+    const res = await apiPost(`/api/manager/plans/${planId}/batch-review`, { reviews: validReviews });
     btn.innerHTML = orgHtml;
     btn.disabled = false;
     btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -914,14 +1351,17 @@ async function submitBatchReview() {
 }
 
 async function approvePlanningRow(itemId, subIdx) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) return;
     const item = detailData?.items?.find(i => i.id === itemId);
     if (!item) return;
     const integrations = splitIntegrations(item.description || '-');
     const deliverables = splitDeliverables(item.deliverables || '-');
     const rowKey = buildPlanningRowKey(itemId, subIdx);
     pendingDecisions[rowKey] = {
-        item_id: itemId,
-        sub_idx: subIdx,
+        item_id: parseInt(itemId),
+        sub_idx: parseInt(subIdx),
         action: 'approve',
         integration_text: integrations[subIdx] || '-',
         deliverables_text: deliverables[subIdx] || '-',
@@ -935,6 +1375,9 @@ async function approvePlanningRow(itemId, subIdx) {
 
 
 function startInlineEdit(itemId, subIdx) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) return;
     const rowKey = buildPlanningRowKey(itemId, subIdx);
     const item = detailData?.items?.find(i => i.id === itemId);
     if (!item) return;
@@ -967,8 +1410,8 @@ function startInlineEdit(itemId, subIdx) {
     // Update cells to editable textareas
     const cells = row.querySelectorAll('td');
     if (cells.length >= 4) {
-        // Integration cell (index 1) - read-only display (dari framework)
-        cells[1].innerHTML = `<p class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-2 rounded border border-gray-200">${currentIntegration}</p>`;
+        // Integration cell (index 1) - read-only display (dari framework) - tetap tampilan default
+        cells[1].innerHTML = `<p class="text-xs text-gray-600 leading-relaxed">${currentIntegration}</p>`;
         // Deliverables cell (index 2) - EDITABLE ONLY
         cells[2].innerHTML = `<textarea class="w-full border border-blue-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" rows="3" data-deliverables-input>${currentDeliverables}</textarea>`;
         // Action cell (index 3)
@@ -981,6 +1424,12 @@ function startInlineEdit(itemId, subIdx) {
 }
 
 function saveInlineEdit(itemId, subIdx) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) {
+        showAlert('Error: Data tidak valid', 'error');
+        return;
+    }
     const rows = document.querySelectorAll('table tbody tr');
     let row = null;
     for (let i = 0; i < rows.length; i++) {
@@ -1008,8 +1457,8 @@ function saveInlineEdit(itemId, subIdx) {
     
     const rowKey = buildPlanningRowKey(itemId, subIdx);
     pendingDecisions[rowKey] = {
-        item_id: itemId,
-        sub_idx: subIdx,
+        item_id: parseInt(itemId),
+        sub_idx: parseInt(subIdx),
         action: 'revise',
         integration_text: integrationText,
         deliverables_text: deliverablesText,
@@ -1018,11 +1467,15 @@ function saveInlineEdit(itemId, subIdx) {
     savePendingDecisionsLocal();
     row.dataset.editMode = 'false';
     updateApprovalProgress();
+    updateApproveAllButtonState();
     if (detailData && detailData.items) renderPhaseContent(detailData);
     toggleBatchButtonBar();
 }
 
 function cancelInlineEdit(itemId, subIdx) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) return;
     const rows = document.querySelectorAll('table tbody tr');
     let row = null;
     for (let i = 0; i < rows.length; i++) {
@@ -1040,6 +1493,9 @@ function cancelInlineEdit(itemId, subIdx) {
 }
 
 function editPendingDecision(itemId, subIdx, behaviorEnc, integrasiEnc, rencanaEnc) {
+    itemId = parseInt(itemId) || 0;
+    subIdx = parseInt(subIdx) || 0;
+    if (isNaN(itemId) || isNaN(subIdx)) return;
     startInlineEdit(itemId, subIdx);
 }
 
@@ -1065,9 +1521,15 @@ async function confirmApproveAll() {
             const deliverables = splitDeliverables(item.deliverables || '-');
             integrations.forEach((integration, idx) => {
                 const rowKey = buildPlanningRowKey(item.id, idx);
+                // Hanya approve item yang BELUM direvisi. Item yang sudah direvisi (action='revise') tetap direvise
+                const existingDecision = pendingDecisions[rowKey];
+                if (existingDecision && existingDecision.action === 'revise') {
+                    // Skip - biarkan tetap direvisi
+                    return;
+                }
                 pendingDecisions[rowKey] = {
-                    item_id: item.id,
-                    sub_idx: idx,
+                    item_id: parseInt(item.id),
+                    sub_idx: parseInt(idx),
                     action: 'approve',
                     integration_text: integration,
                     deliverables_text: deliverables[idx] || '-',
@@ -1095,9 +1557,18 @@ function updateApproveAllButtonState() {
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
         submitBtn.title = 'Anda tidak memiliki otorisasi untuk mereview planning employee ini.';
     } else {
-        approveAllBtn.disabled = false;
-        approveAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        approveAllBtn.title = '';
+        // Check if there are any revisions pending
+        const hasRevisions = Object.values(pendingDecisions).some(decision => decision.action === 'revise');
+        
+        if (hasRevisions) {
+            approveAllBtn.disabled = true;
+            approveAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            approveAllBtn.title = 'Tidak bisa Setujui Semua karena ada item yang sudah direvisi. Silakan selesaikan revisi terlebih dahulu.';
+        } else {
+            approveAllBtn.disabled = false;
+            approveAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            approveAllBtn.title = '';
+        }
     }
 }
 

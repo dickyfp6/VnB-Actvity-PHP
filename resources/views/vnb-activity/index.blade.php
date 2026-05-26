@@ -11,11 +11,16 @@
   <div id="activity-content" style="display: none;">
 
 
+    <!-- Phase Tabs -->
+    <div id="phase-tabs" class="flex flex-wrap gap-2 mb-4">
+      <!-- Tabs generated dynamically -->
+    </div>
+
     <!-- Real-time Phase Deadline Widget -->
     <div id="countdown-widget" class="hidden mb-5">
-      <div class="card-glass rounded-xl py-3 px-5 border border-emerald-100 bg-gradient-to-r from-emerald-50/40 to-teal-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+      <div id="countdown-widget-container" class="card-glass rounded-xl py-3 px-5 border border-emerald-100 bg-gradient-to-r from-emerald-50/40 to-teal-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
         <div class="flex items-center gap-3">
-          <span class="text-[10px] font-bold text-[#144600] tracking-wider uppercase bg-[#144600]/10 px-2 py-0.5 rounded-full whitespace-nowrap">Masa Berakhir Fase</span>
+          <span id="countdown-widget-label" class="text-[10px] font-bold text-[#144600] tracking-wider uppercase bg-[#144600]/10 px-2 py-0.5 rounded-full whitespace-nowrap">Masa Berakhir Fase</span>
           <h3 id="widget-due-date" class="text-sm font-bold text-gray-700">Rabu, 20 Mei 2026</h3>
         </div>
         <div class="flex items-center gap-3 justify-between sm:justify-end">
@@ -42,19 +47,11 @@
             <!-- Seconds block -->
             <div class="text-center">
               <div id="countdown-seconds" class="w-9 h-9 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center justify-center text-sm font-extrabold text-emerald-700 shadow-xs">00</div>
-              <span class="text-[8px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5 block">Detik</span>
+              <span id="countdown-seconds-label" class="text-[8px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5 block">Detik</span>
             </div>
-          </div>
-          <div class="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-1 rounded-md border border-emerald-100/80 whitespace-nowrap">
-            Tersisa
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Phase Tabs -->
-    <div id="phase-tabs" class="flex flex-wrap gap-2 mb-4">
-      <!-- Tabs generated dynamically -->
     </div>
 
     <!-- Activities Table Container -->
@@ -151,16 +148,10 @@ function renderPlanStatusLock(planStatus) {
             <div class="text-6xl mb-4 animate-fade-in">${config.icon}</div>
             <h2 class="text-3xl font-bold mb-3 ${config.textColor}">${config.message}</h2>
             <p class="text-gray-600 mb-8 max-w-2xl mx-auto text-base leading-relaxed">
-                ${config.description}
-                    planStatus === 'not_found' ? 'Anda perlu membuat rencana aktivitas VnB sebelum dapat mengakses fitur aktivitas.' :
-                    planStatus === 'draft' || planStatus === 'revision_draft' ? 'Selesaikan dan ajukan rencana Anda untuk dapat mengakses fitur aktivitas.' :
-                    planStatus === 'waiting_manager_approval' || planStatus === 'submitted' ? 'Rencana aktivitas Anda sedang dalam proses review oleh manager. Anda dapat mengakses fitur setelah rencana disetujui.' :
-                    planStatus === 'revision_requested' ? 'Rencana Anda belum disetujui. Silakan lakukan revisi sesuai masukan yang diberikan.' :
-                    'Selesaikan pengaturan rencana VnB Anda terlebih dahulu.'
-                }
+          ${config.description}
             </p>
             <a href="/vnb-plans" class="inline-block px-8 py-3 rounded-lg text-white font-semibold transition" id="lock-screen-btn" style="background-color: #144600;">
-                ${buttonText}
+          ${config.buttonText}
             </a>
         </div>
     `;
@@ -220,9 +211,9 @@ function statusBadge(status) {
     draft: 'bg-gray-100 text-gray-600',
     waiting_approval: 'bg-yellow-100 text-yellow-700',
     revision_required: 'bg-red-100 text-red-700',
-    completed: 'bg-green-100 text-green-700',
     overdue: 'bg-red-100 text-red-700'
   };
+  if (status === 'completed') return '';
   const label = (status || 'draft').replace(/_/g, ' ');
   return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${map[status] || map.draft}">${label}</span>`;
 }
@@ -246,24 +237,107 @@ function formatIndonesianDate(dateStr) {
   return `${dayName}, ${dateNum} ${monthName} ${year}`;
 }
 
+function formatDateDisplay(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function applyDateFieldState(input) {
+  if (!input) return;
+
+  const isoValue = input.dataset.isoValue || '';
+  input.type = 'text';
+  input.value = '';
+  input.dataset.hasValue = isoValue ? 'true' : 'false';
+  input.classList.add('text-gray-400');
+  input.classList.remove('text-gray-700');
+}
+
+function focusDateField(input) {
+  if (!input) return;
+  if (input.dataset.isoValue) {
+    input.value = input.dataset.isoValue;
+  } else {
+    input.value = '';
+  }
+  input.type = 'date';
+  input.classList.remove('text-gray-400');
+  input.classList.add('text-gray-700');
+}
+
+function blurDateField(input) {
+  if (!input) return;
+  if (input.type === 'date' && input.value) {
+    input.dataset.isoValue = input.value;
+  }
+  applyDateFieldState(input);
+}
+
+function getDateFieldValue(input) {
+  if (!input) return '';
+  return input.dataset.isoValue || input.value.trim();
+}
+
 let countdownInterval = null;
 
-function startCountdown(dueDateStr) {
+function startCountdown(period) {
   if (countdownInterval) clearInterval(countdownInterval);
   
   const widget = document.getElementById('countdown-widget');
+  const widgetContainer = document.getElementById('countdown-widget-container');
+  const widgetLabel = document.getElementById('countdown-widget-label');
   const widgetDueDate = document.getElementById('widget-due-date');
+  const secondsBox = document.getElementById('countdown-seconds');
+  const secondsLabel = document.getElementById('countdown-seconds-label');
   
-  if (!dueDateStr) {
+  if (!period) {
     widget.classList.add('hidden');
     return;
   }
   
-  widget.classList.remove('hidden');
-  widgetDueDate.textContent = formatIndonesianDate(dueDateStr);
+  const now = new Date();
+  const startDate = period.start_date ? new Date(period.start_date) : new Date();
+  if (period.start_date) startDate.setHours(0, 0, 0, 0);
   
-  const targetDate = new Date(dueDateStr);
-  targetDate.setHours(23, 59, 59, 999);
+  const endDate = new Date(period.end_date || period.due_date);
+  endDate.setHours(23, 59, 59, 999);
+  
+  let targetDate;
+  
+  if (period.start_date && (now < startDate || period.status === 'not_started')) {
+    targetDate = startDate;
+    widgetLabel.textContent = 'Masa Fase Dimulai';
+    widgetContainer.className = 'card-glass rounded-xl py-3 px-5 border border-red-200 bg-gradient-to-r from-red-50/40 to-orange-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm';
+    widgetLabel.className = 'text-[10px] font-bold text-red-700 tracking-wider uppercase bg-red-100/60 px-2 py-0.5 rounded-full whitespace-nowrap';
+    secondsBox.className = 'w-9 h-9 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center text-sm font-extrabold text-red-700 shadow-xs';
+    secondsLabel.className = 'text-[8px] font-bold text-red-600 uppercase tracking-wider mt-0.5 block';
+  } else {
+    targetDate = endDate;
+    widgetLabel.textContent = 'Masa Berakhir Fase';
+    
+    const diffToDeadline = endDate.getTime() - now.getTime();
+    const daysToDeadline = diffToDeadline / (1000 * 60 * 60 * 24);
+    
+    if (daysToDeadline <= 3 && daysToDeadline > 0) {
+      widgetContainer.className = 'card-glass rounded-xl py-3 px-5 border border-amber-300 bg-gradient-to-r from-amber-50/40 to-yellow-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm';
+      widgetLabel.className = 'text-[10px] font-bold text-amber-700 tracking-wider uppercase bg-amber-100/60 px-2 py-0.5 rounded-full whitespace-nowrap';
+      secondsBox.className = 'w-9 h-9 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-center text-sm font-extrabold text-amber-700 shadow-xs';
+      secondsLabel.className = 'text-[8px] font-bold text-amber-600 uppercase tracking-wider mt-0.5 block';
+    } else {
+      widgetContainer.className = 'card-glass rounded-xl py-3 px-5 border border-emerald-100 bg-gradient-to-r from-emerald-50/40 to-teal-50/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm';
+      widgetLabel.className = 'text-[10px] font-bold text-[#144600] tracking-wider uppercase bg-[#144600]/10 px-2 py-0.5 rounded-full whitespace-nowrap';
+      secondsBox.className = 'w-9 h-9 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center justify-center text-sm font-extrabold text-emerald-700 shadow-xs';
+      secondsLabel.className = 'text-[8px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5 block';
+    }
+  }
+  
+  widget.classList.remove('hidden');
+  widgetDueDate.textContent = formatIndonesianDate(targetDate);
   
   function update() {
     const now = new Date();
@@ -294,9 +368,21 @@ function startCountdown(dueDateStr) {
 }
 
 async function loadActivities() {
-  document.getElementById('activity-body').innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
+  const activityBody = document.getElementById('activity-body');
+  if (activityBody) {
+    activityBody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-gray-400">Memuat...</td></tr>';
+  }
   const res = await apiGet('/api/vnb-activities');
-  activities = res.data || res || [];
+  if (!res || res.success === false) {
+    showAlert(res?.message || 'Gagal memuat aktivitas', 'error');
+    activities = [];
+    window.employeePeriods = [];
+    renderActivities();
+    return;
+  }
+
+  activities = res.data || [];
+  window.employeePeriods = res.periods || [];
   renderActivities();
 }
 
@@ -364,9 +450,17 @@ function renderActivities() {
   const filteredActivities = activities.filter(a => extractPhase(a.activity_title) === activePhase);
   
   // Trigger Countdown Widget dynamically
-  const activePlanItemWithDueDate = filteredActivities.find(a => a.due_date);
-  const dueDateStr = activePlanItemWithDueDate ? activePlanItemWithDueDate.due_date : null;
-  startCountdown(dueDateStr);
+  const phaseNumMatch = activePhase.match(/\d+/);
+  const phaseNumber = phaseNumMatch ? parseInt(phaseNumMatch[0]) : 1;
+  const period = window.employeePeriods ? window.employeePeriods.find(p => p.phase_number === phaseNumber) : null;
+  
+  if (period) {
+    startCountdown(period);
+  } else {
+    const activePlanItemWithDueDate = filteredActivities.find(a => a.due_date);
+    const dueDateStr = activePlanItemWithDueDate ? activePlanItemWithDueDate.due_date : null;
+    startCountdown(dueDateStr ? { end_date: dueDateStr, status: 'in_progress' } : null);
+  }
 
   let html = `
     <table class="table-modern w-full text-left">
@@ -425,7 +519,7 @@ function renderActivities() {
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-44">
               <div class="relative">
-                <input id="date-${a.id}-${integIdx}" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white" value="${thisDate}">
+                <input id="date-${a.id}-${integIdx}" type="text" inputmode="numeric" autocomplete="off" placeholder="Masukkan tanggal" data-iso-value="${thisDate}" onfocus="focusDateField(this)" onblur="blurDateField(this)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#144600] focus:border-[#144600] transition-all bg-white placeholder:text-gray-400 text-gray-400" value="">
               </div>
             </td>
             <td class="px-4 py-4 border-b border-gray-100 w-48">
@@ -438,11 +532,14 @@ function renderActivities() {
                 </div>
               </div>
             </td>
-            <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top">
-              <div class="flex flex-col gap-2.5 w-36 ml-auto">
-                <div class="mb-1 text-right flex justify-end">${statusBadge(a.submission_status)}</div>
-                <button onclick="saveDraft(${a.id}, ${integIdx})" class="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm flex items-center justify-center gap-2"><i class="far fa-save text-gray-500"></i> Draft</button>
-                <button onclick="submitActivity(${a.id}, ${integIdx})" class="w-full px-3 py-2 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] hover:from-[#0f3600] hover:to-[#144600]"><i class="fas fa-paper-plane text-[10px]"></i> Ajukan</button>
+            <td class="px-4 py-4 text-right whitespace-nowrap border-b border-gray-100 align-top w-28">
+              <div class="flex items-start justify-end gap-2">
+                <button onclick="saveDraft(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-11 h-11 border border-gray-300 bg-white rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm" title="Simpan draft" aria-label="Simpan draft">
+                  <i class="far fa-save text-base"></i>
+                </button>
+                <button onclick="submitActivity(${a.id}, ${integIdx})" class="inline-flex items-center justify-center w-11 h-11 text-white rounded-lg transition-all shadow-sm hover:shadow-md submit-btn bg-gradient-to-r from-[#144600] to-[#1a5c00] hover:from-[#0f3600] hover:to-[#144600]" title="Ajukan" aria-label="Ajukan">
+                  <i class="fas fa-paper-plane text-[11px]"></i>
+                </button>
               </div>
             </td>
           </tr>
@@ -475,7 +572,7 @@ function payloadFor(id) {
     const dateEl = document.getElementById(`date-${id}-${idx}`);
 
     const descVal = descEl ? descEl.value.trim() : '';
-    const dateVal = dateEl ? dateEl.value.trim() : '';
+    const dateVal = getDateFieldValue(dateEl);
 
     descList.push(descVal || '-');
     dateList.push(dateVal || '-');
@@ -554,11 +651,11 @@ async function saveDraft(id, integIdx) {
   }
 
   const res = await apiPost(`/api/vnb-activities/${id}/draft`, payloadFor(id));
-  if (res.message || res.id || res.data) {
+  if (res && res.success) {
     showAlert('Draft tersimpan');
     loadActivities();
   } else {
-    showAlert(res.error || 'Gagal simpan draft', 'error');
+    showAlert(res?.message || res?.error || 'Gagal simpan draft', 'error');
   }
   
   btn.innerHTML = originalText;
@@ -581,11 +678,11 @@ async function submitActivity(id, integIdx) {
   }
 
   const res = await apiPost(`/api/vnb-activities/${id}/submit`, payloadFor(id));
-  if (res.message || res.id || res.data) {
+  if (res && res.success) {
     showAlert('Aktivitas berhasil disubmit');
     loadActivities();
   } else {
-    showAlert(res.error || res.message || 'Gagal submit', 'error');
+    showAlert(res?.message || res?.error || 'Gagal submit', 'error');
   }
   
   btn.innerHTML = originalText;

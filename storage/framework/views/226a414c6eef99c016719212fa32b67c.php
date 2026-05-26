@@ -26,12 +26,13 @@
             <th data-sort-key="employee_number">NIP</th>
             <th data-sort-key="company">Perusahaan</th>
             <th data-sort-key="title">Judul</th>
-            <th data-sort-key="submitted_at">Waktu Submit</th>
-            <th class="text-right" data-sortable="false">Aksi</th>
+            <th data-sort-key="submitted_at_date">Tanggal Ajuan</th>
+            <th data-sort-key="submitted_at_time">Jam Ajuan</th>
+            <th class="text-center" data-sortable="false">Aksi</th>
           </tr>
         </thead>
         <tbody id="vnb-plans-body" style="white-space: nowrap;">
-          <tr><td colspan="6" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+          <tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -48,12 +49,13 @@
             <th data-sort-key="company">Perusahaan</th>
             <th data-sort-key="title">Judul Aktivitas</th>
             <th data-sort-key="phase">Fase</th>
-            <th data-sort-key="submitted_at">Waktu Submit</th>
-            <th class="text-right" data-sortable="false">Aksi</th>
+            <th data-sort-key="submitted_at_date">Tanggal Ajuan</th>
+            <th data-sort-key="submitted_at_time">Jam Ajuan</th>
+            <th class="text-center" data-sortable="false">Aksi</th>
           </tr>
         </thead>
         <tbody id="vnb-activities-body" style="white-space: nowrap;">
-          <tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+          <tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -83,13 +85,13 @@ function switchTab(tab) {
 async function loadRequests() {
   const vnbPlansBody = document.getElementById('vnb-plans-body');
   const vnbActivitiesBody = document.getElementById('vnb-activities-body');
-  vnbPlansBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
-  vnbActivitiesBody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+  vnbPlansBody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+  vnbActivitiesBody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
   const res = await apiGet('/api/manager/approval-requests');
   if (!(res && res.success === true)) {
-    vnbPlansBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Gagal memuat approval request</td></tr>';
-    vnbActivitiesBody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">Gagal memuat approval request</td></tr>';
+    vnbPlansBody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">Gagal memuat approval request</td></tr>';
+    vnbActivitiesBody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Gagal memuat approval request</td></tr>';
     return;
   }
 
@@ -128,11 +130,25 @@ async function loadRequests() {
 function renderVnbPlans() {
   const tbody = document.getElementById('vnb-plans-body');
   if (!planRows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Tidak ada approval request</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Tidak ada approval request</td></tr>';
     return;
   }
 
-  tbody.innerHTML = planRows.map(row => `
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return { date: '-', time: '-' };
+    const dt = new Date(dateTime);
+    if (isNaN(dt.getTime())) return { date: '-', time: '-' };
+    const date = dt.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const hours = String(dt.getHours()).padStart(2, '0');
+    const minutes = String(dt.getMinutes()).padStart(2, '0');
+    const seconds = String(dt.getSeconds()).padStart(2, '0');
+    const time = `${hours}:${minutes}:${seconds}`;
+    return { date, time };
+  };
+
+  tbody.innerHTML = planRows.map(row => {
+    const { date, time } = formatDateTime(row.submitted_at);
+    return `
     <tr class="hover:bg-gray-50">
       <td class="px-4 py-3" data-column-key="employee_name">
         <a href="/employees/${row.employee_id}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">
@@ -142,24 +158,40 @@ function renderVnbPlans() {
       <td class="px-4 py-3" data-column-key="employee_number">${row.employee_number || '-'}</td>
       <td class="px-4 py-3" data-column-key="company">${row.company || '-'}</td>
       <td class="px-4 py-3" data-column-key="title">${row.title || '-'}</td>
-      <td class="px-4 py-3" data-column-key="submitted_at">${row.submitted_at || '-'}</td>
-      <td class="px-4 py-3 text-right">
-        <a href="/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
-          <i class="fas fa-arrow-right"></i> Review
+      <td class="px-4 py-3" data-column-key="submitted_at_date">${date}</td>
+      <td class="px-4 py-3" data-column-key="submitted_at_time">${time}</td>
+      <td class="px-4 py-3 flex justify-center">
+        <a href="/employees/${row.employee_id}" class="inline-flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold transition-all duration-200" style="background-color: #144600; color: white; border: none;" onmouseover="this.style.backgroundColor='#0d2f00'; this.style.boxShadow='0 4px 12px rgba(20, 70, 0, 0.3)';" onmouseout="this.style.backgroundColor='#144600'; this.style.boxShadow='none';" title="Lihat detail">
+          <i class="fas fa-eye"></i> Review
         </a>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderVnbActivities() {
   const tbody = document.getElementById('vnb-activities-body');
   if (!activityRows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Tidak ada approval request</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Tidak ada approval request</td></tr>';
     return;
   }
 
-  tbody.innerHTML = activityRows.map(row => `
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return { date: '-', time: '-' };
+    const dt = new Date(dateTime);
+    if (isNaN(dt.getTime())) return { date: '-', time: '-' };
+    const date = dt.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const hours = String(dt.getHours()).padStart(2, '0');
+    const minutes = String(dt.getMinutes()).padStart(2, '0');
+    const seconds = String(dt.getSeconds()).padStart(2, '0');
+    const time = `${hours}:${minutes}:${seconds}`;
+    return { date, time };
+  };
+
+  tbody.innerHTML = activityRows.map(row => {
+    const { date, time } = formatDateTime(row.submitted_at);
+    return `
     <tr class="hover:bg-gray-50">
       <td class="px-4 py-3" data-column-key="employee_name">
         <a href="/employees/${row.employee_id}" class="font-bold hover:underline" style="color:#144600;" title="Lihat detail">
@@ -170,14 +202,16 @@ function renderVnbActivities() {
       <td class="px-4 py-3" data-column-key="company">${row.company || '-'}</td>
       <td class="px-4 py-3" data-column-key="title">${row.title || '-'}</td>
       <td class="px-4 py-3" data-column-key="phase">${row.phase || '-'}</td>
-      <td class="px-4 py-3" data-column-key="submitted_at">${row.submitted_at || '-'}</td>
-      <td class="px-4 py-3 text-right">
-        <a href="/employees/${row.employee_id}" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:text-white hover:bg-gray-700 hover:border-gray-700">
-          <i class="fas fa-arrow-right"></i> Review
+      <td class="px-4 py-3" data-column-key="submitted_at_date">${date}</td>
+      <td class="px-4 py-3" data-column-key="submitted_at_time">${time}</td>
+      <td class="px-4 py-3 flex justify-center">
+        <a href="/employees/${row.employee_id}" class="inline-flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold transition-all duration-200" style="background-color: #144600; color: white; border: none;" onmouseover="this.style.backgroundColor='#0d2f00'; this.style.boxShadow='0 4px 12px rgba(20, 70, 0, 0.3)';" onmouseout="this.style.backgroundColor='#144600'; this.style.boxShadow='none';" title="Lihat detail">
+          <i class="fas fa-eye"></i> Review
         </a>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Ensure requests load after DOM is ready. If already interactive/complete, call immediately.
