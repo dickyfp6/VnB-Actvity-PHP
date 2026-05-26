@@ -145,7 +145,7 @@ function renderRecognitionTable(items) {
 					</div>
 				</td>
 				<td class="whitespace-nowrap px-5 py-4 text-sm"><span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}">${statusMeta.label}</span></td>
-				<td class="whitespace-nowrap px-5 py-4 text-sm"><a href="${item.status === 'draft' && item.draft_group ? actionHref : '/star/recognition/' + (item.id || '')}" class="inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">Lihat</a></td>
+				<td class="whitespace-nowrap px-5 py-4 text-sm"><a href="${item.draft_group ? '/star/recognition/create?group=' + encodeURIComponent(item.draft_group) : '#'}" class="inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">Lihat</a></td>
 			</tr>
 		`;
 	}).join('');

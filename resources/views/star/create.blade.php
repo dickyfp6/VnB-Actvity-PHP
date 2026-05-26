@@ -177,6 +177,7 @@ let selectedEmployeeIds = [];
 let draftSchema = null;
 let draftDetail = null;
 let draftReadyToSubmit = false;
+let isReadOnlyMode = false;
 const uploadState = {
     support_document: { objectUrl: null, previewUrl: '', previewName: '' },
     activity_documentation_file: { objectUrl: null, previewUrl: '', previewName: '' },
@@ -215,6 +216,7 @@ async function parseApiResponse(res) {
 }
 
 window.toggleRecipientChecklist = function () {
+    if (isReadOnlyMode) return;
     const results = document.getElementById('recipient-results');
     if (!results) return;
 
@@ -432,6 +434,13 @@ function bindCustomUploadField(options) {
     if (!input || !trigger || !removeButton) return;
 
     trigger.addEventListener('click', () => {
+        if (isReadOnlyMode) {
+            if (uploadState[options.inputId]?.previewUrl) {
+                openFilePreview(uploadState[options.inputId].previewUrl, uploadState[options.inputId].previewName || options.placeholderText || 'Preview File');
+            }
+            return;
+        }
+
         if (input.files && input.files[0] && uploadState[options.inputId]?.previewUrl) {
             openFilePreview(uploadState[options.inputId].previewUrl, uploadState[options.inputId].previewName || input.files[0].name);
             return;
@@ -459,6 +468,7 @@ function bindCustomUploadField(options) {
     });
 
     removeButton.addEventListener('click', (event) => {
+        if (isReadOnlyMode) return;
         event.preventDefault();
         event.stopPropagation();
         input.value = '';
@@ -568,7 +578,7 @@ function renderDraftSchemaForm(schema, selectedResponses = []) {
         return `<div class="rounded-2xl border border-gray-100 p-4">
             <h5 class="font-semibold text-gray-900">${indicator.label}</h5>
             <div class="mt-3">
-                <select class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" name="indicator_${indicator.id}">
+                <select class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" name="indicator_${indicator.id}" ${isReadOnlyMode ? 'disabled aria-disabled="true" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm pointer-events-none"' : ''}>
                     <option value="">Pilih kategori penilaian</option>
                     ${optionsHtml}
                 </select>
@@ -577,6 +587,11 @@ function renderDraftSchemaForm(schema, selectedResponses = []) {
     }).join('');
 
     container.querySelectorAll('select').forEach((select) => {
+        if (isReadOnlyMode) {
+            select.disabled = true;
+            select.classList.add('pointer-events-none', 'bg-gray-50');
+            return;
+        }
         select.addEventListener('change', updateActionButtons);
     });
 }
@@ -621,6 +636,7 @@ function getDraftFormState() {
 
 function updateActionButtons() {
     const submitBtn = document.getElementById('submit-btn');
+    const saveDraftBtn = document.getElementById('save-draft-btn');
     const state = getDraftFormState();
     const ready = !!currentDraftGroup
         && state.hasRecipients
@@ -634,8 +650,61 @@ function updateActionButtons() {
     draftReadyToSubmit = ready;
 
     if (submitBtn) {
-        submitBtn.disabled = !ready;
+        submitBtn.disabled = isReadOnlyMode ? true : !ready;
+        submitBtn.classList.toggle('hidden', isReadOnlyMode);
     }
+
+    if (saveDraftBtn) {
+        saveDraftBtn.disabled = isReadOnlyMode ? true : false;
+        saveDraftBtn.classList.toggle('hidden', isReadOnlyMode);
+    }
+}
+
+function setReadOnlyMode(shouldBeReadOnly) {
+    isReadOnlyMode = !!shouldBeReadOnly;
+
+    const form = document.getElementById('recognition-form');
+    if (form) {
+        form.querySelectorAll('input, textarea, select').forEach((field) => {
+            if (field.type === 'hidden') return;
+            field.disabled = isReadOnlyMode;
+        });
+    }
+
+    const recipientButton = document.getElementById('recipient_button');
+    if (recipientButton) {
+        recipientButton.disabled = isReadOnlyMode;
+        recipientButton.classList.toggle('cursor-not-allowed', isReadOnlyMode);
+        recipientButton.classList.toggle('opacity-80', isReadOnlyMode);
+    }
+
+    const recipientResults = document.getElementById('recipient-results');
+    if (recipientResults && isReadOnlyMode) {
+        recipientResults.classList.add('hidden');
+    }
+
+    document.querySelectorAll('[id$="_remove"]').forEach((btn) => {
+        if (isReadOnlyMode) {
+            btn.classList.add('hidden');
+            btn.disabled = true;
+        }
+    });
+
+    const draftSection = document.getElementById('draft-section');
+    if (draftSection) {
+        draftSection.classList.toggle('opacity-90', isReadOnlyMode);
+    }
+
+    const headerTitle = document.querySelector('h3.text-lg.font-bold.text-gray-900');
+    const headerSubtitle = document.querySelector('p.text-sm.text-gray-500');
+    if (isReadOnlyMode && headerTitle) {
+        headerTitle.textContent = 'Detail Ajuan';
+    }
+    if (isReadOnlyMode && headerSubtitle) {
+        headerSubtitle.textContent = 'Ajuan sudah dikirim. Halaman ini hanya untuk melihat detail.';
+    }
+
+    updateActionButtons();
 }
 
 async function loadDraftGroup() {
@@ -654,6 +723,8 @@ async function loadDraftGroup() {
 
         draftDetail = payload.data || null;
         draftSchema = draftDetail?.schema || null;
+        const currentStatus = String(draftDetail?.status || '').toLowerCase();
+        setReadOnlyMode(currentStatus !== 'draft');
 
         if (draftDetail?.activity_name) {
             const activityName = document.getElementById('activity_name');

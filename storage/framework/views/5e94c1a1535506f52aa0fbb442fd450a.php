@@ -177,6 +177,7 @@ let selectedEmployeeIds = [];
 let draftSchema = null;
 let draftDetail = null;
 let draftReadyToSubmit = false;
+let isReadOnlyMode = false;
 const uploadState = {
     support_document: { objectUrl: null, previewUrl: '', previewName: '' },
     activity_documentation_file: { objectUrl: null, previewUrl: '', previewName: '' },
@@ -621,6 +622,7 @@ function getDraftFormState() {
 
 function updateActionButtons() {
     const submitBtn = document.getElementById('submit-btn');
+    const saveDraftBtn = document.getElementById('save-draft-btn');
     const state = getDraftFormState();
     const ready = !!currentDraftGroup
         && state.hasRecipients
@@ -634,8 +636,56 @@ function updateActionButtons() {
     draftReadyToSubmit = ready;
 
     if (submitBtn) {
-        submitBtn.disabled = !ready;
+        submitBtn.disabled = isReadOnlyMode ? true : !ready;
+        submitBtn.classList.toggle('hidden', isReadOnlyMode);
     }
+
+    if (saveDraftBtn) {
+        saveDraftBtn.disabled = isReadOnlyMode ? true : false;
+        saveDraftBtn.classList.toggle('hidden', isReadOnlyMode);
+    }
+}
+
+function setReadOnlyMode(shouldBeReadOnly) {
+    isReadOnlyMode = !!shouldBeReadOnly;
+
+    const form = document.getElementById('recognition-form');
+    if (form) {
+        form.querySelectorAll('input, textarea, select').forEach((field) => {
+            if (field.type === 'hidden') return;
+            field.disabled = isReadOnlyMode;
+        });
+    }
+
+    const recipientButton = document.getElementById('recipient_button');
+    if (recipientButton) {
+        recipientButton.disabled = isReadOnlyMode;
+        recipientButton.classList.toggle('cursor-not-allowed', isReadOnlyMode);
+        recipientButton.classList.toggle('opacity-80', isReadOnlyMode);
+    }
+
+    document.querySelectorAll('[id$="_remove"]').forEach((btn) => {
+        if (isReadOnlyMode) {
+            btn.classList.add('hidden');
+            btn.disabled = true;
+        }
+    });
+
+    const draftSection = document.getElementById('draft-section');
+    if (draftSection) {
+        draftSection.classList.toggle('opacity-90', isReadOnlyMode);
+    }
+
+    const headerTitle = document.querySelector('h3.text-lg.font-bold.text-gray-900');
+    const headerSubtitle = document.querySelector('p.text-sm.text-gray-500');
+    if (isReadOnlyMode && headerTitle) {
+        headerTitle.textContent = 'Detail Ajuan';
+    }
+    if (isReadOnlyMode && headerSubtitle) {
+        headerSubtitle.textContent = 'Ajuan sudah dikirim. Halaman ini hanya untuk melihat detail.';
+    }
+
+    updateActionButtons();
 }
 
 async function loadDraftGroup() {
@@ -654,6 +704,8 @@ async function loadDraftGroup() {
 
         draftDetail = payload.data || null;
         draftSchema = draftDetail?.schema || null;
+        const currentStatus = String(draftDetail?.status || '').toLowerCase();
+        setReadOnlyMode(currentStatus !== 'draft');
 
         if (draftDetail?.activity_name) {
             const activityName = document.getElementById('activity_name');

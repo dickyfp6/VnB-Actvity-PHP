@@ -43,7 +43,6 @@ Route::middleware('auth')->group(function () {
         // /recognition - Semua Role
         Route::get('/recognition', [PageController::class, 'starRecognition'])->name('star.recognition');
         Route::get('/recognition/create', [PageController::class, 'starRecognitionCreate'])->name('star.recognition.create');
-        Route::get('/recognition/{id}', [PageController::class, 'starRecognitionShow'])->name('star.recognition.show');
         
         // /achievements - Semua Role
         Route::get('/achievements', [PageController::class, 'starAchievements'])->name('star.achievements');
