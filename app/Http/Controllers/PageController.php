@@ -145,6 +145,12 @@ class PageController extends Controller
         return view('star.recognition');
     }
 
+    public function starRecognitionCreate(Request $request)
+    {
+        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        return view('star.create');
+    }
+
     public function starAchievements(Request $request)
     {
         $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);

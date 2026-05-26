@@ -11,10 +11,10 @@
 			<i class="fas fa-layer-group text-xs"></i>
 			Skema STAR
 		</button>
-		<button id="add-recognition-btn" type="button" onclick="openRecognitionForm()" class="inline-flex items-center gap-2 rounded-full bg-[#144600] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+		<a id="add-recognition-btn" href="{{ route('star.recognition.create') }}" class="inline-flex items-center gap-2 rounded-full bg-[#144600] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
 			<i class="fas fa-plus text-xs"></i>
 			Tambah Ajuan
-		</button>
+		</a>
 	</div>
 
 	<script>

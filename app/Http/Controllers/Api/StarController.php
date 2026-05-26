@@ -221,8 +221,10 @@ class StarController extends Controller
      */
     public function createRecognition(Request $request): JsonResponse
     {
-        $request->validate([
-            'recipient_id' => 'required|exists:employees,id',
+        $validated = $request->validate([
+            'recipient_ids' => 'sometimes|array|min:1',
+            'recipient_ids.*' => 'integer|exists:employees,id',
+            'recipient_id' => 'nullable|integer|exists:employees,id',
             'activity_name' => 'required|string|max:200',
             'activity_date' => 'required|date',
             'organizer' => 'required|string|max:200',
@@ -232,32 +234,61 @@ class StarController extends Controller
         abort_unless(auth()->user()?->hasRole('manager'), 403, 'Hanya manager yang bisa mengajukan recognition untuk karyawan.');
 
         $user = auth()->user();
+        $manager = $user?->manager;
 
-        $recognition = DB::transaction(function () use ($request, $user) {
-            $r = new StarRecognition();
-            $r->manager_id = $user->id;
-            $r->employee_id = $request->input('recipient_id');
-            $r->activity_name = trim($request->input('activity_name'));
-            $r->activity_date = $request->input('activity_date');
-            $r->organizer = trim($request->input('organizer'));
+        $recipientIds = collect($validated['recipient_ids'] ?? [])
+            ->merge($validated['recipient_id'] ?? null ? [(int) $validated['recipient_id']] : [])
+            ->filter()
+            ->map(fn ($recipientId) => (int) $recipientId)
+            ->unique()
+            ->values();
+
+        abort_if($recipientIds->isEmpty(), 422, 'Pilih minimal satu employee.');
+
+        $allowedRecipientIds = Employee::query()
+            ->whereIn('id', $recipientIds)
+            ->where(function ($query) use ($manager) {
+                $query->where('manager_functional_id', $manager?->id)
+                    ->orWhere('manager_operational_id', $manager?->id);
+            })
+            ->pluck('id')
+            ->all();
+
+        abort_if(count($allowedRecipientIds) !== $recipientIds->count(), 403, 'Ada employee yang bukan bawahan Anda.');
+
+        $created = [];
+
+        DB::transaction(function () use ($request, $user, $recipientIds, &$created) {
+            $certificatePath = null;
+            $certificateOriginalName = null;
 
             if ($request->hasFile('certificate')) {
                 $file = $request->file('certificate');
-                $path = $file->store('star_certificates');
-                $r->certificate_path = $path;
-                $r->certificate_original_name = $file->getClientOriginalName();
+                $certificatePath = $file->store('star_certificates');
+                $certificateOriginalName = $file->getClientOriginalName();
             }
 
-            $r->status = 'submitted';
-            $r->submitted_at = now();
-            $r->save();
+            foreach ($recipientIds as $recipientId) {
+                $recognition = new StarRecognition();
+                $recognition->manager_id = $user->id;
+                $recognition->employee_id = $recipientId;
+                $recognition->activity_name = trim($request->input('activity_name'));
+                $recognition->activity_date = $request->input('activity_date');
+                $recognition->organizer = trim($request->input('organizer'));
+                $recognition->certificate_path = $certificatePath;
+                $recognition->certificate_original_name = $certificateOriginalName;
+                $recognition->status = 'submitted';
+                $recognition->submitted_at = now();
+                $recognition->save();
 
-            return $r->fresh();
+                $created[] = $recognition->fresh();
+            }
         });
+
         return response()->json([
             'success' => true,
             'message' => 'STAR recognition created',
-            'data' => $recognition,
+            'data' => $created,
         ]);
     }
 
