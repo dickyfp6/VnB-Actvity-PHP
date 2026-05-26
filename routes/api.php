@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/recognition', [StarController::class, 'listRecognitions']);
         Route::post('/recognition', [StarController::class, 'createRecognition']);
         Route::get('/recognition/{id}', [StarController::class, 'showRecognition']);
+        Route::post('/recognition/{id}/responses', [StarController::class, 'saveRecognitionResponses']);
         
         // Achievements (employee's submitted achievements)
         Route::get('/achievements', [StarController::class, 'listAchievements']);

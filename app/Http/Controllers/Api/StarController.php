@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
+use App\Models\StarRecognition;
+use App\Models\StarRecognitionResponse;
 use App\Models\StarSchema;
 use App\Models\StarSchemaIndicator;
 use App\Models\StarSchemaIndicatorOption;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class StarController extends Controller
 {
@@ -76,36 +80,35 @@ class StarController extends Controller
             $query->orderBy('sort_order')->orderBy('id');
         }]);
 
+        // Ensure relations are treated as Collections for static analysis
+        /** @var \Illuminate\Database\Eloquent\Collection|StarSchemaIndicator[] $indicators */
+        $indicators = collect($schema->indicators)->sortBy('sort_order')->values();
+
         return [
             'id' => $schema->id,
             'name' => $schema->name,
             'description' => $schema->description,
             'version' => $schema->version,
             'is_active' => $schema->is_active,
-            'indicators' => $schema->indicators
-                ->sortBy('sort_order')
-                ->values()
-                ->map(function (StarSchemaIndicator $indicator) {
-                    return [
-                        'id' => $indicator->id,
-                        'indicator_key' => $indicator->indicator_key,
-                        'label' => $indicator->label,
-                        'sort_order' => $indicator->sort_order,
-                        'options' => $indicator->options
-                            ->sortBy('sort_order')
-                            ->values()
-                            ->map(function (StarSchemaIndicatorOption $option) {
-                                return [
-                                    'id' => $option->id,
-                                    'label' => $option->label,
-                                    'score' => (float) $option->score,
-                                    'sort_order' => $option->sort_order,
-                                ];
-                            })
-                            ->all(),
-                    ];
-                })
-                ->all(),
+            'indicators' => $indicators->map(function (StarSchemaIndicator $indicator) {
+                /** @var \Illuminate\Database\Eloquent\Collection|StarSchemaIndicatorOption[] $options */
+                $options = collect($indicator->options)->sortBy('sort_order')->values();
+
+                return [
+                    'id' => $indicator->id,
+                    'indicator_key' => $indicator->indicator_key,
+                    'label' => $indicator->label,
+                    'sort_order' => $indicator->sort_order,
+                    'options' => $options->map(function (StarSchemaIndicatorOption $option) {
+                        return [
+                            'id' => $option->id,
+                            'label' => $option->label,
+                            'score' => (float) $option->score,
+                            'sort_order' => $option->sort_order,
+                        ];
+                    })->all(),
+                ];
+            })->all(),
         ];
     }
 
@@ -188,15 +191,28 @@ class StarController extends Controller
      */
     public function listRecognitions(): JsonResponse
     {
-        // Authorize: all roles
-        abort_unless(auth()->check(), 403, 'Anda harus login untuk mengakses recognitions.');
-        
-        // TODO: Return list of STAR recognitions
-        
+        $user = auth()->user();
+
+        abort_unless(auth()->check(), 403, 'Anda harus login untuk mengakses recognition.');
+
+        $query = StarRecognition::with(['employee', 'manager'])->orderByDesc('submitted_at')->orderByDesc('id');
+
+        if ($user->hasRole('manager')) {
+            $query->where('manager_id', $user->id);
+        } elseif ($user->hasRole('employee')) {
+            $employee = Employee::query()->where('user_id', $user->id)->first();
+
+            if ($employee) {
+                $query->where('employee_id', $employee->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'List of STAR recognitions',
-            'data' => [],
+            'message' => 'STAR recognitions',
+            'data' => $query->get(),
         ]);
     }
 
@@ -207,20 +223,41 @@ class StarController extends Controller
     {
         $request->validate([
             'recipient_id' => 'required|exists:employees,id',
-            'category' => 'required|string',
-            'description' => 'required|string',
+            'activity_name' => 'required|string|max:200',
+            'activity_date' => 'required|date',
+            'organizer' => 'required|string|max:200',
+            'certificate' => 'nullable|file',
         ]);
+        // Only managers can submit recognition for their employees (per spec)
+        abort_unless(auth()->user()?->hasRole('manager'), 403, 'Hanya manager yang bisa mengajukan recognition untuk karyawan.');
 
-        // Authorize: employees can give recognition
-        abort_unless(auth()->user()?->hasRole('employee'), 403, 'Hanya employee yang bisa memberikan recognition.');
-        
-        // TODO: Create new STAR recognition
-        // TODO: Set status as pending approval
-        
+        $user = auth()->user();
+
+        $recognition = DB::transaction(function () use ($request, $user) {
+            $r = new StarRecognition();
+            $r->manager_id = $user->id;
+            $r->employee_id = $request->input('recipient_id');
+            $r->activity_name = trim($request->input('activity_name'));
+            $r->activity_date = $request->input('activity_date');
+            $r->organizer = trim($request->input('organizer'));
+
+            if ($request->hasFile('certificate')) {
+                $file = $request->file('certificate');
+                $path = $file->store('star_certificates');
+                $r->certificate_path = $path;
+                $r->certificate_original_name = $file->getClientOriginalName();
+            }
+
+            $r->status = 'submitted';
+            $r->submitted_at = now();
+            $r->save();
+
+            return $r->fresh();
+        });
         return response()->json([
             'success' => true,
             'message' => 'STAR recognition created',
-            'data' => [],
+            'data' => $recognition,
         ]);
     }
 
@@ -229,13 +266,77 @@ class StarController extends Controller
      */
     public function showRecognition(int $id): JsonResponse
     {
-        // TODO: Get recognition by ID
-        // TODO: Check authorization
-        
+        $user = auth()->user();
+        $recognition = StarRecognition::with(['manager', 'employee', 'responses.indicator', 'responses.option'])->findOrFail($id);
+
+        // Authorization: manager who created it, the recipient employee's user, or admin roles
+        if ($user->hasRole('manager') && $recognition->manager_id !== $user->id) {
+            abort(403, 'Tidak berwenang melihat recognition ini.');
+        }
+
+        if ($user->hasRole('employee')) {
+            $employee = Employee::where('user_id', $user->id)->first();
+            if (!$employee || $recognition->employee_id !== $employee->id) {
+                abort(403, 'Tidak berwenang melihat recognition ini.');
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'STAR recognition details',
-            'data' => [],
+            'data' => $recognition,
+        ]);
+    }
+
+    /**
+     * Save responses for a recognition (tahap 2)
+     */
+    public function saveRecognitionResponses(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'responses' => 'required|array|min:1',
+            'responses.*.star_schema_indicator_id' => 'required|exists:star_schema_indicators,id',
+            'responses.*.star_schema_indicator_option_id' => 'required|exists:star_schema_indicator_options,id',
+        ]);
+
+        $user = auth()->user();
+        $recognition = StarRecognition::findOrFail($id);
+
+        // Only manager who created the recognition can save responses here
+        abort_unless($user->hasRole('manager') && $recognition->manager_id === $user->id, 403, 'Hanya manager pemilik pengajuan yang bisa mengisi skema.');
+
+        $totalPoints = 0;
+
+        DB::transaction(function () use ($recognition, $validated, &$totalPoints) {
+            // remove existing responses
+            $recognition->responses()->delete();
+
+            foreach ($validated['responses'] as $resp) {
+                $option = StarSchemaIndicatorOption::find($resp['star_schema_indicator_option_id']);
+                if (!$option) continue;
+
+                $score = (float) $option->score;
+                StarRecognitionResponse::create([
+                    'star_recognition_id' => $recognition->id,
+                    'star_schema_indicator_id' => $resp['star_schema_indicator_id'],
+                    'star_schema_indicator_option_id' => $resp['star_schema_indicator_option_id'],
+                    'response_score' => $score,
+                ]);
+
+                $totalPoints += $score;
+            }
+
+            $recognition->total_points = $totalPoints;
+            $recognition->status = 'pending_approval';
+            $recognition->save();
+        });
+
+        $recognition->load(['responses.indicator', 'responses.option']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Responses saved and recognition submitted for approval',
+            'data' => $recognition,
         ]);
     }
 

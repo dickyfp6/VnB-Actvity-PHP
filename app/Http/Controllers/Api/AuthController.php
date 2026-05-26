@@ -196,7 +196,6 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-
         $isValid = Hash::check($validated['current_password'], $user->password);
 
         return response()->json([
