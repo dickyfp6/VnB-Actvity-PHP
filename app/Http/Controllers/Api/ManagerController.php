@@ -1331,8 +1331,8 @@ class ManagerController extends Controller
         $user = auth()->user();
         abort_unless($user !== null, 401);
 
-        // Get employee ID for current user
-        $employee = Employee::where('user_id', $user->id)->first();
+        // Get employee for current user (use relation on User model)
+        $employee = $user->employee ?? null;
         abort_unless($employee !== null, 404, 'Data employee tidak ditemukan');
 
         $revisions = VnbPlanRevision::whereHas('plan', function ($q) use ($employee) {
@@ -1369,7 +1369,7 @@ class ManagerController extends Controller
         $user = auth()->user();
         abort_unless($user !== null, 401);
 
-        $employee = Employee::where('user_id', $user->id)->first();
+        $employee = $user->employee ?? null;
         abort_unless($employee !== null, 404, 'Data employee tidak ditemukan');
 
         $revisions = VnbPlanRevision::whereHas('plan', function ($q) use ($employee) {

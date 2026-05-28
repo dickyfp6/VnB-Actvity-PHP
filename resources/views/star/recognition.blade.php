@@ -239,46 +239,66 @@ async function showReviewModal(id, ids) {
 			html += '<div class="text-gray-500">Skema STAR tidak tersedia.</div>';
 		}
 
-		html += `<div class="mt-4 flex gap-2">
-			<button id="review-approve" class="px-3 py-1 rounded bg-green-700 text-white">Approve</button>
-			<button id="review-reject" class="px-3 py-1 rounded bg-red-600 text-white">Reject</button>
-		</div>`;
+		// Show action buttons only when recognition is pending approval
+		const lowerStatus = String(rec.status || '').toLowerCase();
+		const needsApproval = ['pending_approval', 'submitted', 'diajukan', 'waiting_approval', 'waiting_manager_approval'].includes(lowerStatus);
+
+		if (needsApproval) {
+			html += `<div class="mt-4 flex gap-2">
+				<button id="review-approve" class="px-3 py-1 rounded bg-green-700 text-white">Approve</button>
+				<button id="review-reject" class="px-3 py-1 rounded bg-red-600 text-white">Reject</button>
+			</div>`;
+		} else {
+			// Already decided: show final score and approval notes
+			const finalScore = rec.total_points ?? totalExpected;
+			const notes = rec.approval_notes ?? rec.notes ?? '';
+			html += `<div class="mt-4 space-y-2">
+				<div><strong>Skor Akhir:</strong> ${finalScore !== null ? escapeHtml(finalScore) : '-'}</div>
+				<div><strong>Catatan Persetujuan:</strong> ${notes ? escapeHtml(notes) : '<em>Tidak ada catatan</em>'}</div>
+			</div>`;
+		}
 
 		content.innerHTML = html;
 
-		document.getElementById('review-approve').addEventListener('click', async () => {
-			if (!confirm('Yakin ingin menyetujui semua pengajuan di grup ini?')) return;
-			for (const rid of ids) {
-				const resp = await fetch(`/api/star/approvals/${rid}/approve`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } });
-				const payload = await resp.json();
-				if (!resp.ok || !payload.success) {
-					alert('Gagal approve untuk id ' + rid + ': ' + (payload?.message || ''));
-					return;
+		const approveBtnEl = document.getElementById('review-approve');
+		if (approveBtnEl) {
+			approveBtnEl.addEventListener('click', async () => {
+				if (!confirm('Yakin ingin menyetujui semua pengajuan di grup ini?')) return;
+				for (const rid of ids) {
+					const resp = await fetch(`/api/star/approvals/${rid}/approve`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } });
+					const payload = await resp.json();
+					if (!resp.ok || !payload.success) {
+						alert('Gagal approve untuk id ' + rid + ': ' + (payload?.message || ''));
+						return;
+					}
 				}
-			}
-			alert('Semua pengajuan di grup disetujui');
-			modal.classList.add('hidden');
-			// remove review params from URL
-			const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
-			loadRecognitions();
-		});
+				alert('Semua pengajuan di grup disetujui');
+				modal.classList.add('hidden');
+				// remove review params from URL
+				const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
+				loadRecognitions();
+			});
+		}
 
-		document.getElementById('review-reject').addEventListener('click', async () => {
-			const reason = prompt('Masukkan alasan penolakan:');
-			if (!reason) return;
-			for (const rid of ids) {
-				const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
-				const payload = await resp.json();
-				if (!resp.ok || !payload.success) {
-					alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
-					return;
+		const rejectBtnEl = document.getElementById('review-reject');
+		if (rejectBtnEl) {
+			rejectBtnEl.addEventListener('click', async () => {
+				const reason = prompt('Masukkan alasan penolakan:');
+				if (!reason) return;
+				for (const rid of ids) {
+					const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
+					const payload = await resp.json();
+					if (!resp.ok || !payload.success) {
+						alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
+						return;
+					}
 				}
-			}
-			alert('Semua pengajuan di grup ditolak');
-			modal.classList.add('hidden');
-			const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
-			loadRecognitions();
-		});
+				alert('Semua pengajuan di grup ditolak');
+				modal.classList.add('hidden');
+				const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
+				loadRecognitions();
+			});
+		}
 
 	} catch (err) {
 		content.innerHTML = '<div class="text-red-500">Gagal memuat detail rekognisi</div>';

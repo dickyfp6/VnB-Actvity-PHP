@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $activity_documentation
  * @property string $status
  * @property string|null $rejection_reason
+ * @property string|null $approval_notes
  * @property float|null $total_points
  * @property \Illuminate\Support\Carbon|null $submitted_at
  * @property \Illuminate\Support\Carbon|null $approved_at
@@ -47,6 +48,7 @@ class StarRecognition extends Model
         'activity_documentation_original_name',
         'status',
         'rejection_reason',
+        'approval_notes',
         'total_points',
         'submitted_at',
         'approved_at',

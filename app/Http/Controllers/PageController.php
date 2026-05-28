@@ -153,7 +153,7 @@ class PageController extends Controller
 
     public function starAchievements(Request $request)
     {
-        $this->ensureActiveRole($request, ['employee', 'manager', 'intercomm', 'pcx_manager', 'direktur_utama']);
+        $this->ensureActiveRole($request, ['employee']);
         return view('star.achievements');
     }
 

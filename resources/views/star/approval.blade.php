@@ -6,20 +6,21 @@
 @section('content')
 <div class="px-4 space-y-4">
 	<div class="overflow-x-auto">
-		<table class="table-modern" style="width:100%; table-layout: auto;">
+		<table class="table-modern w-max min-w-full" style="table-layout: auto;">
 			<thead class="bg-emerald-50">
 				<tr>
-					<th class="rounded-tl-lg">Nama Kegiatan</th>
-					<th>Tanggal Kegiatan</th>
-					<th>Manager</th>
-					<th>Tanggal Pengajuan</th>
-					<th>Nama Employee</th>
-					<th>Status</th>
-					<th class="text-center rounded-tr-lg">Aksi</th>
+					<th class="rounded-tl-lg whitespace-nowrap">Nama Kegiatan</th>
+					<th class="whitespace-nowrap">Tanggal Kegiatan</th>
+					<th class="whitespace-nowrap">Manager</th>
+					<th class="whitespace-nowrap">Tanggal Pengajuan</th>
+					<th class="whitespace-nowrap">Nama Employee</th>
+					<th class="whitespace-nowrap">Score Akhir</th>
+					<th class="whitespace-nowrap">Status</th>
+					<th class="text-center rounded-tr-lg whitespace-nowrap">Aksi</th>
 				</tr>
 			</thead>
 			<tbody id="star-approvals-body">
-				<tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+				<tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
 			</tbody>
 		</table>
 	</div>
@@ -31,36 +32,46 @@ const starApprovalReviewUrl = @json(route('star.star-approval.review'));
 
 async function loadStarApprovals() {
 	const body = document.getElementById('star-approvals-body');
-	body.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
+	body.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
 
 	const res = await apiGet('/api/star/approvals');
 	if (!res || res.success !== true) {
-		body.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">Gagal memuat approvals</td></tr>';
+		body.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-500">Gagal memuat approvals</td></tr>';
 		return;
 	}
 
 	const items = res.data || [];
 	if (!items.length) {
-		body.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Tidak ada approval item</td></tr>';
+		body.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Tidak ada approval item</td></tr>';
 		return;
 	}
+
+	const approvalStatusLabel = (status) => {
+		const normalized = String(status || '').toLowerCase();
+		if (normalized === 'approved') return '<span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 border border-green-200">Disetujui</span>';
+		if (normalized === 'rejected') return '<span class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">Ditolak</span>';
+		if (normalized === 'submitted' || normalized === 'pending_approval') return '<span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">Butuh Persetujuan</span>';
+		return `<span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">${status || '-'}</span>`;
+	};
 
 		body.innerHTML = items.map(item => {
 		const date = item.activity_date || '-';
 		const manager = item.manager_name || '-';
-		const status = (item.status || '-');
+		const status = approvalStatusLabel(item.status);
+		const score = item.total_points !== null && item.total_points !== undefined ? Number(item.total_points).toFixed(2) : '-';
 
 		const employeeNamesText = (item.employee_names || []).join(', ');
 		const firstEmployeeId = (item.employee_ids && item.employee_ids.length) ? item.employee_ids[0] : '';
 		return `
 			<tr class="hover:bg-gray-50">
-				<td class="px-4 py-3">${item.activity_name || '-'}</td>
-				<td class="px-4 py-3">${item.activity_date || '-'}</td>
-				<td class="px-4 py-3">${ item.manager_id ? `<a href="/employees/${item.manager_id}" class="text-emerald-800 font-semibold no-underline">${manager}</a>` : manager }</td>
-				<td class="px-4 py-3">${item.submitted_at || '-'}</td>
-				<td class="px-4 py-3">${ firstEmployeeId ? `<a href="/employees/${firstEmployeeId}" class="text-emerald-800 font-semibold no-underline">${employeeNamesText || '-'}</a>` : (employeeNamesText || '-') }</td>
-				<td class="px-4 py-3">${status}</td>
-				<td class="px-4 py-3 flex gap-2 justify-center">
+				<td class="px-4 py-3 whitespace-nowrap">${item.activity_name || '-'}</td>
+				<td class="px-4 py-3 whitespace-nowrap">${item.activity_date || '-'}</td>
+				<td class="px-4 py-3 whitespace-nowrap">${ item.manager_id ? `<a href="/employees/${item.manager_id}" class="text-emerald-800 font-semibold no-underline">${manager}</a>` : manager }</td>
+				<td class="px-4 py-3 whitespace-nowrap">${item.submitted_at || '-'}</td>
+				<td class="px-4 py-3 whitespace-nowrap">${ firstEmployeeId ? `<a href="/employees/${firstEmployeeId}" class="text-emerald-800 font-semibold no-underline">${employeeNamesText || '-'}</a>` : (employeeNamesText || '-') }</td>
+				<td class="px-4 py-3 whitespace-nowrap font-semibold text-green-700">${score}</td>
+				<td class="px-4 py-3 whitespace-nowrap">${status}</td>
+				<td class="px-4 py-3 whitespace-nowrap flex gap-2 justify-center">
 						<a href="${item.draft_group ? (starApprovalReviewUrl + '?group=' + encodeURIComponent(item.draft_group)) : (starApprovalReviewUrl + '?reviewId=' + item.recognition_ids[0]) }" class="inline-flex items-center px-3 py-1 rounded bg-blue-600 text-white">Review</a>
 				</td>
 			</tr>
@@ -102,7 +113,7 @@ async function loadStarApprovals() {
 		modal.innerHTML = `
 			<div class="absolute inset-0 bg-black opacity-40"></div>
 			<div class="relative bg-white rounded w-11/12 max-w-3xl p-6 shadow-lg">
-				<button id="star-detail-close" class="absolute top-3 right-3 px-3 py-1 rounded bg-gray-200">Close</button>
+				<button id="star-detail-close" class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700" aria-label="Tutup">×</button>
 				<div id="star-detail-content">Memuat...</div>
 			</div>
 		`;
@@ -151,6 +162,8 @@ async function loadStarApprovals() {
 			responsesByIndicator[r.star_schema_indicator_id] = r;
 			totalExpected += parseFloat(r.response_score || 0);
 		});
+		const finalScore = rec.total_points !== null && rec.total_points !== undefined ? Number(rec.total_points) : totalExpected;
+		const scoreLabel = rec.total_points !== null && rec.total_points !== undefined ? 'Jumlah nilai akhir' : 'Jumlah nilai (skema)';
 
 		let html = `
 			<h3 class="text-lg font-bold mb-3">Detail Rekognisi</h3>
@@ -176,7 +189,7 @@ async function loadStarApprovals() {
 				</div>`;
 			});
 			html += `</div>
-			<div class="mt-4"><strong>Jumlah nilai (skema):</strong> ${totalExpected}</div>`;
+			<div class="mt-4"><strong>${scoreLabel}:</strong> ${Number(finalScore).toFixed(2)}</div>`;
 		} else {
 			html += '<div class="text-gray-500">Skema STAR tidak tersedia.</div>';
 		}

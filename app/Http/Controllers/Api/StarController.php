@@ -12,6 +12,7 @@ use App\Models\StarSchemaIndicatorOption;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -201,7 +202,7 @@ class StarController extends Controller
         if ($user->hasRole('manager')) {
             $query->where('manager_id', $user->id);
         } elseif ($user->hasRole('employee')) {
-            $employee = Employee::query()->where('user_id', $user->id)->first();
+            $employee = $user->employee;
 
             if ($employee) {
                 $query->where('employee_id', $employee->id);
@@ -528,7 +529,7 @@ class StarController extends Controller
         }
 
         if ($user->hasRole('employee') && !$user->hasAnyRole(['intercomm', 'pcx_manager', 'direktur_utama'])) {
-            $employee = Employee::where('user_id', $user->id)->first();
+            $employee = $user->employee;
             if (!$employee || $recognition->employee_id !== $employee->id) {
                 abort(403, 'Tidak berwenang melihat recognition ini.');
             }
@@ -598,16 +599,52 @@ class StarController extends Controller
      */
     public function listAchievements(): JsonResponse
     {
-        // Authorize: all roles can view achievements
         abort_unless(auth()->check(), 403, 'Anda harus login untuk mengakses achievements.');
-        
-        // TODO: Get current user's employee
-        // TODO: Return list of submitted achievements
+
+        // Only employees may access achievements
+        abort_unless(auth()->user()?->hasRole('employee'), 403, 'Hanya employee yang dapat mengakses achievements.');
+
+        $user = auth()->user();
+        $employee = $user->employee;
+
+        if (!$employee) {
+            return response()->json([
+                'success' => true,
+                'message' => 'List of achievements',
+                'data' => [],
+            ]);
+        }
+
+        $items = StarRecognition::with(['manager'])
+            ->where('employee_id', $employee->id)
+            ->where('status', 'approved')
+            ->orderByDesc('approved_at')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $data = $items->map(function (StarRecognition $recognition) {
+            return [
+                'id' => $recognition->id,
+                'manager_id' => $recognition->manager_id,
+                'manager_name' => $recognition->manager?->name ?? null,
+                'activity_name' => $recognition->activity_name,
+                'activity_date' => optional($recognition->activity_date)->format('Y-m-d'),
+                'organizer' => $recognition->organizer,
+                'status' => $recognition->status,
+                'status_label' => 'Disetujui',
+                'total_points' => $recognition->total_points !== null ? (float) $recognition->total_points : null,
+                'submitted_at' => optional($recognition->submitted_at)->toDateTimeString(),
+                'approved_at' => optional($recognition->approved_at)->toDateTimeString(),
+                'certificate_original_name' => $recognition->certificate_original_name,
+                'activity_documentation_original_name' => $recognition->activity_documentation_original_name,
+            ];
+        })->values();
         
         return response()->json([
             'success' => true,
             'message' => 'List of achievements',
-            'data' => [],
+            'data' => $data,
         ]);
     }
 
@@ -641,13 +678,20 @@ class StarController extends Controller
      */
     public function showAchievement(int $id): JsonResponse
     {
-        // TODO: Get achievement by ID
-        // TODO: Check authorization
+        abort_unless(auth()->check(), 403, 'Anda harus login untuk mengakses achievements.');
+
+        $user = auth()->user();
+        $recognition = StarRecognition::with(['manager', 'employee', 'responses.indicator', 'responses.option'])->findOrFail($id);
+
+        if ($user->hasRole('employee') && !$user->hasAnyRole(['intercomm', 'pcx_manager', 'direktur_utama'])) {
+            $employee = $user->employee;
+            abort_unless($employee && $recognition->employee_id === $employee->id, 403, 'Tidak berwenang melihat achievement ini.');
+        }
         
         return response()->json([
             'success' => true,
             'message' => 'Achievement details',
-            'data' => [],
+            'data' => $recognition,
         ]);
     }
 
@@ -712,6 +756,20 @@ class StarController extends Controller
                     ?? 'Employee #' . $r->employee_id;
             })->values()->all();
 
+            $statuses = $group->pluck('status')->map(fn ($status) => strtolower((string) $status));
+            $status = 'draft';
+            if ($statuses->every(fn ($status) => $status === 'approved')) {
+                $status = 'approved';
+            } elseif ($statuses->every(fn ($status) => in_array($status, ['rejected', 'ditolak'], true))) {
+                $status = 'rejected';
+            } elseif ($statuses->contains(fn ($status) => in_array($status, ['submitted', 'pending_approval'], true))) {
+                $status = 'submitted';
+            } elseif ($statuses->contains('approved')) {
+                $status = 'approved';
+            } elseif ($statuses->contains(fn ($status) => in_array($status, ['rejected', 'ditolak'], true))) {
+                $status = 'rejected';
+            }
+
             return [
                 'recognition_ids' => $group->pluck('id')->values()->all(),
                 'draft_group' => $first->draft_group ?? null,
@@ -721,7 +779,8 @@ class StarController extends Controller
                 'activity_date' => optional($first->activity_date)->format('Y-m-d'),
                 'organizer' => $first->organizer,
                 'certificate_path' => $first->certificate_path,
-                'status' => in_array($group->pluck('status')->first(), ['submitted', 'pending_approval', 'approved']) ? 'submitted' : ($group->pluck('status')->contains('rejected') ? 'rejected' : $group->pluck('status')->first()),
+                'status' => $status,
+                'total_points' => $first->total_points !== null ? (float) $first->total_points : null,
                 'submitted_at' => optional($first->submitted_at)->toDateTimeString(),
                 'employee_ids' => $group->pluck('employee_id')->unique()->values()->all(),
                 'employee_names' => $employeeNames,
@@ -781,12 +840,15 @@ class StarController extends Controller
         // Apply custom adjustment if any
         $adjustment = (float) ($validated['adjustment'] ?? 0);
         $totalPoints = $totalPoints + $adjustment;
+        $approvalNotes = trim((string) ($validated['notes'] ?? ''));
 
         // Mark as approved and save total points
         $recognition->total_points = $totalPoints;
         $recognition->status = 'approved';
         $recognition->approved_at = now();
-        // store notes on model if field exists
+        if (Schema::hasColumn('star_recognitions', 'approval_notes')) {
+            $recognition->approval_notes = $approvalNotes !== '' ? $approvalNotes : null;
+        }
         $recognition->save();
 
         // Reload responses

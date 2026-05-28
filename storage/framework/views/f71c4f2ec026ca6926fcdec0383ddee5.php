@@ -536,36 +536,37 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 999px; /* Pill shape for cuteness */
+            padding: 0.6rem 1.25rem;
+            border-radius: 999px; /* Pill shape */
             border: none;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(55, 170, 5, 0.25);
+            font-weight: 700;
+            font-size: 0.92rem;
+            transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
+            box-shadow: 0 6px 18px rgba(34, 197, 94, 0.16);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(55, 170, 5, 0.35);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.18);
+            opacity: 0.98;
         }
 
         .btn-secondary {
-            background: rgba(55, 170, 5, 0.1);
-            color: var(--color-primary);
-            padding: 0.75rem 1.5rem;
+            background: rgba(55, 170, 5, 0.08);
+            color: var(--color-primary-dark);
+            padding: 0.56rem 1.1rem;
             border-radius: 999px;
-            border: 1px solid rgba(55, 170, 5, 0.2);
+            border: 1px solid rgba(55, 170, 5, 0.18);
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
         }
 
         .btn-secondary:hover {
-            background: rgba(55, 170, 5, 0.15);
-            border-color: rgba(55, 170, 5, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(20, 70, 0, 0.06);
         }
 
         /* Table Styles - Modern Design */
@@ -807,21 +808,69 @@
         }
 
         .table-action-btn {
-            padding: 0.375rem 0.75rem;
+            padding: 0.38rem 0.9rem;
             border-radius: 999px;
-            border: 1px solid rgba(55, 170, 5, 0.3);
-            background: transparent;
-            color: var(--color-primary);
-            font-size: 0.75rem;
-            font-weight: 600;
+            border: 1px solid rgba(55, 170, 5, 0.18);
+            background: rgba(255,255,255,0.85);
+            color: var(--color-primary-dark);
+            font-size: 0.82rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+            box-shadow: 0 6px 14px rgba(17,24,39,0.04);
         }
 
         .table-action-btn:hover {
-            background: rgba(55, 170, 5, 0.1);
-            border-color: var(--color-primary);
+            background: rgba(55, 170, 5, 0.06);
+            border-color: rgba(55, 170, 5, 0.28);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(20,70,0,0.06);
+            color: var(--color-primary-dark);
         }
+
+        /* Modernize generic buttons without changing markup */
+        button, input[type="button"], input[type="submit"], .btn {
+            border-radius: 10px;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+            will-change: transform;
+        }
+
+        button:focus-visible, input[type="button"]:focus-visible, input[type="submit"]:focus-visible {
+            outline: 3px solid rgba(55, 170, 5, 0.12);
+            outline-offset: 2px;
+        }
+
+        /* Apply modern rounded look for interactive controls only (avoid touching generic utility classes)
+           Narrow selector scope to prevent layout regressions on badges and inline elements. */
+        button, input[type="button"], input[type="submit"], a[role="button"], .btn, .btn-primary, .btn-secondary, .table-action-btn {
+            border-radius: 0.6rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            padding-left: 0.9rem;
+            padding-right: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 8px 18px rgba(17,24,39,0.06);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+        }
+
+        /* Make small action buttons slightly smaller but still rounded */
+        .table-action-btn, .btn-sm, .text-xs, button.text-xs {
+            padding-top: 0.32rem !important;
+            padding-bottom: 0.32rem !important;
+            padding-left: 0.6rem !important;
+            padding-right: 0.6rem !important;
+            border-radius: 0.5rem !important;
+            font-size: 0.82rem !important;
+        }
+
+        /* Ensure anchor links styled as buttons receive focus and hover affordances */
+        a[role="button"], a.btn, .nav-link > a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Do NOT override generic utility classes like .rounded-* to avoid breaking badges/links */
     </style>
 
 </head>
@@ -909,10 +958,12 @@
                 <span>Recognition</span>
             </a>
             <?php endif; ?>
+            <?php if($activeRole === 'employee'): ?>
             <a href="/star/achievements" class="nav-link <?php echo e(request()->is('star/achievements*') ? 'active' : ''); ?>" title="Achievements">
                 <i class="fas fa-star w-5 flex-shrink-0"></i>
                 <span>Achievements</span>
             </a>
+            <?php endif; ?>
 
             <?php if(in_array($activeRole, ['pcx_manager', 'intercomm', 'direktur_utama'])): ?>
             <a href="/star/star-approval" class="nav-link <?php echo e(request()->is('star/star-approval*') ? 'active' : ''); ?>" title="Approval">

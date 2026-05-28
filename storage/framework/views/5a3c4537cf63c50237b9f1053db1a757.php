@@ -16,6 +16,67 @@
 				padding: 0 !important;
 				margin: 0 !important;
 			}
+
+			#approve-modal-content {
+				scrollbar-width: none;
+				-ms-overflow-style: none;
+			}
+
+			#approve-modal-content::-webkit-scrollbar {
+				width: 0;
+				height: 0;
+			}
+
+			#approve-modal-content:hover {
+				scrollbar-width: thin;
+				scrollbar-color: #cbd5e1 transparent;
+			}
+
+			#approve-modal-content:hover::-webkit-scrollbar {
+				width: 10px;
+				height: 10px;
+			}
+
+			#approve-modal-content:hover::-webkit-scrollbar-thumb {
+				background: #cbd5e1;
+				border-radius: 9999px;
+			}
+
+			/* Scoped fixes for review layout to avoid global CSS regressions */
+			#review-content .space-y-1 {
+				display: flex;
+				flex-direction: column;
+				gap: 0.25rem;
+			}
+
+			#review-content .space-y-1 .text-xs { margin-bottom: 0.25rem; }
+
+			/* Remove global small-text padding that breaks alignment inside review */
+			#review-content .text-xs {
+				padding: 0 !important;
+				background: transparent !important;
+				border-radius: 0 !important;
+				display: block;
+			}
+			#review-content .text-base {
+				margin: 0;
+				padding: 0;
+				background: transparent !important;
+				box-shadow: none !important;
+			}
+
+			#review-content a.inline-flex.items-center {
+				display: inline-flex !important;
+				width: auto !important;
+				align-self: flex-start !important;
+				padding: 0.22rem 0.6rem !important;
+				border-radius: 0.45rem !important;
+				font-size: 0.9rem !important;
+				background: transparent !important;
+				border-color: rgba(16,185,129,0.12) !important;
+				color: #065f46 !important;
+				box-shadow: none !important;
+			}
 		</style>
 		<div class="flex items-start justify-between gap-4">
 			<div>
@@ -33,8 +94,8 @@
 			<!-- Approve modal (hidden) -->
 			<div id="approve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
 				<div class="absolute inset-0 bg-black/40"></div>
-				<div class="relative flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-					<button id="approve-modal-close" class="absolute top-3 right-3 px-3 py-1 rounded bg-gray-200">Close</button>
+				<div class="relative flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+					<button id="approve-modal-close" class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700" aria-label="Tutup">×</button>
 					<div id="approve-modal-content" class="max-h-[90vh] overflow-y-auto p-6 pr-4">Memuat...</div>
 				</div>
 			</div>
@@ -45,6 +106,13 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
 const approvalListUrl = <?php echo json_encode(route('star.star-approval'), 15, 512) ?>;
+
+// ensure escapeHtml is available (some pages define it globally)
+if (typeof escapeHtml !== 'function') {
+	function escapeHtml(value) {
+		return (value || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+}
 
 function reviewFormatDate(value) {
 	if (!value) return '-';
@@ -70,6 +138,42 @@ function reviewTextBlock(label, value) {
 	`;
 }
 
+function reviewFileLink(label, path, fileName) {
+	const hasPath = Boolean(path);
+	const hasFileName = Boolean(fileName);
+	if (!hasPath && !hasFileName) {
+		return `
+			<div class="space-y-1">
+				<div class="text-xs font-medium uppercase tracking-wide text-gray-500">${label}</div>
+				<div class="text-base font-semibold text-gray-900 leading-7">-</div>
+			</div>
+		`;
+	}
+
+	const url = hasPath ? `/storage/${path}` : '#';
+	const text = fileName || (String(path).split('/').pop() || '-');
+	return `
+		<div class="space-y-1">
+			<div class="text-xs font-medium uppercase tracking-wide text-gray-500">${label}</div>
+			<a href="${url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 py-1.5 text-sm font-semibold text-green-800 transition hover:border-green-300 hover:bg-green-100">
+				<i class="fas fa-file-arrow-down text-[11px]"></i>
+				<span>${text}</span>
+			</a>
+		</div>
+	`;
+}
+
+function reviewStatusBadge(status) {
+	const normalized = String(status || '').toLowerCase();
+	if (normalized === 'approved') {
+		return '<span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 border border-green-200">Disetujui</span>';
+	}
+	if (normalized === 'rejected') {
+		return '<span class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">Ditolak</span>';
+	}
+	return '<span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">Butuh Persetujuan</span>';
+}
+
 function reviewSchemaHtml(schema, responsesByIndicator) {
 	if (!schema || !Array.isArray(schema.indicators) || !schema.indicators.length) {
 		return '<div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">Skema STAR tidak tersedia.</div>';
@@ -80,17 +184,17 @@ function reviewSchemaHtml(schema, responsesByIndicator) {
 		const options = (ind.options || []).map(opt => {
 			const selected = resp && resp.star_schema_indicator_option_id === opt.id;
 			return `
-				<div class="flex items-center justify-between gap-4 rounded-xl px-3 py-2 ${selected ? 'bg-green-50' : 'bg-white'}">
-					<div class="text-sm text-gray-800">${opt.label}${selected ? ' <span class="text-green-700 text-xs font-semibold">(dipilih)</span>' : ''}</div>
-					<div class="text-sm font-semibold text-gray-900">${opt.score}</div>
+				<div class="flex items-center justify-between gap-4 rounded-xl px-3 py-2 ${selected ? 'bg-green-50/70 text-green-800' : 'text-gray-700'}">
+					<div class="text-sm ${selected ? 'font-semibold' : 'text-gray-800'}">${opt.label}${selected ? ' <span class="text-green-700 text-xs font-semibold">(dipilih)</span>' : ''}</div>
+					<div class="text-sm font-bold text-green-600 tabular-nums">${opt.score}</div>
 				</div>
 			`;
 		}).join('');
 
 		return `
-			<div class="rounded-2xl border border-gray-200 bg-white p-4">
+			<div class="py-1">
 				<div class="text-sm font-semibold text-gray-900">${ind.label}</div>
-				<div class="mt-2 space-y-2">${options}</div>
+				<div class="mt-2 space-y-1">${options}</div>
 			</div>
 		`;
 	}).join('');
@@ -108,18 +212,40 @@ async function loadReviewPage() {
 	}
 
 	try {
+		console.log('loadReviewPage: starting', { group, reviewId });
 		let detailResp = null;
 		let schemaResp = null;
 
 		if (group) {
 			const res = await fetch(`/api/star/recognition/draft/${group}`, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+			if (!res.ok) {
+				const text = await res.text().catch(() => null);
+				console.error('loadReviewPage: draft fetch failed', res.status, text);
+				reviewShowAlert('Gagal memuat detail review: ' + (text || res.status));
+				content.innerHTML = '<div class="text-sm text-red-600">Gagal memuat detail review.</div>';
+				return;
+			}
 			detailResp = await res.json();
 		} else if (reviewId) {
 			const res = await fetch(`/api/star/recognition/${reviewId}`, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+			if (!res.ok) {
+				const text = await res.text().catch(() => null);
+				console.error('loadReviewPage: recognition fetch failed', res.status, text);
+				reviewShowAlert('Gagal memuat detail review: ' + (text || res.status));
+				content.innerHTML = '<div class="text-sm text-red-600">Gagal memuat detail review.</div>';
+				return;
+			}
 			detailResp = await res.json();
 		}
 
 		const schemaResult = await fetch('/api/star/schema', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+		if (!schemaResult.ok) {
+			const text = await schemaResult.text().catch(() => null);
+			console.error('loadReviewPage: schema fetch failed', schemaResult.status, text);
+			reviewShowAlert('Gagal memuat skema STAR: ' + (text || schemaResult.status));
+			content.innerHTML = '<div class="text-sm text-red-600">Gagal memuat detail review.</div>';
+			return;
+		}
 		schemaResp = await schemaResult.json();
 
 		if (!detailResp || !detailResp.success) {
@@ -136,6 +262,8 @@ async function loadReviewPage() {
 			responsesByIndicator[resp.star_schema_indicator_id] = resp;
 			totalScore += Number(resp.response_score || 0);
 		});
+		const finalScore = data.total_points !== null && data.total_points !== undefined ? Number(data.total_points) : totalScore;
+		const scoreLabel = data.total_points !== null && data.total_points !== undefined ? 'SCORE akhir' : 'SCORE sementara';
 
 		const reviewIds = Array.isArray(data.recognition_ids) && data.recognition_ids.length
 			? data.recognition_ids
@@ -178,20 +306,16 @@ async function loadReviewPage() {
 
 				<div class="grid grid-cols-2 gap-6">
 					<div>${reviewTextBlock('Tanggal Pengajuan', reviewFormatDate(data.submitted_at))}</div>
-					<div>${reviewTextBlock('Status', data.status || '-')}</div>
+					<div class="space-y-1">
+						<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Status</div>
+						<div>${reviewStatusBadge(data.status)}</div>
+					</div>
 				</div>
 
 				<div class="pt-2">
 					<div class="grid grid-cols-2 gap-6">
-						<div class="space-y-1">
-							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Dokumen Pendukung</div>
-							<div class="text-base font-semibold text-gray-900 leading-7">${data.certificate_original_name || data.certificate_path || '-'}</div>
-						</div>
-
-						<div class="space-y-1">
-							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Dokumentasi Saat Kegiatan</div>
-							<div class="text-base font-semibold text-gray-900 leading-7">${data.activity_documentation_original_name || data.activity_documentation_path || '-'}</div>
-						</div>
+						${reviewFileLink('Dokumen Pendukung', data.certificate_path, data.certificate_original_name)}
+						${reviewFileLink('Dokumentasi Saat Kegiatan', data.activity_documentation_path, data.activity_documentation_original_name)}
 					</div>
 				</div>
 			</div>
@@ -201,22 +325,64 @@ async function loadReviewPage() {
 				${reviewSchemaHtml(schema, responsesByIndicator)}
 			</div>
 
-			<div class="flex items-center justify-between gap-4 border-t border-gray-200 pt-4">
-				<div>
-					<div class="text-sm font-semibold text-gray-900">Jumlah nilai (skema): ${totalScore}</div>
-					<div class="text-xs text-gray-500">${reviewIds.length} pengajuan di grup ini</div>
-				</div>
-				<div class="flex gap-2">
-					<button id="review-approve-btn" class="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white">Approve</button>
-					<button id="review-reject-btn" class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Reject</button>
+			<div class="flex items-center justify-end gap-4 border-t border-gray-200 pt-4">
+				<div class="flex gap-2" id="approval-action-buttons-placeholder">
+					<!-- approval buttons inserted here conditionally -->
 				</div>
 			</div>
 		`;
 
 		// Open approve modal to allow overrides & adjustment
-		document.getElementById('review-approve-btn').addEventListener('click', () => {
-			openApproveModal(reviewIds, schema, responsesByIndicator);
-		});
+		// Insert approve/reject buttons only when status needs approval; otherwise show final score and notes
+		const actionPlaceholder = document.getElementById('approval-action-buttons-placeholder');
+		const normalizedStatus = String(data.status || '').toLowerCase();
+		const needsApproval = ['pending_approval', 'submitted', 'diajukan', 'waiting_approval', 'waiting_manager_approval'].includes(normalizedStatus);
+		if (actionPlaceholder) {
+			if (needsApproval) {
+				actionPlaceholder.innerHTML = `<button id="review-approve-btn" class="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white">Approve</button>
+					<button id="review-reject-btn" class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Reject</button>`;
+				const btnApprove = document.getElementById('review-approve-btn');
+				if (btnApprove) btnApprove.addEventListener('click', () => openApproveModal(reviewIds, schema, responsesByIndicator));
+				const btnReject = document.getElementById('review-reject-btn');
+				if (btnReject) btnReject.addEventListener('click', async () => {
+					const reason = prompt('Masukkan alasan penolakan:');
+					if (!reason) return;
+					for (const rid of reviewIds) {
+						const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
+						const payload = await resp.json();
+						if (!resp.ok || !payload.success) {
+							alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
+							return;
+						}
+					}
+					alert('Semua pengajuan di grup ditolak');
+					location.reload();
+				});
+			} else {
+				// show final score, adjustment and approval notes (values right-aligned)
+				const finalScoreDisplay = typeof finalScore !== 'undefined' ? Number(finalScore) : null;
+				const adjustmentRaw = data.adjustment ?? data.approval_adjustment ?? data.adjustment_value ?? 0;
+				const adjustment = Number(adjustmentRaw) || 0;
+				const computedFinal = finalScoreDisplay !== null ? Number((finalScoreDisplay + adjustment).toFixed(2)) : null;
+				const notes = data.approval_notes || data.notes || '';
+
+				actionPlaceholder.innerHTML = `
+					<div class="w-full max-w-sm">
+						<div class="grid grid-cols-2 gap-4 items-center">
+							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Penyesuaian Nilai</div>
+							<div class="text-sm font-semibold text-gray-900 text-right tabular-nums">${adjustment >= 0 ? '+' + adjustment : adjustment}</div>
+							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Nilai Akhir</div>
+							<div class="text-sm font-bold text-gray-900 text-right tabular-nums">${computedFinal !== null ? computedFinal : '-'}</div>
+						</div>
+
+						<div class="mt-3">
+							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Catatan</div>
+							<div class="text-base font-semibold text-gray-900 leading-7">${notes ? escapeHtml(notes) : '-'}</div>
+						</div>
+					</div>
+				`;
+			}
+		}
 
 		// Approve modal controls
 		function createApproveModal() {
@@ -248,14 +414,29 @@ async function loadReviewPage() {
 
 			schemaData.indicators.forEach(ind => {
 				const resp = responsesByIndicator[ind.id];
-				formHtml += `<div class="p-3 border rounded">
-					<div class="text-sm font-medium text-gray-700 mb-2">${ind.label}</div>
-					<select data-indicator-id="${ind.id}" class="w-full rounded border px-3 py-2">`;
-				ind.options.forEach(opt => {
-					const selected = resp && resp.star_schema_indicator_option_id === opt.id ? 'selected' : '';
-					formHtml += `<option value="${opt.id}" data-score="${opt.score}" ${selected}>${opt.label} — ${opt.score}</option>`;
-				});
-				formHtml += `</select></div>`;
+					const currentOption = (ind.options || []).find(opt => resp && resp.star_schema_indicator_option_id === opt.id) || (ind.options || [])[0] || null;
+					formHtml += `<div class="space-y-2">
+						<div class="text-sm font-medium text-gray-700">${ind.label}</div>
+						<div class="relative">
+							<button type="button" data-indicator-trigger="${ind.id}" class="flex w-full items-center justify-between gap-4 rounded-full border border-green-200 bg-green-50/70 px-4 py-3 text-left transition hover:border-green-300 hover:bg-green-100/70">
+								<span data-indicator-label="${ind.id}" class="text-sm font-semibold text-green-900">${currentOption ? currentOption.label : 'Pilih opsi'}</span>
+								<span data-indicator-score="${ind.id}" class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-bold tabular-nums text-green-700">${currentOption ? currentOption.score : '-'}</span>
+							</button>
+							<input type="hidden" data-indicator-id="${ind.id}" value="${currentOption ? currentOption.id : ''}">
+							<div data-indicator-menu="${ind.id}" class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+								<div class="max-h-64 overflow-y-auto py-1">`;
+					(ind.options || []).forEach(opt => {
+						const selected = currentOption && currentOption.id === opt.id;
+						formHtml += `<button type="button" data-indicator-option="${ind.id}" data-option-id="${opt.id}" data-option-label="${escapeHtml(opt.label)}" data-option-score="${opt.score}" class="flex w-full items-center justify-between gap-4 px-4 py-2 text-left transition ${selected ? 'bg-green-50 text-green-800' : 'text-gray-700 hover:bg-gray-50'}">
+							<span class="text-sm ${selected ? 'font-semibold' : ''}">${opt.label}</span>
+							<span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold tabular-nums ${selected ? 'bg-green-100 text-green-700' : 'bg-transparent text-green-600'}">${opt.score}</span>
+						</button>`;
+					});
+					formHtml += `
+								</div>
+							</div>
+						</div>
+					</div>`;
 			});
 
 			formHtml += `</div>
@@ -282,12 +463,50 @@ async function loadReviewPage() {
 
 			content.innerHTML = formHtml;
 
+			const closeAllDropdowns = () => {
+				document.querySelectorAll('[data-indicator-menu]').forEach(menu => menu.classList.add('hidden'));
+			};
+
+			document.querySelectorAll('[data-indicator-trigger]').forEach(trigger => {
+				trigger.addEventListener('click', (event) => {
+					event.stopPropagation();
+					const indicatorId = trigger.getAttribute('data-indicator-trigger');
+					const menu = document.querySelector(`[data-indicator-menu="${indicatorId}"]`);
+					if (!menu) return;
+					const isHidden = menu.classList.contains('hidden');
+					closeAllDropdowns();
+					if (isHidden) {
+						menu.classList.remove('hidden');
+					}
+				});
+			});
+
+			document.querySelectorAll('[data-indicator-option]').forEach(option => {
+				option.addEventListener('click', (event) => {
+					event.stopPropagation();
+					const indicatorId = option.getAttribute('data-indicator-option');
+					const optionId = option.getAttribute('data-option-id');
+					const optionLabel = option.getAttribute('data-option-label') || '';
+					const optionScore = option.getAttribute('data-option-score') || '-';
+					const hiddenInput = document.querySelector(`[data-indicator-id="${indicatorId}"]`);
+					const labelEl = document.querySelector(`[data-indicator-label="${indicatorId}"]`);
+					const scoreEl = document.querySelector(`[data-indicator-score="${indicatorId}"]`);
+					if (hiddenInput) hiddenInput.value = optionId;
+					if (labelEl) labelEl.textContent = optionLabel;
+					if (scoreEl) scoreEl.textContent = optionScore;
+					closeAllDropdowns();
+					computeApproveTotal();
+				});
+			});
+
 			// compute total function
 			function computeApproveTotal() {
 				let total = 0;
-				document.querySelectorAll('#approve-form select[data-indicator-id]').forEach(sel => {
-					const opt = sel.options[sel.selectedIndex];
-					const score = parseFloat(opt.getAttribute('data-score') || '0');
+				document.querySelectorAll('#approve-form [data-indicator-id]').forEach(sel => {
+					const indicatorId = sel.getAttribute('data-indicator-id');
+					const optionId = sel.value;
+					const opt = document.querySelector(`[data-indicator-option="${indicatorId}"][data-option-id="${optionId}"]`);
+					const score = parseFloat(opt?.getAttribute('data-option-score') || '0');
 					total += score;
 				});
 				const adj = parseFloat(document.getElementById('approve-adjustment').value || '0');
@@ -297,14 +516,13 @@ async function loadReviewPage() {
 			}
 
 			// attach events
-			document.querySelectorAll('#approve-form select[data-indicator-id]').forEach(sel => sel.addEventListener('change', computeApproveTotal));
 			document.getElementById('approve-adjustment').addEventListener('input', computeApproveTotal);
 			computeApproveTotal();
 
 			document.getElementById('approve-cancel').addEventListener('click', hideApproveModal);
 
 			document.getElementById('approve-confirm').addEventListener('click', async () => {
-				const overrides = Array.from(document.querySelectorAll('#approve-form select[data-indicator-id]')).map(sel => ({
+				const overrides = Array.from(document.querySelectorAll('#approve-form [data-indicator-id]')).map(sel => ({
 					indicator_id: Number(sel.getAttribute('data-indicator-id')),
 					option_id: Number(sel.value),
 				}));
@@ -340,26 +558,10 @@ async function loadReviewPage() {
 			showApproveModal();
 		}
 
-		document.getElementById('review-reject-btn').addEventListener('click', async () => {
-			const reason = prompt('Masukkan alasan penolakan:');
-			if (!reason) return;
-			for (const id of reviewIds) {
-				const resp = await fetch(`/api/star/approvals/${id}/reject`, {
-					method: 'POST',
-					credentials: 'same-origin',
-					headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-					body: JSON.stringify({ rejection_reason: reason }),
-				});
-				const payload = await resp.json();
-				if (!resp.ok || !payload.success) {
-					reviewShowAlert('Gagal reject untuk id ' + id + ': ' + (payload?.message || ''));
-					return;
-				}
-			}
-			reviewShowAlert('Pengajuan berhasil ditolak.', 'success');
-			setTimeout(() => { window.location.href = approvalListUrl; }, 700);
-		});
+
 	} catch (error) {
+		console.error('loadReviewPage error', error);
+		reviewShowAlert(error?.message || 'Gagal memuat detail review.');
 		content.innerHTML = '<div class="text-sm text-red-600">Gagal memuat detail review.</div>';
 	}
 }
