@@ -69,12 +69,61 @@
 				display: inline-flex !important;
 				width: auto !important;
 				align-self: flex-start !important;
-				padding: 0.22rem 0.6rem !important;
+				padding: 0.25rem 0.6rem !important;
 				border-radius: 0.45rem !important;
 				font-size: 0.9rem !important;
+				box-shadow: none !important;
+			}
+
+			/* Ensure approval placeholder does not grow and stays tight to the right */
+			#review-content > .flex.items-center.justify-end > #approval-action-buttons-placeholder {
+				flex: 0 0 auto !important;
+				margin-left: auto !important;
+				display: flex !important;
+				align-items: center !important;
+				gap: 0.5rem !important;
+			}
+
+			#approval-action-buttons-placeholder { flex: 0 0 auto; }
+
+			/* Force the approval placeholder to remain inline and not expand full width */
+			#approval-action-buttons-placeholder {
+				display: inline-flex !important;
+				width: auto !important;
+				justify-content: flex-end !important;
+				align-items: center !important;
+				gap: 0.5rem !important;
+			}
+
+			/* Ensure inner score block has no background/border/padding that separates it */
+			#approval-action-buttons-placeholder > div,
+			#approval-action-buttons-placeholder > div * {
 				background: transparent !important;
-				border-color: rgba(16,185,129,0.12) !important;
-				color: #065f46 !important;
+				border: 0 !important;
+				padding: 0 !important;
+				margin: 0 !important;
+				box-shadow: none !important;
+			}
+
+			/* Restore nicer pill/button styles for badges and file links inside review */
+			#review-content .review-status-badge {
+				display: inline-flex;
+				border-radius: 9999px;
+				padding: 0.25rem 0.6rem;
+				font-size: 0.75rem;
+				font-weight: 600;
+				line-height: 1;
+			}
+
+			#review-content .review-file-link {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.35rem 0.7rem;
+				border-radius: 0.5rem;
+				font-size: 0.95rem;
+				font-weight: 600;
+				text-decoration: none;
 				box-shadow: none !important;
 			}
 		</style>
@@ -155,7 +204,7 @@ function reviewFileLink(label, path, fileName) {
 	return `
 		<div class="space-y-1">
 			<div class="text-xs font-medium uppercase tracking-wide text-gray-500">${label}</div>
-			<a href="${url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 py-1.5 text-sm font-semibold text-green-800 transition hover:border-green-300 hover:bg-green-100">
+			<a href="${url}" target="_blank" rel="noopener" class="review-file-link inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 py-1.5 text-sm font-semibold text-green-800 transition hover:border-green-300 hover:bg-green-100">
 				<i class="fas fa-file-arrow-down text-[11px]"></i>
 				<span>${text}</span>
 			</a>
@@ -166,12 +215,12 @@ function reviewFileLink(label, path, fileName) {
 function reviewStatusBadge(status) {
 	const normalized = String(status || '').toLowerCase();
 	if (normalized === 'approved') {
-		return '<span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 border border-green-200">Disetujui</span>';
+		return '<span class="review-status-badge inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 border border-green-200">Disetujui</span>';
 	}
 	if (normalized === 'rejected') {
-		return '<span class="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">Ditolak</span>';
+		return '<span class="review-status-badge inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">Ditolak</span>';
 	}
-	return '<span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">Butuh Persetujuan</span>';
+	return '<span class="review-status-badge inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">Butuh Persetujuan</span>';
 }
 
 function reviewSchemaHtml(schema, responsesByIndicator) {
@@ -191,12 +240,12 @@ function reviewSchemaHtml(schema, responsesByIndicator) {
 			`;
 		}).join('');
 
-		return `
-			<div class="py-1">
-				<div class="text-sm font-semibold text-gray-900">${ind.label}</div>
-				<div class="mt-2 space-y-1">${options}</div>
-			</div>
-		`;
+			return `
+				<div class="py-1">
+					<div class="text-sm font-semibold text-gray-900">${ind.label}</div>
+					<div class="mt-2 space-y-1">${options}</div>
+				</div>
+			`;
 	}).join('');
 }
 
@@ -325,9 +374,11 @@ async function loadReviewPage() {
 				${reviewSchemaHtml(schema, responsesByIndicator)}
 			</div>
 
-			<div class="flex items-center justify-end gap-4 border-t border-gray-200 pt-4">
-				<div class="flex gap-2" id="approval-action-buttons-placeholder">
-					<!-- approval buttons inserted here conditionally -->
+			<div class="border-t border-gray-200 pt-4">
+				<div class="mt-2 text-right">
+					<div id="approval-action-buttons-placeholder" class="inline-flex items-center justify-end gap-2" style="width:auto;">
+						<!-- approval buttons inserted here conditionally -->
+					</div>
 				</div>
 			</div>
 		`;
@@ -367,8 +418,8 @@ async function loadReviewPage() {
 				const notes = data.approval_notes || data.notes || '';
 
 				actionPlaceholder.innerHTML = `
-					<div class="w-full max-w-sm">
-						<div class="grid grid-cols-2 gap-4 items-center">
+					<div style="float: right; margin: 0 0 0 0.5rem; padding:0; background:transparent; border:0; box-shadow:none;">
+						<div class="grid gap-4 items-center" style="grid-template-columns: 1fr auto; min-width: 10rem;">
 							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Penyesuaian Nilai</div>
 							<div class="text-sm font-semibold text-gray-900 text-right tabular-nums">${adjustment >= 0 ? '+' + adjustment : adjustment}</div>
 
@@ -376,10 +427,9 @@ async function loadReviewPage() {
 							<div class="text-sm font-bold text-gray-900 text-right tabular-nums">${computedFinal !== null ? computedFinal : '-'}</div>
 						</div>
 
-						<div class="mt-3 grid grid-cols-2 gap-4">
+						<div class="mt-3">
 							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Catatan</div>
-							<div></div>
-							<div class="col-span-2 mt-1 text-base text-gray-900 leading-7">${notes ? escapeHtml(notes) : '-'}</div>
+							<div class="mt-1 text-base text-gray-900 leading-7">${notes ? escapeHtml(notes) : '-'}</div>
 						</div>
 					</div>
 				`;
