@@ -64,7 +64,6 @@
             opacity: 0;
         }
 
-        /* Logo Button */
         .sidebar-logo {
             cursor: pointer;
             user-select: none;
@@ -904,10 +903,12 @@
                 <span>Schema</span>
             </a>
             <?php endif; ?>
+            <?php if($activeRole === 'manager'): ?>
             <a href="/star/recognition" class="nav-link <?php echo e(request()->is('star/recognition*') ? 'active' : ''); ?>" title="Recognition">
                 <i class="fas fa-trophy w-5 flex-shrink-0"></i>
                 <span>Recognition</span>
             </a>
+            <?php endif; ?>
             <a href="/star/achievements" class="nav-link <?php echo e(request()->is('star/achievements*') ? 'active' : ''); ?>" title="Achievements">
                 <i class="fas fa-star w-5 flex-shrink-0"></i>
                 <span>Achievements</span>
@@ -1723,13 +1724,13 @@
     // Function to handle badge dot visibility based on sidebar state
     function updateBadgeDotVisibility() {
         const badgeDot = document.getElementById('manager-approval-badge-dot');
-        if (!badgeDot) {
-            return;
+        if (!badgeDot) { 
+            return; 
         }
         
         const sidebar = document.getElementById('sidebar');
-        if (!sidebar) {
-            return;
+        if (!sidebar) { 
+            return; 
         }
         
         const isSidebarCollapsed = sidebar.classList.contains('collapsed');
@@ -1934,5 +1935,4 @@
     </script>
     <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
-</html>
-<?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/layouts/app.blade.php ENDPATH**/ ?>

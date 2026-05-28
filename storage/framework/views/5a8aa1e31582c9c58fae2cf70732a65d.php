@@ -52,6 +52,15 @@
 	</div>
 
 	<?php echo $__env->make('star.partials.schema-preview-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+	<!-- Review modal for approvals -->
+	<div id="star-review-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+		<div class="absolute inset-0 bg-black opacity-40"></div>
+		<div class="relative bg-white rounded w-11/12 max-w-3xl p-6 shadow-lg">
+			<button id="star-review-close" class="absolute top-3 right-3 px-3 py-1 rounded bg-gray-200">Close</button>
+			<div id="star-review-content">Memuat...</div>
+		</div>
+	</div>
 </div>
 <?php $__env->stopSection(); ?>
 
@@ -168,7 +177,119 @@ async function loadRecognitions() {
 
 document.addEventListener('DOMContentLoaded', () => {
 	loadRecognitions();
+
+	// If reviewId param present, open review modal
+	const params = new URLSearchParams(window.location.search);
+	const reviewId = params.get('reviewId');
+	const idsParam = params.get('ids');
+	if (reviewId) {
+		showReviewModal(reviewId, idsParam ? idsParam.split(',').filter(Boolean) : [reviewId]);
+	}
 });
+
+async function showReviewModal(id, ids) {
+	const modal = document.getElementById('star-review-modal');
+	const content = document.getElementById('star-review-content');
+	modal.classList.remove('hidden');
+	content.innerHTML = 'Memuat detail...';
+
+	try {
+		const [recResp, schemaResp] = await Promise.all([
+			fetch(`/api/star/recognition/${id}`, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }).then(r => r.json()),
+			fetch('/api/star/schema', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' }).then(r => r.json()),
+		]);
+
+		if (!recResp || !recResp.success) throw new Error(recResp?.message || 'Gagal memuat rekognisi');
+		const rec = recResp.data;
+		const schema = schemaResp && schemaResp.success ? schemaResp.data : null;
+
+		let totalExpected = 0;
+		const responsesByIndicator = {};
+		(rec.responses || []).forEach(r => {
+			responsesByIndicator[r.star_schema_indicator_id] = r;
+			totalExpected += parseFloat(r.response_score || 0);
+		});
+
+		let html = `
+			<h3 class="text-lg font-bold mb-3">Review Pengajuan</h3>
+			<p><strong>Activity:</strong> ${rec.activity_name || '-'}</p>
+			<p><strong>Tanggal:</strong> ${rec.activity_date || '-'}</p>
+			<p><strong>Employee:</strong> ${rec.employee?rec.employee.name:'-'} </p>
+			<p class="mt-3"><strong>Skema & Penilaian</strong></p>
+			<div class="mt-2 space-y-2">
+		`;
+
+		if (schema && (schema.indicators || []).length) {
+			schema.indicators.forEach(ind => {
+				const resp = responsesByIndicator[ind.id];
+				html += `<div class="p-3 border rounded">
+					<div class="font-semibold">${ind.label}</div>
+					<div class="text-sm text-gray-600">Pilihan:</div>
+					<ul class="mt-1">`;
+				ind.options.forEach(opt => {
+					const selected = resp && resp.star_schema_indicator_option_id === opt.id;
+					html += `<li${selected? ' class="bg-green-50"':''}>${opt.label} — <strong>${opt.score}</strong>${selected? ' <span class="text-xs text-green-700">(dipilih)</span>':''}</li>`;
+				});
+				html += `</ul>
+				</div>`;
+			});
+			html += `</div>
+			<div class="mt-4"><strong>Jumlah nilai (skema):</strong> ${totalExpected}</div>`;
+		} else {
+			html += '<div class="text-gray-500">Skema STAR tidak tersedia.</div>';
+		}
+
+		html += `<div class="mt-4 flex gap-2">
+			<button id="review-approve" class="px-3 py-1 rounded bg-green-700 text-white">Approve</button>
+			<button id="review-reject" class="px-3 py-1 rounded bg-red-600 text-white">Reject</button>
+		</div>`;
+
+		content.innerHTML = html;
+
+		document.getElementById('review-approve').addEventListener('click', async () => {
+			if (!confirm('Yakin ingin menyetujui semua pengajuan di grup ini?')) return;
+			for (const rid of ids) {
+				const resp = await fetch(`/api/star/approvals/${rid}/approve`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } });
+				const payload = await resp.json();
+				if (!resp.ok || !payload.success) {
+					alert('Gagal approve untuk id ' + rid + ': ' + (payload?.message || ''));
+					return;
+				}
+			}
+			alert('Semua pengajuan di grup disetujui');
+			modal.classList.add('hidden');
+			// remove review params from URL
+			const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
+			loadRecognitions();
+		});
+
+		document.getElementById('review-reject').addEventListener('click', async () => {
+			const reason = prompt('Masukkan alasan penolakan:');
+			if (!reason) return;
+			for (const rid of ids) {
+				const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
+				const payload = await resp.json();
+				if (!resp.ok || !payload.success) {
+					alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
+					return;
+				}
+			}
+			alert('Semua pengajuan di grup ditolak');
+			modal.classList.add('hidden');
+			const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
+			loadRecognitions();
+		});
+
+	} catch (err) {
+		content.innerHTML = '<div class="text-red-500">Gagal memuat detail rekognisi</div>';
+	}
+
+	document.getElementById('star-review-close').addEventListener('click', () => {
+		const modal = document.getElementById('star-review-modal');
+		modal.classList.add('hidden');
+		const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
+	});
+}
 </script>
 <?php $__env->stopPush(); ?>
 

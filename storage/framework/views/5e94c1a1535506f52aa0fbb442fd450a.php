@@ -216,6 +216,7 @@ async function parseApiResponse(res) {
 }
 
 window.toggleRecipientChecklist = function () {
+    if (isReadOnlyMode) return;
     const results = document.getElementById('recipient-results');
     if (!results) return;
 
@@ -433,6 +434,13 @@ function bindCustomUploadField(options) {
     if (!input || !trigger || !removeButton) return;
 
     trigger.addEventListener('click', () => {
+        if (isReadOnlyMode) {
+            if (uploadState[options.inputId]?.previewUrl) {
+                openFilePreview(uploadState[options.inputId].previewUrl, uploadState[options.inputId].previewName || options.placeholderText || 'Preview File');
+            }
+            return;
+        }
+
         if (input.files && input.files[0] && uploadState[options.inputId]?.previewUrl) {
             openFilePreview(uploadState[options.inputId].previewUrl, uploadState[options.inputId].previewName || input.files[0].name);
             return;
@@ -460,6 +468,7 @@ function bindCustomUploadField(options) {
     });
 
     removeButton.addEventListener('click', (event) => {
+        if (isReadOnlyMode) return;
         event.preventDefault();
         event.stopPropagation();
         input.value = '';
@@ -569,7 +578,7 @@ function renderDraftSchemaForm(schema, selectedResponses = []) {
         return `<div class="rounded-2xl border border-gray-100 p-4">
             <h5 class="font-semibold text-gray-900">${indicator.label}</h5>
             <div class="mt-3">
-                <select class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" name="indicator_${indicator.id}">
+                <select class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" name="indicator_${indicator.id}" ${isReadOnlyMode ? 'disabled aria-disabled="true" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm pointer-events-none"' : ''}>
                     <option value="">Pilih kategori penilaian</option>
                     ${optionsHtml}
                 </select>
@@ -578,6 +587,11 @@ function renderDraftSchemaForm(schema, selectedResponses = []) {
     }).join('');
 
     container.querySelectorAll('select').forEach((select) => {
+        if (isReadOnlyMode) {
+            select.disabled = true;
+            select.classList.add('pointer-events-none', 'bg-gray-50');
+            return;
+        }
         select.addEventListener('change', updateActionButtons);
     });
 }
@@ -662,6 +676,11 @@ function setReadOnlyMode(shouldBeReadOnly) {
         recipientButton.disabled = isReadOnlyMode;
         recipientButton.classList.toggle('cursor-not-allowed', isReadOnlyMode);
         recipientButton.classList.toggle('opacity-80', isReadOnlyMode);
+    }
+
+    const recipientResults = document.getElementById('recipient-results');
+    if (recipientResults && isReadOnlyMode) {
+        recipientResults.classList.add('hidden');
     }
 
     document.querySelectorAll('[id$="_remove"]').forEach((btn) => {

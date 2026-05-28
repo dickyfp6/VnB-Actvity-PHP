@@ -64,7 +64,6 @@
             opacity: 0;
         }
 
-        /* Logo Button */
         .sidebar-logo {
             cursor: pointer;
             user-select: none;
@@ -907,10 +906,12 @@
                 <span>Schema</span>
             </a>
             @endif
+            @if($activeRole === 'manager')
             <a href="/star/recognition" class="nav-link {{ request()->is('star/recognition*') ? 'active' : '' }}" title="Recognition">
                 <i class="fas fa-trophy w-5 flex-shrink-0"></i>
                 <span>Recognition</span>
             </a>
+            @endif
             <a href="/star/achievements" class="nav-link {{ request()->is('star/achievements*') ? 'active' : '' }}" title="Achievements">
                 <i class="fas fa-star w-5 flex-shrink-0"></i>
                 <span>Achievements</span>
@@ -1724,13 +1725,13 @@
     // Function to handle badge dot visibility based on sidebar state
     function updateBadgeDotVisibility() {
         const badgeDot = document.getElementById('manager-approval-badge-dot');
-        if (!badgeDot) {
-            return;
+        if (!badgeDot) { 
+            return; 
         }
         
         const sidebar = document.getElementById('sidebar');
-        if (!sidebar) {
-            return;
+        if (!sidebar) { 
+            return; 
         }
         
         const isSidebarCollapsed = sidebar.classList.contains('collapsed');

@@ -1956,10 +1956,10 @@ function updateApproveAllButtonState() {
     }
 }
 
-// Initial Load
 document.addEventListener('DOMContentLoaded', () => {
     loadDetail();
 });
+
 </script>
 <?php $__env->stopPush(); ?>
 <?php $__env->stopSection(); ?>

@@ -390,6 +390,9 @@ class StarController extends Controller
                 'employee_names_text' => $items->map(fn (StarRecognition $recognition) => $recognition->employee?->name ?? $recognition->employee?->name_display ?? $recognition->employee?->full_name ?? $recognition->employee?->display_name ?? $recognition->employee?->employee_number ?? 'Employee #' . $recognition->employee_id)->values()->implode(', '),
                 'activity_name' => $first->activity_name,
                 'activity_date' => optional($first->activity_date)->format('Y-m-d'),
+                'manager_id' => $first->manager_id,
+                'manager_name' => $first->manager?->name ?? null,
+                'submitted_at' => optional($first->submitted_at)->toDateTimeString(),
                 'organizer' => $first->organizer,
                 'certificate_path' => $first->certificate_path,
                 'certificate_original_name' => $first->certificate_original_name,
@@ -511,12 +514,20 @@ class StarController extends Controller
         $user = auth()->user();
         $recognition = StarRecognition::with(['manager', 'employee', 'responses.indicator', 'responses.option'])->findOrFail($id);
 
-        // Authorization: manager who created it, the recipient employee's user, or admin roles
-        if ($user->hasRole('manager') && $recognition->manager_id !== $user->id) {
-            abort(403, 'Tidak berwenang melihat recognition ini.');
+        // Authorization: allow if
+        // - user is manager and is the owner (manager_id matches), OR
+        // - user is employee and is the recipient, OR
+        // - user has elevated roles (intercomm, pcx_manager, direktur_utama)
+        // Note: a user may have multiple roles; elevated roles should bypass manager-only restriction.
+
+        if ($user->hasRole('manager') && !$user->hasAnyRole(['intercomm', 'pcx_manager', 'direktur_utama'])) {
+            // user is exclusively a manager (or at least not elevated); enforce ownership
+            if ($recognition->manager_id !== $user->id) {
+                abort(403, 'Tidak berwenang melihat recognition ini.');
+            }
         }
 
-        if ($user->hasRole('employee')) {
+        if ($user->hasRole('employee') && !$user->hasAnyRole(['intercomm', 'pcx_manager', 'direktur_utama'])) {
             $employee = Employee::where('user_id', $user->id)->first();
             if (!$employee || $recognition->employee_id !== $employee->id) {
                 abort(403, 'Tidak berwenang melihat recognition ini.');
@@ -648,10 +659,9 @@ class StarController extends Controller
         $user = auth()->user();
         abort_unless($user !== null, 401, 'Anda harus login untuk mengakses approvals.');
 
-        // If user is PCX/Intercomm/Direktur, show all pending approvals
+        // If user is PCX/Intercomm/Direktur, show all recognitions they are allowed to see
         if ($user->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama'])) {
             $items = StarRecognition::with(['employee', 'manager'])
-                ->where('status', 'pending_approval')
                 ->orderByDesc('submitted_at')
                 ->get();
         } else {
@@ -674,28 +684,49 @@ class StarController extends Controller
 
             $items = StarRecognition::with(['employee', 'manager'])
                 ->whereIn('employee_id', $employeeIds)
-                ->where('status', 'pending_approval')
                 ->orderByDesc('submitted_at')
                 ->get();
         }
 
-        $data = $items->map(function (StarRecognition $r) {
+        // Group recognitions server-side so frontend can render one row per group
+        $grouped = $items->groupBy(function (StarRecognition $r) {
+            return implode('|', [
+                (string) $r->manager_id,
+                $r->activity_name ?? '',
+                optional($r->activity_date)->format('Y-m-d') ?? '',
+                $r->organizer ?? '',
+                $r->certificate_path ?? '',
+            ]);
+        });
+
+        $data = $grouped->map(function ($group) {
+            /** @var \Illuminate\Support\Collection|StarRecognition[] $group */
+            $first = $group->first();
+
+            $employeeNames = $group->map(function (StarRecognition $r) {
+                return $r->employee?->name
+                    ?? $r->employee?->name_display
+                    ?? $r->employee?->full_name
+                    ?? $r->employee?->display_name
+                    ?? $r->employee?->employee_number
+                    ?? 'Employee #' . $r->employee_id;
+            })->values()->all();
+
             return [
-                'id' => $r->id,
-                'employee_id' => $r->employee_id,
-                'employee_name' => $r->employee?->name ?? null,
-                'manager_id' => $r->manager_id,
-                'manager_name' => $r->manager?->name ?? null,
-                'activity_name' => $r->activity_name,
-                'activity_date' => optional($r->activity_date)->format('Y-m-d'),
-                'organizer' => $r->organizer,
-                'certificate_path' => $r->certificate_path,
-                'certificate_original_name' => $r->certificate_original_name,
-                'activity_documentation_path' => $r->activity_documentation_path,
-                'activity_documentation_original_name' => $r->activity_documentation_original_name,
-                'total_points' => $r->total_points,
-                'submitted_at' => optional($r->submitted_at)->toDateTimeString(),
-                'status' => $r->status,
+                'recognition_ids' => $group->pluck('id')->values()->all(),
+                'draft_group' => $first->draft_group ?? null,
+                'manager_id' => $first->manager_id,
+                'manager_name' => $first->manager?->name ?? null,
+                'activity_name' => $first->activity_name,
+                'activity_date' => optional($first->activity_date)->format('Y-m-d'),
+                'organizer' => $first->organizer,
+                'certificate_path' => $first->certificate_path,
+                'status' => in_array($group->pluck('status')->first(), ['submitted', 'pending_approval', 'approved']) ? 'submitted' : ($group->pluck('status')->contains('rejected') ? 'rejected' : $group->pluck('status')->first()),
+                'submitted_at' => optional($first->submitted_at)->toDateTimeString(),
+                'employee_ids' => $group->pluck('employee_id')->unique()->values()->all(),
+                'employee_names' => $employeeNames,
+                'employee_names_text' => implode(', ', $employeeNames),
+                'employee_number' => $group->pluck('employee_number')->first() ?? null,
             ];
         })->values();
 
@@ -712,19 +743,54 @@ class StarController extends Controller
      */
     public function assignSignature(Request $request, int $id): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'notes' => 'nullable|string',
+            'overrides' => 'nullable|array',
+            'overrides.*.indicator_id' => 'required_with:overrides|exists:star_schema_indicators,id',
+            'overrides.*.option_id' => 'required_with:overrides|exists:star_schema_indicator_options,id',
+            'adjustment' => 'nullable|numeric',
         ]);
 
         // Authorize: PCX, Intercomm, Direktur Utama only
         abort_unless(auth()->user()?->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama']), 403, 'Hanya PCX, Intercomm, dan Direktur Utama yang bisa memberikan TTD.');
 
-        $recognition = StarRecognition::findOrFail($id);
+        $recognition = StarRecognition::with('responses')->findOrFail($id);
 
-        // Mark as approved
+        // If overrides provided, replace responses accordingly
+        $overrides = $validated['overrides'] ?? null;
+        if (is_array($overrides) && count($overrides)) {
+            // delete existing responses for this recognition and recreate from overrides
+            $recognition->responses()->delete();
+            $totalPoints = 0;
+            foreach ($overrides as $ov) {
+                $option = StarSchemaIndicatorOption::find($ov['option_id']);
+                if (!$option) continue;
+                StarRecognitionResponse::create([
+                    'star_recognition_id' => $recognition->id,
+                    'star_schema_indicator_id' => $ov['indicator_id'],
+                    'star_schema_indicator_option_id' => $ov['option_id'],
+                    'response_score' => (float) $option->score,
+                ]);
+                $totalPoints += (float) $option->score;
+            }
+        } else {
+            // Sum existing responses (ensure we treat as collection)
+            $totalPoints = collect($recognition->responses)->sum(function ($r) { return (float) ($r->response_score ?? 0); });
+        }
+
+        // Apply custom adjustment if any
+        $adjustment = (float) ($validated['adjustment'] ?? 0);
+        $totalPoints = $totalPoints + $adjustment;
+
+        // Mark as approved and save total points
+        $recognition->total_points = $totalPoints;
         $recognition->status = 'approved';
         $recognition->approved_at = now();
+        // store notes on model if field exists
         $recognition->save();
+
+        // Reload responses
+        $recognition->load('responses.indicator', 'responses.option');
 
         return response()->json([
             'success' => true,

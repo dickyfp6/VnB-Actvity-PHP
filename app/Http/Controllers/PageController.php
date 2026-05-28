@@ -163,6 +163,16 @@ class PageController extends Controller
         return view('star.approval');
     }
 
+    public function starApprovalReview(Request $request)
+    {
+        $this->ensureActiveRole($request, ['intercomm', 'pcx_manager', 'direktur_utama']);
+
+        return view('star.approval-review', [
+            'group' => $request->query('group'),
+            'reviewId' => $request->query('reviewId'),
+        ]);
+    }
+
     // ==================== VNB Routes ====================
     public function vnbParticipants(Request $request)
     {

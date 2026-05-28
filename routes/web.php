@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
         
         // /star-approval - PCX, Intercomm, Direktur Utama
         Route::get('/star-approval', [PageController::class, 'starApproval'])->name('star.star-approval');
+        Route::get('/star-approval/review', [PageController::class, 'starApprovalReview'])->name('star.star-approval.review');
+        Route::get('/approval/review', [PageController::class, 'starApprovalReview'])->name('star.star-approval.review.legacy');
     });
 
     // ==================== VNB ACTIVITY ====================
