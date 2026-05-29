@@ -1,6 +1,6 @@
 
 
-<?php $__env->startSection('title', 'Dashboard - VnB Platform'); ?>
+<?php $__env->startSection('title', 'Dashboard - WisCore'); ?>
 
 <?php $__env->startSection('content'); ?>
 <div class="space-y-6">

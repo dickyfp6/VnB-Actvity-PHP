@@ -1,6 +1,6 @@
 
 
-<?php $__env->startSection('title', 'STAR Dashboard - VnB Platform'); ?>
+<?php $__env->startSection('title', 'STAR Dashboard - WisCore'); ?>
 <?php $__env->startSection('page_title', 'STAR Dashboard'); ?>
 <?php $__env->startSection('page_subtitle', 'Top 5 employee dan top 5 departemen berdasarkan points STAR yang approved.'); ?>
 

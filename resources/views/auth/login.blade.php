@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - VnB Platform</title>
+    <title>Login - WisCore</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -179,7 +179,7 @@
                 <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
                     <i class="fas fa-leaf text-white text-2xl"></i>
                 </div>
-                <h1 class="text-4xl font-bold text-gray-900 mb-1">VnB Platform</h1>
+                <h1 class="text-4xl font-bold text-gray-900 mb-1">WisCore</h1>
                 <p class="text-gray-600 text-sm">Onboarding & Development System</p>
             </div>
 

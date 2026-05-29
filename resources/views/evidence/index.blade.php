@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Bukti VnB - VnB Platform')
+@section('title', 'Bukti VnB - WisCore')
 @section('page_title', 'Bukti VnB')
 @section('page_subtitle', 'Unggah dan kelola bukti pendukung aktivitas VnB dalam satu galeri.')
 

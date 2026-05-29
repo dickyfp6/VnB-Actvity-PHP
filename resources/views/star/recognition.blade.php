@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'STAR Recognition - VnB Platform')
+@section('title', 'STAR Recognition - WisCore')
 @section('page_title', 'STAR Recognition')
 @section('page_subtitle', 'Kelola daftar ajuan recognition dan buka skema STAR saat dibutuhkan.')
 

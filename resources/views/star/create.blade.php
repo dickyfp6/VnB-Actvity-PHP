@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Ajukan Recognition - VnB Platform')
+@section('title', 'Ajukan Recognition - WisCore')
 @section('page_title', 'Tambah Ajuan')
 @section('page_subtitle', '')
 

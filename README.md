@@ -1,5 +1,5 @@
-# VnB Employee Application
-## Vehicle & Beyond - Employee Onboarding Platform
+# WisCore
+## Wismilak Core and Score
 
 **Wismilak PT** | Built with Laravel (Mockup Mode)  
 Status: 🚀 **Demo Development (No CI)** | Last Updated: March 2026
@@ -8,7 +8,7 @@ Status: 🚀 **Demo Development (No CI)** | Last Updated: March 2026
 
 ## 📋 Project Overview
 
-**VnB Employee** adalah aplikasi onboarding terintegrasi untuk karyawan baru di Wismilak untuk mengukur progress 12 bulan mereka melalui 3 fase pembangunan kompetensi:
+**WisCore** adalah pusat pengelolaan nilai inti perusahaan sekaligus alat pengukuran kinerja berbasis data. Platform ini mendukung pengambilan keputusan melalui modul VnB dan STAR yang terstruktur:
 - **Fase 1**: Bulan 1–3 (Stabilisasi)
 - **Fase 2**: Bulan 4–6 (Pengembangan)
 - **Fase 3**: Bulan 7–12 (Mastery)

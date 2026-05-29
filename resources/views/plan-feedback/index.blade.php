@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Feedback Plan VnB - VnB Platform')
+@section('title', 'Feedback Plan VnB - WisCore')
 @section('page_title', 'Feedback Plan VnB')
 @section('page_subtitle', 'Review hasil approval dan revisi dari manager atas rencana VnB Anda.')
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - VnB Platform</title>
+    <title>Register - WisCore</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-emerald-50 to-green-100 min-h-screen flex items-center justify-center py-8">
@@ -12,7 +12,7 @@
         <div class="bg-white rounded-lg shadow-lg p-8">
             <!-- Logo / Header -->
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-800">VnB Platform</h1>
+                <h1 class="text-3xl font-bold text-gray-800">WisCore</h1>
                 <p class="text-gray-600 text-sm mt-2">Create Your Account</p>
             </div>
 

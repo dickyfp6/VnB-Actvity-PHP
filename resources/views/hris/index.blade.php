@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Sinkronisasi Data - VnB Platform')
+@section('title', 'Sinkronisasi Data - WisCore')
 @section('page_title', 'Sinkronisasi Data')
 @section('page_subtitle', 'Sinkronisasi Employee dari HRIS, HRMS, dan Updated Data ke Employees.')
 

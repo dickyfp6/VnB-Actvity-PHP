@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
-    <title><?php echo $__env->yieldContent('title', 'VnB Platform - Wismilak'); ?></title>
+    <title><?php echo $__env->yieldContent('title', 'WisCore - Wismilak'); ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -908,7 +908,7 @@
     <div id="sidebar" class="sidebar">
         <!-- Logo - Toggle Button -->
         <div class="sidebar-logo" id="sidebarToggle" title="Click to collapse/expand sidebar">
-            <span class="logo-text">VnB Platform</span>
+            <span class="logo-text">WisCore</span>
             <i class="fas fa-bars toggle-icon"></i>
         </div>
 
@@ -1064,7 +1064,7 @@
             ?>
             <div class="top-navbar">
                 <div class="top-navbar-left">
-                    <div class="top-navbar-title"><?php echo e($topbarTitle ?: 'VnB Platform'); ?></div>
+                    <div class="top-navbar-title"><?php echo e($topbarTitle ?: 'WisCore'); ?></div>
                     <?php if($topbarSubtitle !== ''): ?>
                     <div class="top-navbar-subtitle"><?php echo e($topbarSubtitle); ?></div>
                     <?php endif; ?>
@@ -1136,7 +1136,7 @@
 
     <footer class="bg-white/70 backdrop-filter backdrop-blur-xl border-t border-gray-200/50 mt-auto">
         <div class="max-w-7xl mx-auto py-6 px-6">
-            <p class="text-gray-500 text-center text-xs font-medium">© 2026 Wismilak VnB Platform • Powered by Modern Tech Stack</p>
+            <p class="text-gray-500 text-center text-xs font-medium">© 2026 WisCore • Powered by Modern Tech Stack</p>
         </div>
     </footer>
 

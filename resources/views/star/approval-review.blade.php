@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'STAR Approval Review - VnB Platform')
+@section('title', 'STAR Approval Review - WisCore')
 @section('page_title', 'STAR Approval Review')
 @section('page_subtitle', 'Review pengajuan STAR dalam satu halaman sederhana.')
 

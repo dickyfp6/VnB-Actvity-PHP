@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'STAR Dashboard - VnB Platform')
+@section('title', 'STAR Dashboard - WisCore')
 @section('page_title', 'STAR Dashboard')
 @section('page_subtitle', 'Top 5 employee dan top 5 departemen berdasarkan points STAR yang approved.')
 

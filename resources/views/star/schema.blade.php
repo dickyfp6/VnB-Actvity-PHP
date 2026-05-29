@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'STAR Framework - VnB Platform')
+@section('title', 'STAR Framework - WisCore')
 @section('page_title', 'STAR Framework')
 
 @section('content')

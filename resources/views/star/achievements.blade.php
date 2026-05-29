@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'STAR Achievements - VnB Platform')
+@section('title', 'STAR Achievements - WisCore')
 @section('page_title', 'STAR Achievements')
 
 @section('content')

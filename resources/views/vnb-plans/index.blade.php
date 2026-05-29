@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Rencana VnB - VnB Platform')
+@section('title', 'Rencana VnB - WisCore')
 @section('page_title', 'Rencana VnB')
 @section('page_subtitle', 'Susun rencana pengembangan nilai dan perilaku untuk periode berjalan.')
 

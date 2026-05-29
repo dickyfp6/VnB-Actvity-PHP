@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'VNB Participants - VnB Platform')
+@section('title', 'VNB Participants - WisCore')
 @section('page_title', 'VNB Participants')
 
 @section('content')

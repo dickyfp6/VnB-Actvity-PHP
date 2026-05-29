@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - VnB Platform')
+@section('title', 'Dashboard - WisCore')
 
 @section('content')
 <div class="space-y-6">

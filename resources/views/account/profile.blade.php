@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title','Profil Akun - VnB Platform')
+@section('title','Profil Akun - WisCore')
 @section('page_title','Profil Akun')
 @section('page_subtitle','Lihat informasi personal dan detail akun yang sedang digunakan.')
 
