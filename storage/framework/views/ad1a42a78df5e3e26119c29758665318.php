@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('title', 'STAR Dashboard - VnB Platform')
-@section('page_title', 'STAR Dashboard')
-@section('page_subtitle', 'Top 5 employee dan top 5 departemen berdasarkan points STAR yang approved.')
 
-@section('content')
+<?php $__env->startSection('title', 'STAR Dashboard - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'STAR Dashboard'); ?>
+<?php $__env->startSection('page_subtitle', 'Top 5 employee dan top 5 departemen berdasarkan points STAR yang approved.'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6">
 	<div id="star-dashboard-shell" class="grid gap-6 xl:grid-cols-2">
 		<section class="rounded-3xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur">
@@ -129,4 +129,6 @@ async function loadStarDashboard() {
 
 document.addEventListener('DOMContentLoaded', loadStarDashboard);
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/star/index.blade.php ENDPATH**/ ?>

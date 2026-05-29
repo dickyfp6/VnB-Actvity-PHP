@@ -404,8 +404,18 @@ async function loadReviewPage() {
 				const btnReject = document.getElementById('review-reject-btn');
 				if (btnReject) btnReject.addEventListener('click', () => openRejectModal(reviewIds));
 			} else {
+				const isRejected = ['rejected', 'ditolak'].includes(normalizedStatus);
 				const notes = data.approval_notes || data.notes || '';
-				actionPlaceholder.innerHTML = `
+				actionPlaceholder.innerHTML = isRejected ? `
+					<div class="w-full pt-4">
+						<div class="border-t border-gray-200"></div>
+
+						<div class="mt-4 w-full">
+							<div class="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Catatan Ditolak</div>
+							<div class="mt-1 text-base text-gray-900 leading-7 text-left">${notes ? escapeHtml(notes) : '-'}</div>
+						</div>
+					</div>
+				` : `
 					<div class="w-full pt-4">
 						<div class="border-t border-gray-200"></div>
 

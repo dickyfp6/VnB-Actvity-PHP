@@ -17,6 +17,8 @@ Route::middleware('auth')->group(function () {
     // ==================== DASHBOARD ====================
     Route::get('/', [PageController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard', [PageController::class, 'dashboard'])->name('dashboard.alt');
+    Route::get('/dashboard/vnb', [PageController::class, 'dashboard'])->name('dashboard.vnb');
+    Route::get('/dashboard/star', [PageController::class, 'star'])->name('dashboard.star');
     
     // ==================== ROOT LEVEL ROUTES ====================
     // /sinkronisasi - PCX, Intercomm

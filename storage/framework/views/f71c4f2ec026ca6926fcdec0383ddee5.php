@@ -916,10 +916,24 @@
         <nav>
             <!-- BERANDA Section -->
             <p class="nav-section-title">BERANDA</p>
-            <a href="/" class="nav-link <?php echo e(request()->is('/') ? 'active' : ''); ?>" title="Dashboard">
+            <?php
+                $isDashboardOpen = request()->is('/') || request()->is('dashboard*');
+            ?>
+            <div class="nav-link dashboard-parent" id="dashboardParent" title="Dashboard">
                 <i class="fas fa-chart-line w-5 flex-shrink-0"></i>
                 <span>Dashboard</span>
-            </a>
+                <i id="dashboardExpandIcon" class="fas fa-chevron-down ml-auto text-sm" style="opacity:0.8; transform: <?php echo e($isDashboardOpen ? 'rotate(180deg)' : 'rotate(0deg)'); ?>;"></i>
+            </div>
+            <div id="dashboardSubmenu" style="display: <?php echo e($isDashboardOpen ? 'block' : 'none'); ?>; margin-left: 0.5rem; margin-top: 0.35rem; margin-bottom: 0.35rem;">
+                <a href="/dashboard/vnb" class="nav-link ml-2 <?php echo e(request()->is('/') || request()->is('dashboard/vnb*') ? 'active' : ''); ?>" title="Dashboard VnB" style="padding-left: 2rem;">
+                    <i class="fas fa-tasks w-4 flex-shrink-0"></i>
+                    <span>VnB</span>
+                </a>
+                <a href="/dashboard/star" class="nav-link ml-2 <?php echo e(request()->is('dashboard/star*') ? 'active' : ''); ?>" title="Dashboard STAR" style="padding-left: 2rem;">
+                    <i class="fas fa-star w-4 flex-shrink-0"></i>
+                    <span>STAR</span>
+                </a>
+            </div>
 
             <?php if(in_array($activeRole, ['intercomm', 'pcx_manager'])): ?>
             <a href="/sinkronisasi" class="nav-link <?php echo e(request()->is('sinkronisasi*') ? 'active' : ''); ?>" title="Sinkronisasi Data">
@@ -1896,6 +1910,32 @@
             }
         });
     });
+
+    // Dashboard submenu toggle
+    const dashboardParent = document.getElementById('dashboardParent');
+    const dashboardSubmenu = document.getElementById('dashboardSubmenu');
+    const dashboardExpandIcon = document.getElementById('dashboardExpandIcon');
+    if (dashboardParent && dashboardSubmenu) {
+        dashboardParent.style.cursor = 'pointer';
+        dashboardParent.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            // don't open submenu when sidebar is collapsed; instead expand sidebar
+            if (isCollapsed && window.innerWidth >= 1024) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('sidebar-collapsed');
+                localStorage.setItem('sidebarCollapsed', 'false');
+                updateBadgeDotVisibility();
+                return;
+            }
+
+            const isOpen = dashboardSubmenu.style.display !== 'none';
+            dashboardSubmenu.style.display = isOpen ? 'none' : 'block';
+            if (dashboardExpandIcon) {
+                dashboardExpandIcon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        });
+    }
 
     function closeModalOverlay(overlay) {
         if (!overlay) return;

@@ -46,9 +46,34 @@
 	</div>
 </div>
 
+<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+	<div class="absolute inset-0 bg-black/40"></div>
+	<div class="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+		<button id="reject-modal-close" class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700" aria-label="Tutup">×</button>
+		<div class="p-6 pr-4">
+			<div class="space-y-2">
+				<h3 class="text-lg font-bold text-gray-900">Tolak Pengajuan</h3>
+				<p class="text-sm text-gray-500">Tambahkan alasan penolakan sebelum melanjutkan.</p>
+			</div>
+			<div class="mt-4 space-y-3">
+				<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Penolakan akan diterapkan ke pengajuan yang dipilih.</div>
+				<div>
+					<label for="reject-reason" class="text-xs font-medium uppercase tracking-wide text-gray-500">Alasan Penolakan</label>
+					<textarea id="reject-reason" rows="4" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100" placeholder="Tulis alasan penolakan di sini"></textarea>
+				</div>
+				<div class="flex items-center justify-end gap-2 pt-2">
+					<button id="reject-modal-cancel" type="button" class="inline-flex items-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Batal</button>
+					<button id="reject-modal-confirm" type="button" class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Tolak</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
 <?php $__env->startPush('scripts'); ?>
 <script>
 const starApprovalReviewUrl = <?php echo json_encode(route('star.star-approval.review'), 15, 512) ?>;
+let pendingRejectIds = [];
 
 function updateStarSummary(items = []) {
 	const achievementsEl = document.getElementById('star-summary-achievements');
@@ -281,33 +306,73 @@ async function loadStarApprovals() {
 		});
 
 		document.getElementById('modal-reject').addEventListener('click', async () => {
-			const reason = prompt('Masukkan alasan penolakan:');
-			if (!reason) return;
-			const resp = await apiPost(`/api/star/approvals/${id}/reject`, { rejection_reason: reason });
-			if (resp && resp.success) {
-				alert('Pengajuan ditolak');
-				hideModal();
-				loadStarApprovals();
-			} else {
-				alert('Gagal reject: ' + (resp?.message || ''));
-			}
+			openRejectModal([id]);
 		});
+	}
+
+	function createRejectModal() {
+		const modal = document.getElementById('reject-modal');
+		if (!modal || modal.dataset.bound === '1') return;
+		const closeBtn = document.getElementById('reject-modal-close');
+		const cancelBtn = document.getElementById('reject-modal-cancel');
+		const confirmBtn = document.getElementById('reject-modal-confirm');
+		if (closeBtn) closeBtn.addEventListener('click', hideRejectModal);
+		if (cancelBtn) cancelBtn.addEventListener('click', hideRejectModal);
+		if (confirmBtn) confirmBtn.addEventListener('click', submitRejectModal);
+		modal.addEventListener('click', (ev) => { if (ev.target === modal) hideRejectModal(); });
+		modal.dataset.bound = '1';
+	}
+
+	function showRejectModal() {
+		const modal = document.getElementById('reject-modal');
+		if (modal) modal.classList.remove('hidden');
+	}
+
+	function hideRejectModal() {
+		const modal = document.getElementById('reject-modal');
+		if (modal) modal.classList.add('hidden');
+	}
+
+	function openRejectModal(ids) {
+		pendingRejectIds = Array.isArray(ids) ? ids.filter(Boolean) : [];
+		createRejectModal();
+		const reasonField = document.getElementById('reject-reason');
+		if (reasonField) reasonField.value = '';
+		showRejectModal();
+		if (reasonField) reasonField.focus();
+	}
+
+	async function submitRejectModal() {
+		const reasonField = document.getElementById('reject-reason');
+		const reason = String(reasonField?.value || '').trim();
+		if (!reason) {
+			alert('Masukkan alasan penolakan terlebih dahulu.');
+			if (reasonField) reasonField.focus();
+			return;
+		}
+		if (!pendingRejectIds.length) {
+			hideRejectModal();
+			return;
+		}
+
+		for (const id of pendingRejectIds) {
+			const resp = await apiPost(`/api/star/approvals/${id}/reject`, { rejection_reason: reason });
+			if (!resp || resp.success !== true) {
+				alert('Gagal reject untuk id ' + id + ': ' + (resp?.message || ''));
+				return;
+			}
+		}
+
+		alert(pendingRejectIds.length > 1 ? 'Semua pengajuan di grup ditolak' : 'Pengajuan ditolak');
+		hideRejectModal();
+		loadStarApprovals();
 	}
 
 	document.querySelectorAll('.btn-reject').forEach(btn => {
 		btn.addEventListener('click', async (e) => {
 			const ids = (e.currentTarget.getAttribute('data-ids') || '').split(',').filter(Boolean);
 			if (!ids.length) return;
-			const reason = prompt('Masukkan alasan penolakan:');
-			if (!reason) return;
-			for (const id of ids) {
-				const resp = await apiPost(`/api/star/approvals/${id}/reject`, { rejection_reason: reason });
-				if (!resp || resp.success !== true) {
-					alert('Gagal reject untuk id ' + id + ': ' + (resp?.message || ''));
-					break;
-				}
-			}
-			loadStarApprovals();
+			openRejectModal(ids);
 		});
 	});
 }

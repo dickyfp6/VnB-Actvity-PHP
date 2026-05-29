@@ -111,6 +111,18 @@
 			</div>
 		</div>
 	</div>
+
+	<div id="rejected-notes-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+		<div class="absolute inset-0 bg-black opacity-40"></div>
+		<div class="relative bg-white rounded w-11/12 max-w-2xl p-6 shadow-lg">
+			<button id="rejected-notes-close" class="absolute top-3 right-3 px-3 py-1 rounded bg-gray-200">Close</button>
+			<div class="space-y-2">
+				<h3 class="text-lg font-bold text-gray-900">Catatan Ditolak</h3>
+				<p class="text-sm text-gray-500">Alasan penolakan dari approval.</p>
+			</div>
+			<div id="rejected-notes-content" class="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800 leading-7">Memuat...</div>
+		</div>
+	</div>
 </div>
 <?php $__env->stopSection(); ?>
 
@@ -118,6 +130,15 @@
 <script>
 let recognitionRows = [];
 let pendingRejectIds = [];
+
+function escapeHtml(value) {
+	return String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
 
 function updateRecognitionSummary(items = []) {
 	const totalEl = document.getElementById('recognition-summary-total');
@@ -209,6 +230,10 @@ function renderRecognitionTable(items) {
 		const scoreValue = item.total_points !== null && item.total_points !== undefined && item.total_points !== ''
 			? Number(item.total_points).toFixed(2)
 			: '-';
+		const rejectionNotes = String(item.approval_notes || item.notes || '').trim();
+		const rejectedNotesButton = ['rejected', 'ditolak'].includes(String(item.status || '').toLowerCase()) && rejectionNotes
+			? `<button type="button" data-rejected-notes="${escapeHtml(rejectionNotes)}" class="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100">Catatan Ditolak</button>`
+			: '';
 		const actionHref = item.status === 'draft' && item.draft_group
 			? `/star/recognition/create?group=${encodeURIComponent(item.draft_group)}`
 			: '#';
@@ -236,7 +261,12 @@ function renderRecognitionTable(items) {
 					</div>
 				</td>
 				<td class="whitespace-nowrap px-5 py-4 text-sm"><span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}">${statusMeta.label}</span></td>
-				<td class="whitespace-nowrap px-5 py-4 text-sm"><a href="${item.draft_group ? '/star/recognition/create?group=' + encodeURIComponent(item.draft_group) : '#'}" class="inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">Lihat</a></td>
+				<td class="whitespace-nowrap px-5 py-4 text-sm">
+					<div class="flex flex-wrap items-center gap-2">
+						<a href="${item.draft_group ? '/star/recognition/create?group=' + encodeURIComponent(item.draft_group) : '#'}" class="inline-flex rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50">Lihat</a>
+						${rejectedNotesButton}
+					</div>
+				</td>
 			</tr>
 		`;
 	}).join('');
@@ -335,9 +365,12 @@ async function showReviewModal(id, ids) {
 			</div>`;
 		} else {
 			// Already decided: show final score and approval notes
+			const isRejected = ['rejected', 'ditolak'].includes(String(rec.status || '').toLowerCase());
 			const finalScore = rec.total_points ?? totalExpected;
 			const notes = rec.approval_notes ?? rec.notes ?? '';
-			html += `<div class="mt-4 space-y-2">
+			html += isRejected ? `<div class="mt-4 space-y-2">
+				<div><strong>Catatan Ditolak:</strong> ${notes ? escapeHtml(notes) : '<em>Tidak ada catatan</em>'}</div>
+			</div>` : `<div class="mt-4 space-y-2">
 				<div><strong>Skor Akhir:</strong> ${finalScore !== null ? escapeHtml(finalScore) : '-'}</div>
 				<div><strong>Catatan Persetujuan:</strong> ${notes ? escapeHtml(notes) : '<em>Tidak ada catatan</em>'}</div>
 			</div>`;
@@ -439,6 +472,22 @@ async function showReviewModal(id, ids) {
 		modal.classList.add('hidden');
 		const u = new URL(window.location.href); u.searchParams.delete('reviewId'); u.searchParams.delete('ids'); history.replaceState({}, '', u.toString());
 	});
+
+	const rejectedNotesModal = document.getElementById('rejected-notes-modal');
+	const rejectedNotesContent = document.getElementById('rejected-notes-content');
+	const rejectedNotesClose = document.getElementById('rejected-notes-close');
+	if (rejectedNotesModal && rejectedNotesContent && rejectedNotesClose) {
+		rejectedNotesClose.addEventListener('click', () => rejectedNotesModal.classList.add('hidden'));
+		rejectedNotesModal.addEventListener('click', (event) => {
+			if (event.target === rejectedNotesModal) rejectedNotesModal.classList.add('hidden');
+		});
+		document.querySelectorAll('[data-rejected-notes]').forEach((button) => {
+			button.addEventListener('click', () => {
+				rejectedNotesContent.textContent = button.getAttribute('data-rejected-notes') || '-';
+				rejectedNotesModal.classList.remove('hidden');
+			});
+		});
+	}
 }
 </script>
 <?php $__env->stopPush(); ?>

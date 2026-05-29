@@ -365,9 +365,12 @@ async function showReviewModal(id, ids) {
 			</div>`;
 		} else {
 			// Already decided: show final score and approval notes
+			const isRejected = ['rejected', 'ditolak'].includes(String(rec.status || '').toLowerCase());
 			const finalScore = rec.total_points ?? totalExpected;
 			const notes = rec.approval_notes ?? rec.notes ?? '';
-			html += `<div class="mt-4 space-y-2">
+			html += isRejected ? `<div class="mt-4 space-y-2">
+				<div><strong>Catatan Ditolak:</strong> ${notes ? escapeHtml(notes) : '<em>Tidak ada catatan</em>'}</div>
+			</div>` : `<div class="mt-4 space-y-2">
 				<div><strong>Skor Akhir:</strong> ${finalScore !== null ? escapeHtml(finalScore) : '-'}</div>
 				<div><strong>Catatan Persetujuan:</strong> ${notes ? escapeHtml(notes) : '<em>Tidak ada catatan</em>'}</div>
 			</div>`;

@@ -9,6 +9,7 @@ use App\Models\StarRecognitionResponse;
 use App\Models\StarSchema;
 use App\Models\StarSchemaIndicator;
 use App\Models\StarSchemaIndicatorOption;
+use App\Support\ActiveRoleContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -211,9 +212,7 @@ class StarController extends Controller
             }
         }
 
-        $recognitions = $query->get()->reject(function (StarRecognition $recognition) {
-            return in_array(strtolower((string) $recognition->status), ['rejected', 'ditolak'], true);
-        });
+        $recognitions = $query->get();
 
         $grouped = $recognitions->groupBy(function (StarRecognition $recognition) {
             if ($recognition->draft_group) {
@@ -660,6 +659,98 @@ class StarController extends Controller
         ]);
     }
 
+    public function dashboardOverview(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        abort_unless($user !== null, 401, 'Anda harus login untuk mengakses dashboard STAR.');
+
+        $activeRole = ActiveRoleContext::current($request, $user);
+
+        $query = StarRecognition::query()
+            ->with(['employee.department'])
+            ->where('status', 'approved');
+
+        if ($activeRole === 'employee') {
+            $employeeId = $user->employee?->id;
+            if ($employeeId) {
+                $query->where('employee_id', $employeeId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif ($activeRole === 'manager') {
+            $manager = $user->manager;
+            if ($manager) {
+                $employeeIds = Employee::query()
+                    ->where(function ($q) use ($manager) {
+                        $q->where('manager_functional_id', $manager->id)
+                            ->orWhere('manager_operational_id', $manager->id);
+                    })
+                    ->pluck('id');
+
+                $query->whereIn('employee_id', $employeeIds);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $recognitions = $query
+            ->orderByDesc('approved_at')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $topEmployees = $recognitions
+            ->groupBy('employee_id')
+            ->map(function ($items) {
+                $first = $items->first();
+                $employee = $first?->employee;
+
+                return [
+                    'label' => $employee?->name
+                        ?? $employee?->name_display
+                        ?? $employee?->full_name
+                        ?? $employee?->display_name
+                        ?? $employee?->employee_number
+                        ?? 'Employee #' . ($first?->employee_id ?? '-'),
+                    'points' => round($items->sum(fn (StarRecognition $recognition) => (float) ($recognition->total_points ?? 0)), 1),
+                ];
+            })
+            ->sortByDesc('points')
+            ->take(5)
+            ->values();
+
+        $topDepartments = $recognitions
+            ->groupBy(function (StarRecognition $recognition) {
+                return $recognition->employee?->department_id ?? 'none';
+            })
+            ->map(function ($items) {
+                $first = $items->first();
+
+                return [
+                    'label' => $first?->employee?->department?->name ?? 'Tanpa Departemen',
+                    'points' => round($items->sum(fn (StarRecognition $recognition) => (float) ($recognition->total_points ?? 0)), 1),
+                ];
+            })
+            ->sortByDesc('points')
+            ->take(5)
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'STAR dashboard overview',
+            'data' => [
+                'has_data' => $topEmployees->isNotEmpty() || $topDepartments->isNotEmpty(),
+                'active_role' => $activeRole,
+                'summary' => [
+                    'approved_count' => $recognitions->count(),
+                    'total_points' => round($recognitions->sum(fn (StarRecognition $recognition) => (float) ($recognition->total_points ?? 0)), 1),
+                ],
+                'top_employees' => $topEmployees->all(),
+                'top_departments' => $topDepartments->all(),
+            ],
+        ]);
+    }
+
     /**
      * Submit a new achievement
      */
@@ -891,11 +982,21 @@ class StarController extends Controller
         abort_unless(auth()->user()?->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama']), 403, 'Hanya PCX, Intercomm, dan Direktur Utama yang bisa menolak achievement.');
 
         $recognition = StarRecognition::findOrFail($id);
-        $recognition->delete();
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:2000',
+        ]);
+
+        $rejectionReason = trim((string) ($validated['rejection_reason'] ?? ''));
+        $recognition->status = 'rejected';
+        $recognition->rejection_reason = $rejectionReason;
+        $recognition->approval_notes = $rejectionReason;
+        $recognition->approved_at = null;
+        $recognition->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Achievement rejected and removed',
+            'message' => 'Achievement rejected',
             'data' => $recognition,
         ]);
     }

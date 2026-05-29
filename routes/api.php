@@ -38,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ==================== STAR ====================
     Route::prefix('star')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/dashboard', [StarController::class, 'dashboardOverview']);
+
         // Schema
         Route::get('/schema', [StarController::class, 'getSchema']);
         Route::post('/schema', [StarController::class, 'saveSchema']);

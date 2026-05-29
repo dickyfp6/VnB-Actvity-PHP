@@ -396,6 +396,7 @@ function openIntercommReviewModal() {
     const content = document.getElementById('intercomm-review-content');
     if (!modal || !content) return;
 
+    const currentStatus = String(draftDetail?.status || '').toLowerCase();
     const schema = draftSchema || {};
     const responses = Array.isArray(draftDetail?.responses) ? draftDetail.responses : [];
     const responseLookup = new Map(responses.map((item) => [String(item.star_schema_indicator_id), item]));
@@ -405,6 +406,20 @@ function openIntercommReviewModal() {
         : null;
     const adjustment = finalScoreValue !== null ? Number((finalScoreValue - baseScore).toFixed(2)) : 0;
     const notes = String(draftDetail?.approval_notes || draftDetail?.notes || '').trim();
+
+    if (['rejected', 'ditolak'].includes(currentStatus)) {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-medium uppercase tracking-wide text-gray-500">Catatan Intercomm</div>
+                    <div class="mt-1 text-sm text-gray-900 leading-7">${notes ? escapeHtml(notes) : '-'}</div>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        return;
+    }
 
     if (!schema || !Array.isArray(schema.indicators) || !schema.indicators.length) {
         content.innerHTML = '<div class="text-sm text-red-600">Skema tidak tersedia.</div>';
@@ -822,6 +837,11 @@ function setReadOnlyMode(shouldBeReadOnly) {
     const reviewFooter = document.getElementById('intercomm-review-footer');
     if (reviewFooter) {
         reviewFooter.classList.toggle('hidden', !isReadOnlyMode);
+    }
+
+    const reviewBtn = document.getElementById('intercomm-review-btn');
+    if (reviewBtn) {
+        reviewBtn.querySelector('span:last-child')?.replaceChildren(document.createTextNode(isReadOnlyMode && String(draftDetail?.status || '').toLowerCase() === 'rejected' ? 'Lihat Catatan' : 'Lihat Penilaian'));
     }
 
     updateActionButtons();
