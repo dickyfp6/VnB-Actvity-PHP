@@ -104,11 +104,16 @@
             flex-shrink: 0;
         }
 
-        .sidebar.collapsed #manager-approval-badge-dot {
+        .sidebar.collapsed #manager-approval-badge-dot,
+        .sidebar.collapsed #star-approval-badge-dot {
             display: block !important;
         }
 
         #manager-approval-badge-dot {
+            display: none;
+        }
+
+        #star-approval-badge-dot {
             display: none;
         }
 
@@ -120,8 +125,14 @@
             display: none;
         }
         
-        .sidebar.collapsed #manager-approval-badge-dot.hidden {
-            display: block !important;
+        .sidebar.collapsed #manager-approval-badge,
+        .sidebar.collapsed #star-approval-badge {
+            display: none !important;
+        }
+
+        .sidebar:not(.collapsed) #manager-approval-badge-dot,
+        .sidebar:not(.collapsed) #star-approval-badge-dot {
+            display: none !important;
         }
 
         #expandIcon {
@@ -970,8 +981,12 @@
 
             @if(in_array($activeRole, ['pcx_manager', 'intercomm', 'direktur_utama']))
             <a href="/star/star-approval" class="nav-link {{ request()->is('star/star-approval*') ? 'active' : '' }}" title="Approval">
-                <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
+                <div style="position: relative; display: inline-block;">
+                    <i class="fas fa-clipboard-check w-5 flex-shrink-0"></i>
+                    <span id="star-approval-badge-dot" class="absolute w-2 h-2 rounded-full bg-red-600" style="display: none; top: -4px; right: -4px; z-index: 10;"></span>
+                </div>
                 <span>Approval</span>
+                <span id="star-approval-badge" class="ml-auto w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center hidden" style="background-color: white; color: white; min-width: unset; font-size: 10px;">0</span>
             </a>
             @endif
 
@@ -1776,9 +1791,7 @@
     // Function to handle badge dot visibility based on sidebar state
     function updateBadgeDotVisibility() {
         const badgeDot = document.getElementById('manager-approval-badge-dot');
-        if (!badgeDot) { 
-            return; 
-        }
+        const starBadgeDot = document.getElementById('star-approval-badge-dot');
         
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) { 
@@ -1790,10 +1803,8 @@
         const hasRequests = badgeElement && !badgeElement.classList.contains('hidden');
 
         // Show dot only if sidebar collapsed AND has requests
-        if (isSidebarCollapsed && hasRequests) {
-            badgeDot.style.display = 'block';
-        } else {
-            badgeDot.style.display = 'none';
+        if (badgeDot) {
+            badgeDot.style.display = (isSidebarCollapsed && hasRequests) ? 'block' : 'none';
         }
 
         const syncBadgeDot = document.getElementById('sync-pending-badge-dot');
@@ -1801,6 +1812,12 @@
         const hasSyncPending = syncBadge && !syncBadge.classList.contains('hidden');
         if (syncBadgeDot) {
             syncBadgeDot.style.display = (isSidebarCollapsed && hasSyncPending) ? 'block' : 'none';
+        }
+
+        const starBadge = document.getElementById('star-approval-badge');
+        const hasStarRequests = starBadge && !starBadge.classList.contains('hidden');
+        if (starBadgeDot) {
+            starBadgeDot.style.display = (isSidebarCollapsed && hasStarRequests) ? 'block' : 'none';
         }
     }
 
@@ -1974,8 +1991,43 @@
         }
     }
 
+    async function hydrateStarApprovalBadge() {
+        const badge = document.getElementById('star-approval-badge');
+
+        if (!badge) {
+            return;
+        }
+
+        try {
+            const res = await apiGet('/api/star/approvals');
+
+            if (!(res && res.success === true && res.data)) {
+                badge.classList.add('hidden');
+                updateBadgeDotVisibility();
+                return;
+            }
+
+            const items = res.data || [];
+            const pendingStatuses = ['submitted', 'pending_approval', 'waiting_approval', 'waiting_manager_approval', 'diajukan'];
+            const count = items.filter(item => pendingStatuses.includes(String(item?.status || '').toLowerCase())).length;
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.style.backgroundColor = '#dc2626';
+                badge.style.color = 'white';
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            updateBadgeDotVisibility();
+        } catch (e) {
+            console.error('Error hydrating star approval badge:', e);
+        }
+    }
+
     // Initial hydration
     hydrateManagerApprovalBadge();
+    hydrateStarApprovalBadge();
     hydrateSyncPendingBadge();
     
     // Update badge dot visibility on init
@@ -1983,6 +2035,7 @@
     
     // Polling interval - update badge every 5 seconds
     setInterval(hydrateManagerApprovalBadge, 5000);
+    setInterval(hydrateStarApprovalBadge, 5000);
     setInterval(hydrateSyncPendingBadge, 10000);
     </script>
     @stack('scripts')

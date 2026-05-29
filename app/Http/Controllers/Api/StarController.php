@@ -211,7 +211,9 @@ class StarController extends Controller
             }
         }
 
-        $recognitions = $query->get();
+        $recognitions = $query->get()->reject(function (StarRecognition $recognition) {
+            return in_array(strtolower((string) $recognition->status), ['rejected', 'ditolak'], true);
+        });
 
         $grouped = $recognitions->groupBy(function (StarRecognition $recognition) {
             if ($recognition->draft_group) {
@@ -246,10 +248,14 @@ class StarController extends Controller
             })->values()->all();
 
             $status = 'draft';
-            if ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['rejected', 'ditolak'], true))) {
+            if ($items->every(fn (StarRecognition $recognition) => in_array($recognition->status, ['approved', 'disetujui'], true))) {
+                $status = 'approved';
+            } elseif ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['rejected', 'ditolak'], true))) {
                 $status = 'rejected';
-            } elseif ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['submitted', 'pending_approval', 'approved'], true))) {
+            } elseif ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['submitted', 'pending_approval'], true))) {
                 $status = 'submitted';
+            } elseif ($items->contains(fn (StarRecognition $recognition) => in_array($recognition->status, ['approved', 'disetujui'], true))) {
+                $status = 'approved';
             }
 
             return [
@@ -402,9 +408,15 @@ class StarController extends Controller
                 'responses' => $first->responses->map(fn (StarRecognitionResponse $response) => [
                     'star_schema_indicator_id' => $response->star_schema_indicator_id,
                     'star_schema_indicator_option_id' => $response->star_schema_indicator_option_id,
+                    'response_score' => (float) ($response->response_score ?? 0),
                 ])->values()->all(),
                 'schema' => $schema,
                 'status' => $first->status,
+                'approval_notes' => $first->approval_notes,
+                'notes' => $first->approval_notes,
+                'total_points' => $first->total_points !== null
+                    ? (float) $first->total_points
+                    : $first->responses->sum(fn (StarRecognitionResponse $response) => (float) ($response->response_score ?? 0)),
             ],
         ]);
     }
@@ -875,21 +887,15 @@ class StarController extends Controller
      */
     public function reject(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'rejection_reason' => 'required|string',
-        ]);
-
         // Authorize: PCX, Intercomm, Direktur Utama only
         abort_unless(auth()->user()?->hasAnyRole(['pcx_manager', 'intercomm', 'direktur_utama']), 403, 'Hanya PCX, Intercomm, dan Direktur Utama yang bisa menolak achievement.');
 
         $recognition = StarRecognition::findOrFail($id);
-        $recognition->status = 'rejected';
-        $recognition->rejection_reason = $request->input('rejection_reason');
-        $recognition->save();
+        $recognition->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Achievement rejected',
+            'message' => 'Achievement rejected and removed',
             'data' => $recognition,
         ]);
     }

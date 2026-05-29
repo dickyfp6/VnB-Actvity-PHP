@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('title', 'Ajukan Recognition - VnB Platform')
-@section('page_title', 'Tambah Ajuan')
-@section('page_subtitle', '')
 
-@section('content')
+<?php $__env->startSection('title', 'Ajukan Recognition - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'Tambah Ajuan'); ?>
+<?php $__env->startSection('page_subtitle', ''); ?>
+
+<?php $__env->startSection('content'); ?>
 <style>
     .star-input {
         border-width: 2px;
@@ -86,7 +86,7 @@
                 <h3 class="text-lg font-bold text-gray-900">Tambah Ajuan</h3>
                 <p class="text-sm text-gray-500">Simpan draft dulu, lalu lengkapi dokumen, dokumentasi, dan skema di bawah.</p>
             </div>
-            <a href="{{ route('star.recognition') }}" class="rounded-full border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Kembali</a>
+            <a href="<?php echo e(route('star.recognition')); ?>" class="rounded-full border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Kembali</a>
         </div>
 
         <div id="form-alert" class="hidden rounded-xl p-3 text-sm"></div>
@@ -203,12 +203,12 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
-const managerId = @json(auth()->user()?->manager?->id);
-const currentDraftGroup = @json(request('group'));
+const managerId = <?php echo json_encode(auth()->user()?->manager?->id, 15, 512) ?>;
+const currentDraftGroup = <?php echo json_encode(request('group'), 15, 512) ?>;
 let employeeOptions = [];
 let selectedEmployeeIds = [];
 let draftSchema = null;
@@ -1160,4 +1160,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateActionButtons();
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/star/create.blade.php ENDPATH**/ ?>

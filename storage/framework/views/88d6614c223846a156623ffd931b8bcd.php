@@ -5,6 +5,26 @@
 
 <?php $__env->startSection('content'); ?>
 <div class="px-4 space-y-4">
+	<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+		<div class="rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 shadow-sm">
+			<div class="flex items-center justify-between gap-3">
+				<div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Achievement</div>
+				<div id="star-summary-achievements" class="text-2xl font-bold text-slate-900">-</div>
+			</div>
+		</div>
+		<div class="rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 shadow-sm">
+			<div class="flex items-center justify-between gap-3">
+				<div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Employee</div>
+				<div id="star-summary-employees" class="text-2xl font-bold text-slate-900">-</div>
+			</div>
+		</div>
+		<div class="rounded-2xl border border-emerald-100 bg-white/90 px-4 py-3 shadow-sm">
+			<div class="flex items-center justify-between gap-3">
+				<div class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Total Skor</div>
+				<div id="star-summary-score" class="text-2xl font-bold text-slate-900">-</div>
+			</div>
+		</div>
+	</div>
 	<div class="overflow-x-auto">
 		<table class="table-modern w-max min-w-full" style="table-layout: auto;">
 			<thead class="bg-emerald-50">
@@ -30,6 +50,34 @@
 <script>
 const starApprovalReviewUrl = <?php echo json_encode(route('star.star-approval.review'), 15, 512) ?>;
 
+function updateStarSummary(items = []) {
+	const achievementsEl = document.getElementById('star-summary-achievements');
+	const employeesEl = document.getElementById('star-summary-employees');
+	const scoreEl = document.getElementById('star-summary-score');
+
+	const totalAchievements = items.length;
+	const uniqueEmployees = new Set();
+	let totalScore = 0;
+
+	items.forEach((item) => {
+		const employeeIds = Array.isArray(item.employee_ids) ? item.employee_ids : [];
+		employeeIds.forEach((employeeId) => {
+			if (employeeId !== null && employeeId !== undefined && employeeId !== '') {
+				uniqueEmployees.add(String(employeeId));
+			}
+		});
+
+		const scoreValue = Number(item.total_points);
+		if (!Number.isNaN(scoreValue)) {
+			totalScore += scoreValue;
+		}
+	});
+
+	if (achievementsEl) achievementsEl.textContent = totalAchievements.toLocaleString('id-ID');
+	if (employeesEl) employeesEl.textContent = uniqueEmployees.size.toLocaleString('id-ID');
+	if (scoreEl) scoreEl.textContent = totalScore.toFixed(2);
+}
+
 async function loadStarApprovals() {
 	const body = document.getElementById('star-approvals-body');
 	body.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Memuat data...</td></tr>';
@@ -41,6 +89,7 @@ async function loadStarApprovals() {
 	}
 
 	const items = res.data || [];
+	updateStarSummary(items);
 	if (!items.length) {
 		body.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">Tidak ada approval item</td></tr>';
 		return;
@@ -54,11 +103,27 @@ async function loadStarApprovals() {
 		return `<span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 border border-gray-200">${status || '-'}</span>`;
 	};
 
+	const approvalActionLabel = (status) => {
+		const normalized = String(status || '').toLowerCase();
+		if (normalized === 'approved') return 'Detail';
+		if (normalized === 'rejected') return 'Detail';
+		return 'Review';
+	};
+
+	const approvalActionClass = (status) => {
+		const normalized = String(status || '').toLowerCase();
+		if (normalized === 'approved') return 'inline-flex items-center px-3 py-1 rounded bg-emerald-600 text-white';
+		if (normalized === 'rejected') return 'inline-flex items-center px-3 py-1 rounded bg-gray-600 text-white';
+		return 'inline-flex items-center px-3 py-1 rounded bg-blue-600 text-white';
+	};
+
 		body.innerHTML = items.map(item => {
 		const date = item.activity_date || '-';
 		const manager = item.manager_name || '-';
 		const status = approvalStatusLabel(item.status);
 		const score = item.total_points !== null && item.total_points !== undefined ? Number(item.total_points).toFixed(2) : '-';
+		const actionLabel = approvalActionLabel(item.status);
+		const actionClass = approvalActionClass(item.status);
 
 		const employeeNamesText = (item.employee_names || []).join(', ');
 		const firstEmployeeId = (item.employee_ids && item.employee_ids.length) ? item.employee_ids[0] : '';
@@ -72,7 +137,7 @@ async function loadStarApprovals() {
 				<td class="px-4 py-3 whitespace-nowrap font-semibold text-green-700">${score}</td>
 				<td class="px-4 py-3 whitespace-nowrap">${status}</td>
 				<td class="px-4 py-3 whitespace-nowrap flex gap-2 justify-center">
-						<a href="${item.draft_group ? (starApprovalReviewUrl + '?group=' + encodeURIComponent(item.draft_group)) : (starApprovalReviewUrl + '?reviewId=' + item.recognition_ids[0]) }" class="inline-flex items-center px-3 py-1 rounded bg-blue-600 text-white">Review</a>
+						<a href="${item.draft_group ? (starApprovalReviewUrl + '?group=' + encodeURIComponent(item.draft_group)) : (starApprovalReviewUrl + '?reviewId=' + item.recognition_ids[0]) }" class="${actionClass}">${actionLabel}</a>
 				</td>
 			</tr>
 			`;
@@ -175,6 +240,7 @@ async function loadStarApprovals() {
 		`;
 
 		if (schema && (schema.indicators || []).length) {
+			const isApproved = String(rec.status || '').toLowerCase() === 'approved';
 			schema.indicators.forEach(ind => {
 				const resp = responsesByIndicator[ind.id];
 				html += `<div class="p-3 border rounded">
@@ -183,7 +249,8 @@ async function loadStarApprovals() {
 					<ul class="mt-1">`;
 					ind.options.forEach(opt => {
 						const selected = resp && resp.star_schema_indicator_option_id === opt.id;
-						html += `<li${selected? ' class="bg-green-50"':''}>${opt.label} — <strong>${opt.score}</strong>${selected? ' <span class="text-xs text-green-700">(dipilih)</span>':''}</li>`;
+						const selectedClass = selected ? (isApproved ? ' class="bg-green-50 text-green-800"' : ' class="bg-yellow-50 text-yellow-900"') : '';
+						html += `<li${selectedClass}>${opt.label} — <strong>${opt.score}</strong></li>`;
 					});
 					html += `</ul>
 				</div>`;

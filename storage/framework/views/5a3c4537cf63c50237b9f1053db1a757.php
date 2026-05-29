@@ -77,32 +77,14 @@
 
 			/* Ensure approval placeholder does not grow and stays tight to the right */
 			#review-content > .flex.items-center.justify-end > #approval-action-buttons-placeholder {
-				flex: 0 0 auto !important;
+				width: 100% !important;
 				margin-left: auto !important;
-				display: flex !important;
-				align-items: center !important;
-				gap: 0.5rem !important;
 			}
 
-			#approval-action-buttons-placeholder { flex: 0 0 auto; }
-
-			/* Force the approval placeholder to remain inline and not expand full width */
+			/* Keep the placeholder as a normal block container */
 			#approval-action-buttons-placeholder {
-				display: inline-flex !important;
-				width: auto !important;
-				justify-content: flex-end !important;
-				align-items: center !important;
-				gap: 0.5rem !important;
-			}
-
-			/* Ensure inner score block has no background/border/padding that separates it */
-			#approval-action-buttons-placeholder > div,
-			#approval-action-buttons-placeholder > div * {
-				background: transparent !important;
-				border: 0 !important;
-				padding: 0 !important;
-				margin: 0 !important;
-				box-shadow: none !important;
+				display: block !important;
+				width: 100% !important;
 			}
 
 			/* Restore nicer pill/button styles for badges and file links inside review */
@@ -148,6 +130,30 @@
 					<div id="approve-modal-content" class="max-h-[90vh] overflow-y-auto p-6 pr-4">Memuat...</div>
 				</div>
 			</div>
+
+			<div id="reject-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+				<div class="absolute inset-0 bg-black/40"></div>
+				<div class="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+					<button id="reject-modal-close" class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-700" aria-label="Tutup">×</button>
+					<div class="p-6 pr-4">
+						<div class="space-y-2">
+							<h3 class="text-lg font-bold text-gray-900">Tolak Pengajuan</h3>
+							<p class="text-sm text-gray-500">Tambahkan alasan penolakan sebelum melanjutkan.</p>
+						</div>
+						<div class="mt-4 space-y-3">
+							<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Penolakan akan diterapkan ke pengajuan yang sedang dibuka.</div>
+							<div>
+								<label for="reject-reason" class="text-xs font-medium uppercase tracking-wide text-gray-500">Alasan Penolakan</label>
+								<textarea id="reject-reason" rows="4" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100" placeholder="Tulis alasan penolakan di sini"></textarea>
+							</div>
+							<div class="flex items-center justify-end gap-2 pt-2">
+								<button id="reject-modal-cancel" type="button" class="inline-flex items-center rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Batal</button>
+								<button id="reject-modal-confirm" type="button" class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Tolak</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 	</div>
 </div>
 <?php $__env->stopSection(); ?>
@@ -155,6 +161,7 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
 const approvalListUrl = <?php echo json_encode(route('star.star-approval'), 15, 512) ?>;
+let pendingRejectIds = [];
 
 // ensure escapeHtml is available (some pages define it globally)
 if (typeof escapeHtml !== 'function') {
@@ -233,8 +240,8 @@ function reviewSchemaHtml(schema, responsesByIndicator) {
 		const options = (ind.options || []).map(opt => {
 			const selected = resp && resp.star_schema_indicator_option_id === opt.id;
 			return `
-				<div class="flex items-center justify-between gap-4 rounded-xl px-3 py-2 ${selected ? 'bg-green-50/70 text-green-800' : 'text-gray-700'}">
-					<div class="text-sm ${selected ? 'font-semibold' : 'text-gray-800'}">${opt.label}${selected ? ' <span class="text-green-700 text-xs font-semibold">(dipilih)</span>' : ''}</div>
+				<div class="flex items-center justify-between gap-4 rounded-xl px-3 py-2 ${selected ? 'bg-yellow-50 text-yellow-900' : 'text-gray-700'}">
+					<div class="text-sm ${selected ? 'font-semibold' : 'text-gray-800'}">${opt.label}</div>
 					<div class="text-sm font-bold text-green-600 tabular-nums">${opt.score}</div>
 				</div>
 			`;
@@ -376,7 +383,7 @@ async function loadReviewPage() {
 
 			<div class="border-t border-gray-200 pt-4">
 				<div class="mt-2 text-right">
-					<div id="approval-action-buttons-placeholder" class="inline-flex items-center justify-end gap-2" style="width:auto;">
+					<div id="approval-action-buttons-placeholder" class="w-full" style="width:100%;">
 						<!-- approval buttons inserted here conditionally -->
 					</div>
 				</div>
@@ -393,43 +400,32 @@ async function loadReviewPage() {
 				actionPlaceholder.innerHTML = `<button id="review-approve-btn" class="inline-flex items-center rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white">Approve</button>
 					<button id="review-reject-btn" class="inline-flex items-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Reject</button>`;
 				const btnApprove = document.getElementById('review-approve-btn');
-				if (btnApprove) btnApprove.addEventListener('click', () => openApproveModal(reviewIds, schema, responsesByIndicator));
+				if (btnApprove) btnApprove.addEventListener('click', () => openApproveModal(reviewIds, schema, responsesByIndicator, data.approval_notes || data.notes || ''));
 				const btnReject = document.getElementById('review-reject-btn');
-				if (btnReject) btnReject.addEventListener('click', async () => {
-					const reason = prompt('Masukkan alasan penolakan:');
-					if (!reason) return;
-					for (const rid of reviewIds) {
-						const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
-						const payload = await resp.json();
-						if (!resp.ok || !payload.success) {
-							alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
-							return;
-						}
-					}
-					alert('Semua pengajuan di grup ditolak');
-					location.reload();
-				});
+				if (btnReject) btnReject.addEventListener('click', () => openRejectModal(reviewIds));
 			} else {
-				// show final score, adjustment and approval notes (values right-aligned)
-				const finalScoreDisplay = typeof finalScore !== 'undefined' ? Number(finalScore) : null;
-				const adjustmentRaw = data.adjustment ?? data.approval_adjustment ?? data.adjustment_value ?? 0;
-				const adjustment = Number(adjustmentRaw) || 0;
-				const computedFinal = finalScoreDisplay !== null ? Number((finalScoreDisplay + adjustment).toFixed(2)) : null;
 				const notes = data.approval_notes || data.notes || '';
-
 				actionPlaceholder.innerHTML = `
-					<div style="float: right; margin: 0 0 0 0.5rem; padding:0; background:transparent; border:0; box-shadow:none;">
-						<div class="grid gap-4 items-center" style="grid-template-columns: 1fr auto; min-width: 10rem;">
-							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Penyesuaian Nilai</div>
-							<div class="text-sm font-semibold text-gray-900 text-right tabular-nums">${adjustment >= 0 ? '+' + adjustment : adjustment}</div>
+					<div class="w-full pt-4">
+						<div class="border-t border-gray-200"></div>
 
-							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Nilai Akhir</div>
-							<div class="text-sm font-bold text-gray-900 text-right tabular-nums">${computedFinal !== null ? computedFinal : '-'}</div>
+						<div class="mt-4 space-y-3 w-full">
+							<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 w-full">
+								<div class="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Penyesuaian Nilai</div>
+								<div class="text-sm font-semibold text-gray-900 text-right tabular-nums">+0</div>
+							</div>
+
+							<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 w-full">
+								<div class="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Nilai Akhir</div>
+								<div class="text-sm font-bold text-gray-900 text-right tabular-nums">${finalScore !== null ? finalScore.toFixed(2) : '-'}</div>
+							</div>
 						</div>
 
-						<div class="mt-3">
-							<div class="text-xs font-medium uppercase tracking-wide text-gray-500">Catatan</div>
-							<div class="mt-1 text-base text-gray-900 leading-7">${notes ? escapeHtml(notes) : '-'}</div>
+						<div class="h-4"></div>
+
+						<div class="w-full">
+							<div class="text-xs font-medium uppercase tracking-wide text-gray-500 text-left">Catatan</div>
+							<div class="mt-1 text-base text-gray-900 leading-7 text-left">${notes ? escapeHtml(notes) : '-'}</div>
 						</div>
 					</div>
 				`;
@@ -447,7 +443,59 @@ async function loadReviewPage() {
 		function showApproveModal() { const m = document.getElementById('approve-modal'); if (m) m.classList.remove('hidden'); }
 		function hideApproveModal() { const m = document.getElementById('approve-modal'); if (m) m.classList.add('hidden'); }
 
-		function openApproveModal(ids, schemaData, responsesByIndicator) {
+		function createRejectModal() {
+			const modal = document.getElementById('reject-modal');
+			if (!modal || modal.dataset.bound === '1') return;
+			const closeBtn = document.getElementById('reject-modal-close');
+			const cancelBtn = document.getElementById('reject-modal-cancel');
+			const confirmBtn = document.getElementById('reject-modal-confirm');
+			if (closeBtn) closeBtn.addEventListener('click', hideRejectModal);
+			if (cancelBtn) cancelBtn.addEventListener('click', hideRejectModal);
+			if (confirmBtn) confirmBtn.addEventListener('click', submitRejectModal);
+			modal.addEventListener('click', (ev) => { if (ev.target === modal) hideRejectModal(); });
+			modal.dataset.bound = '1';
+		}
+
+		function showRejectModal() { const m = document.getElementById('reject-modal'); if (m) m.classList.remove('hidden'); }
+		function hideRejectModal() { const m = document.getElementById('reject-modal'); if (m) m.classList.add('hidden'); }
+
+		function openRejectModal(ids) {
+			pendingRejectIds = Array.isArray(ids) ? ids.filter(Boolean) : [];
+			createRejectModal();
+			const reasonField = document.getElementById('reject-reason');
+			if (reasonField) reasonField.value = '';
+			showRejectModal();
+			if (reasonField) reasonField.focus();
+		}
+
+		async function submitRejectModal() {
+			const reasonField = document.getElementById('reject-reason');
+			const reason = String(reasonField?.value || '').trim();
+			if (!reason) {
+				alert('Masukkan alasan penolakan terlebih dahulu.');
+				if (reasonField) reasonField.focus();
+				return;
+			}
+			if (!pendingRejectIds.length) {
+				hideRejectModal();
+				return;
+			}
+
+			for (const rid of pendingRejectIds) {
+				const resp = await fetch(`/api/star/approvals/${rid}/reject`, { method: 'POST', credentials: 'same-origin', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ rejection_reason: reason }) });
+				const payload = await resp.json();
+				if (!resp.ok || !payload.success) {
+					alert('Gagal reject untuk id ' + rid + ': ' + (payload?.message || ''));
+					return;
+				}
+			}
+
+			alert(pendingRejectIds.length > 1 ? 'Semua pengajuan di grup ditolak' : 'Pengajuan ditolak');
+			hideRejectModal();
+			location.reload();
+		}
+
+		function openApproveModal(ids, schemaData, responsesByIndicator, initialNotes = '') {
 			createApproveModal();
 			const content = document.getElementById('approve-modal-content');
 			if (!content) return;
@@ -467,21 +515,29 @@ async function loadReviewPage() {
 			schemaData.indicators.forEach(ind => {
 				const resp = responsesByIndicator[ind.id];
 					const currentOption = (ind.options || []).find(opt => resp && resp.star_schema_indicator_option_id === opt.id) || (ind.options || [])[0] || null;
+					// determine trigger and label classes: if manager already selected (currentOption) show yellow
+					const hasManagerSelection = Boolean(currentOption);
+					const triggerBtnClass = hasManagerSelection ? 'flex w-full items-center justify-between gap-4 rounded-full border border-yellow-200 bg-yellow-50 px-4 py-3 text-left transition' : 'flex w-full items-center justify-between gap-4 rounded-full border border-gray-200 bg-white/50 px-4 py-3 text-left transition hover:border-gray-300 hover:bg-gray-50';
+					const labelClass = hasManagerSelection ? 'text-sm font-semibold text-yellow-900' : 'text-sm font-semibold text-gray-900';
+					const scoreSpanClass = hasManagerSelection ? 'inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-bold tabular-nums text-yellow-900' : 'inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-bold tabular-nums text-gray-900';
 					formHtml += `<div class="space-y-2">
 						<div class="text-sm font-medium text-gray-700">${ind.label}</div>
 						<div class="relative">
-							<button type="button" data-indicator-trigger="${ind.id}" class="flex w-full items-center justify-between gap-4 rounded-full border border-green-200 bg-green-50/70 px-4 py-3 text-left transition hover:border-green-300 hover:bg-green-100/70">
-								<span data-indicator-label="${ind.id}" class="text-sm font-semibold text-green-900">${currentOption ? currentOption.label : 'Pilih opsi'}</span>
-								<span data-indicator-score="${ind.id}" class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-bold tabular-nums text-green-700">${currentOption ? currentOption.score : '-'}</span>
+							<button type="button" data-indicator-trigger="${ind.id}" class="${triggerBtnClass}">
+								<span data-indicator-label="${ind.id}" class="${labelClass}">${currentOption ? currentOption.label : 'Pilih opsi'}</span>
+								<span data-indicator-score="${ind.id}" class="${scoreSpanClass}">${currentOption ? currentOption.score : '-'}</span>
 							</button>
 							<input type="hidden" data-indicator-id="${ind.id}" value="${currentOption ? currentOption.id : ''}">
 							<div data-indicator-menu="${ind.id}" class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
 								<div class="max-h-64 overflow-y-auto py-1">`;
 					(ind.options || []).forEach(opt => {
 						const selected = currentOption && currentOption.id === opt.id;
-						formHtml += `<button type="button" data-indicator-option="${ind.id}" data-option-id="${opt.id}" data-option-label="${escapeHtml(opt.label)}" data-option-score="${opt.score}" class="flex w-full items-center justify-between gap-4 px-4 py-2 text-left transition ${selected ? 'bg-green-50 text-green-800' : 'text-gray-700 hover:bg-gray-50'}">
+						// initial manager-selected options -> yellow. When intercomm clicks an option, JS will mark it green.
+						const optionClass = selected ? 'bg-yellow-50 text-yellow-900' : 'text-gray-700 hover:bg-gray-50';
+						const scoreClass = selected ? 'bg-yellow-100 text-yellow-900' : 'bg-transparent text-green-600';
+						formHtml += `<button type="button" data-indicator-option="${ind.id}" data-option-id="${opt.id}" data-option-label="${escapeHtml(opt.label)}" data-option-score="${opt.score}" class="flex w-full items-center justify-between gap-4 px-4 py-2 text-left transition ${optionClass}">
 							<span class="text-sm ${selected ? 'font-semibold' : ''}">${opt.label}</span>
-							<span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold tabular-nums ${selected ? 'bg-green-100 text-green-700' : 'bg-transparent text-green-600'}">${opt.score}</span>
+							<span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-bold tabular-nums ${scoreClass}">${opt.score}</span>
 						</button>`;
 					});
 					formHtml += `
@@ -495,7 +551,7 @@ async function loadReviewPage() {
 					<div class="grid grid-cols-2 gap-4 mt-2">
 						<div>
 							<label class="text-xs font-medium text-gray-500">Penyesuaian poin (opsional)</label>
-							<input type="number" step="0.1" id="approve-adjustment" class="w-full rounded border px-3 py-2" value="0">
+							<input type="number" step="0.1" id="approve-adjustment" class="w-full rounded-lg border px-3 py-2" value="0">
 						</div>
 						<div>
 							<label class="text-xs font-medium text-gray-500">Jumlah nilai (preview)</label>
@@ -504,11 +560,11 @@ async function loadReviewPage() {
 					</div>
 					<div class="mt-3">
 						<label class="text-xs font-medium text-gray-500">Catatan (opsional)</label>
-						<textarea id="approve-notes" rows="2" class="w-full rounded border px-3 py-2"></textarea>
+						<textarea id="approve-notes" rows="2" class="w-full rounded-lg border px-3 py-2">${escapeHtml(initialNotes)}</textarea>
 					</div>
 					<div class="mt-4 flex gap-2 justify-end">
-						<button type="button" id="approve-cancel" class="px-4 py-2 rounded bg-gray-200">Batal</button>
-						<button type="button" id="approve-confirm" class="px-4 py-2 rounded bg-green-700 text-white">Confirm Approve</button>
+						<button type="button" id="approve-cancel" class="px-4 py-2 rounded-lg bg-gray-200">Batal</button>
+						<button type="button" id="approve-confirm" class="px-4 py-2 rounded-lg bg-green-700 text-white">Approve</button>
 					</div>
 				</form>
 			</div>`;
@@ -548,6 +604,42 @@ async function loadReviewPage() {
 					if (scoreEl) scoreEl.textContent = optionScore;
 					closeAllDropdowns();
 					computeApproveTotal();
+
+					// Visual: mark selected option green for intercomm, and clear previous selections
+					const menu = option.closest('[data-indicator-menu]');
+					if (menu) {
+						menu.querySelectorAll('[data-indicator-option]').forEach(optBtn => {
+							// remove any selection classes (green or yellow)
+							optBtn.classList.remove('bg-green-50','text-green-800','bg-yellow-50','text-yellow-900','font-semibold');
+							const scoreSpan = optBtn.querySelector('span.inline-flex');
+							if (scoreSpan) {
+								scoreSpan.classList.remove('bg-green-100','text-green-700','bg-yellow-100','text-yellow-900');
+							}
+						});
+
+						// apply green classes to clicked option
+						option.classList.add('bg-green-50','text-green-800','font-semibold');
+						const myScoreSpan = option.querySelector('span.inline-flex');
+						if (myScoreSpan) myScoreSpan.classList.add('bg-green-100','text-green-700');
+
+						// update trigger button visuals to green (intercomm selection)
+						const triggerBtn = document.querySelector(`[data-indicator-trigger="${indicatorId}"]`);
+						if (triggerBtn) {
+							// remove yellow classes if present
+							triggerBtn.classList.remove('border-yellow-200','bg-yellow-50');
+							const lbl = triggerBtn.querySelector(`[data-indicator-label="${indicatorId}"]`);
+							const sc = triggerBtn.querySelector(`[data-indicator-score="${indicatorId}"]`);
+							if (lbl) {
+								lbl.classList.remove('text-yellow-900');
+								lbl.classList.add('text-green-800','font-semibold');
+							}
+							if (sc) {
+								sc.classList.remove('bg-yellow-100','text-yellow-900');
+								sc.classList.add('bg-green-100','text-green-700');
+							}
+							triggerBtn.classList.add('border-green-200','bg-green-50');
+						}
+					}
 				});
 			});
 

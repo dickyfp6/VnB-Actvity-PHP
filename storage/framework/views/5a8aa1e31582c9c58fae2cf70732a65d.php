@@ -1,10 +1,10 @@
-@extends('layouts.app')
 
-@section('title', 'STAR Recognition - VnB Platform')
-@section('page_title', 'STAR Recognition')
-@section('page_subtitle', 'Kelola daftar ajuan recognition dan buka skema STAR saat dibutuhkan.')
 
-@section('content')
+<?php $__env->startSection('title', 'STAR Recognition - VnB Platform'); ?>
+<?php $__env->startSection('page_title', 'STAR Recognition'); ?>
+<?php $__env->startSection('page_subtitle', 'Kelola daftar ajuan recognition dan buka skema STAR saat dibutuhkan.'); ?>
+
+<?php $__env->startSection('content'); ?>
 <div class="space-y-6 max-w-6xl mx-auto px-4">
 	<div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between xl:gap-6">
 		<div class="grid w-full grid-cols-1 gap-2 sm:grid-cols-3 xl:max-w-[660px] xl:flex-1">
@@ -34,7 +34,7 @@
 				</span>
 				STAR
 			</button>
-			<a href="{{ route('star.recognition.create') }}" class="inline-flex items-center gap-1.5 rounded-full bg-[#144600] px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 whitespace-nowrap">
+			<a href="<?php echo e(route('star.recognition.create')); ?>" class="inline-flex items-center gap-1.5 rounded-full bg-[#144600] px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 whitespace-nowrap">
 				<span class="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center overflow-hidden leading-none">
 					<i class="fas fa-plus text-xs"></i>
 				</span>
@@ -79,7 +79,7 @@
 		</div>
 	</div>
 
-	@include('star.partials.schema-preview-modal')
+	<?php echo $__env->make('star.partials.schema-preview-modal', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
 	<!-- Review modal for approvals -->
 	<div id="star-review-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
@@ -112,9 +112,9 @@
 		</div>
 	</div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 let recognitionRows = [];
 let pendingRejectIds = [];
@@ -441,4 +441,6 @@ async function showReviewModal(id, ids) {
 	});
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\USERR\Documents\0. Magang\Wismilak\VnB WebApp PHP\resources\views/star/recognition.blade.php ENDPATH**/ ?>
